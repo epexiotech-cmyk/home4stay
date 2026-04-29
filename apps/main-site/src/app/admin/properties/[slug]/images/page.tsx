@@ -1,7 +1,7 @@
 import { getPropertyOrThrow } from "@home4stay/data";
-import ImageForm from "../../../../components/ImageForm";
+import ImageForm from "@/components/ImageForm";
 import Link from "next/link";
-import LogoutButton from "../../../../components/LogoutButton";
+import LogoutButton from "@/components/LogoutButton";
 
 export default function ImageManagementPage({
   params,

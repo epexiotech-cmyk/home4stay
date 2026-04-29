@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
@@ -20,7 +21,6 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@home4stay/data": ["../../packages/data"]
     }
   },
   "include": [

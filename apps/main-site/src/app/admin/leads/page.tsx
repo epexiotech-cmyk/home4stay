@@ -1,20 +1,20 @@
 import fs from "fs";
 import path from "path";
-import LeadsList from "../../../components/LeadsList";
-import LogoutButton from "../../../components/LogoutButton";
+import LeadsList from "@/components/LeadsList";
+import LogoutButton from "@/components/LogoutButton";
 
 export default function LeadsDashboard() {
   const filePath = path.join(process.cwd(), "src/data/leads.json");
-  
+
   let leads = [];
-  
+
   try {
     if (fs.existsSync(filePath)) {
       const raw = fs.readFileSync(filePath, "utf-8");
       leads = raw ? JSON.parse(raw) : [];
     }
   } catch (err) {
-    console.error("Error reading leads:", err);
+    if (process.env.NODE_ENV !== "production") console.error("Error reading leads:", err);
     leads = [];
   }
 

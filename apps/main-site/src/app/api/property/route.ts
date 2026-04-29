@@ -1,136 +1,95 @@
 import fs from "fs";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import path from "path";
 import { PropertyMap } from "@home4stay/data";
+import { jwtVerify } from "jose";
+import { z } from "zod";
+import { validateCsrf, auditLog } from "@/lib/security";
+
+const isDev = process.env.NODE_ENV !== "production";
+const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
+const encodedSecret = new TextEncoder().encode(JWT_SECRET);
+
+const PropertySchema = z.object({
+  name: z.string().min(3).max(100),
+  location: z.string().min(3),
+  price: z.number().positive(),
+});
 
 const filePath = path.join(process.cwd(), "../../packages/data/property.json");
 
-// Helper to standardize display text with ultimate precision
-const smallWords = ["and", "or", "of", "in", "at", "to", "for", "the", "a", "an"];
-const acronyms = ["HP", "UK", "USA", "UAE"];
-
-function toSmartTitleCase(str: string) {
-  // Split by whitespace but keep the spaces in the array to preserve exact spacing/punctuation context
-  return str
-    .toLowerCase()
-    .split(/(\s+)/)
-    .map((word, i) => {
-      // 0. If it's just whitespace, return as is
-      if (/^\s+$/.test(word)) return word;
-      if (!word) return word;
-
-      // 1. Handle Numbers + Units (e.g., "3bhk" -> "3BHK")
-      if (/^\d+[a-z]+$/i.test(word)) return word.toUpperCase();
-
-      // 2. Check for Acronyms
-      const upperWord = word.toUpperCase();
-      if (acronyms.includes(upperWord)) return upperWord;
-
-      // 3. Skip Small Words (unless it's the first word of the string)
-      // i === 0 is the first element (which could be the first word)
-      if (i !== 0 && smallWords.includes(word)) return word;
-
-      // 4. Handle Hyphenated Words (e.g., "eco-friendly")
-      return word
-        .split("-")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("-");
-    })
-    .join("");
-}
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // 1. CSRF VALIDATION
+    if (!validateCsrf(request)) {
+      return NextResponse.json({ message: "Invalid CSRF token" }, { status: 403 });
+    }
+
+    // 2. AUTHENTICATION (Hard Gate)
+    const token = request.cookies.get('access-token')?.value;
+    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    let user: { username: string; role: string } | null = null;
+    try {
+      const { payload } = await jwtVerify(token, encodedSecret, { issuer: "home4stay", audience: "web" }) as { payload: { username: string; role: string } };
+      user = payload;
+      if (user.role !== "admin") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    } catch {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
+
+    // 3. INPUT VALIDATION
     const body = await request.json();
-    const { name, location, price } = body;
-
-    // 1. BASIC VALIDATION
-    if (!name || !location || !price || name.trim().length < 3) {
-      return NextResponse.json(
-        { message: "Invalid data. Name must be at least 3 characters." },
-        { status: 400 }
-      );
+    const validation = PropertySchema.safeParse(body);
+    if (!validation.success) {
+      if (isDev) console.log("❌ Property Validation Failed:", validation.error.format());
+      return NextResponse.json({ 
+        message: "Invalid input data", 
+        error: isDev ? validation.error.format() : undefined 
+      }, { status: 400 });
     }
 
-    // 2. INPUT NORMALIZATION & SMART TITLE CASING
-    const normalizedName = name.trim().replace(/\s+/g, " ");
-    const normalizedLocation = location.trim().replace(/\s+/g, " ");
-    
-    const cleanName = toSmartTitleCase(normalizedName);
-    const cleanLocation = toSmartTitleCase(normalizedLocation);
+    const { name, location, price } = validation.data;
 
-    // 3. PRICE VALIDATION
-    if (isNaN(Number(price)) || Number(price) <= 0) {
-      return NextResponse.json(
-        { message: "Invalid price. Must be a positive number." },
-        { status: 400 }
-      );
-    }
-
-    // 4. SLUG HARDENING (Based on normalized name)
-    const baseSlug = normalizedName
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "") // Remove special characters
-      .replace(/\s+/g, "-") // Replace spaces with -
-      .replace(/-+/g, "-"); // Replace multiple hyphens with single one
-
-    // 5. SAFE READ
+    // 4. DATA PROCESSING
     let data: PropertyMap = {};
     try {
-      const raw = fs.readFileSync(filePath, "utf-8");
-      data = raw ? JSON.parse(raw) : {};
-    } catch (err) {
-      console.error("Error reading properties file:", err);
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, "utf-8");
+        data = raw ? JSON.parse(raw) : {};
+      }
+    } catch {
       data = {};
     }
 
-    // 6. SLUG COLLISION HANDLING (Auto-increment)
-    let finalSlug = baseSlug;
+    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
+    let finalSlug = slug;
     let counter = 1;
     while (data[finalSlug]) {
-      finalSlug = `${baseSlug}-${counter}`;
-      counter++;
+      finalSlug = `${slug}-${counter++}`;
     }
 
-    // 7. ADD NEW PROPERTY
     data[finalSlug] = {
-      name: cleanName,
-      location: cleanLocation,
-      price: Number(price),
+      name,
+      location,
+      price,
       rating: 4.5,
       guests: "0+",
-      description: `Luxury stay at ${cleanName}`,
+      description: `New property: ${name}`,
       createdAt: new Date().toISOString(),
       images: [],
-      rooms: [
-        {
-          name: "Standard Room",
-          price: Number(price),
-          capacity: "2 Guests",
-          view: "City View"
-        }
-      ]
+      rooms: []
     };
 
-    // 8. ATOMIC SECURE WRITE
     const tempPath = filePath + ".tmp";
-    try {
-      fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
-      fs.renameSync(tempPath, filePath);
-    } catch (err) {
-      console.error("Critical Error saving property atomically:", err);
-      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-      return NextResponse.json(
-        { message: "Server error while saving property.", success: false },
-        { status: 500 }
-      );
-    }
+    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
+    fs.renameSync(tempPath, filePath);
 
-    console.log("🚀 NEW PROPERTY CREATED:", { slug: finalSlug, name: cleanName, time: data[finalSlug].createdAt });
+    auditLog(user.username, user.role, 'CREATE_PROPERTY', { slug: finalSlug });
 
-    return NextResponse.json({ message: "Success", success: true, slug: finalSlug }, { status: 201 });
-  } catch (error) {
-    console.error("API Error:", error);
+    return NextResponse.json({ success: true, slug: finalSlug }, { status: 201 });
+  } catch (err) {
+    if (isDev) console.warn("Property API Error:", err);
     return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }

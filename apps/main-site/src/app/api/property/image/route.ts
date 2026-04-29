@@ -1,13 +1,37 @@
 import fs from "fs";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import path from "path";
 import { PropertyMap } from "@home4stay/data";
 import sharp from "sharp";
+import { jwtVerify } from "jose";
 
+const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
+const encodedSecret = new TextEncoder().encode(JWT_SECRET);
 const dataFilePath = path.join(process.cwd(), "../../packages/data/property.json");
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // 0. AUTHENTICATION & SECURITY BOUNDARY (Hard Gate)
+    const token = request.cookies.get('access-token')?.value;
+
+    if (!token) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+      const { payload } = await jwtVerify(token, encodedSecret, {
+        issuer: "home4stay",
+        audience: "web",
+      });
+
+      // Role Check (Only admins can upload images)
+      if (payload.role !== "admin") {
+        return NextResponse.json({ message: "Forbidden: Admin access required" }, { status: 403 });
+      }
+    } catch {
+      return NextResponse.json({ message: "Invalid or expired token" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { slug, imageUrl } = body;
 

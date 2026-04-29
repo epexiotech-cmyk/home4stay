@@ -1,99 +1,76 @@
 import fs from "fs";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import path from "path";
+import { z } from "zod";
+import { rateLimit, auditLog } from "@/lib/security";
 
-interface Lead {
-  name: string;
-  phone: string;
-  property: string;
-  location: string;
-  time: string;
-}
+const isDev = process.env.NODE_ENV !== "production";
+
+const ContactSchema = z.object({
+  name: z.string().min(2).max(50),
+  phone: z.string().min(10).max(15),
+  property: z.string(),
+  location: z.string(),
+});
 
 const filePath = path.join(process.cwd(), "src/data/leads.json");
 
-// Ensure data directory exists
-const dirPath = path.dirname(filePath);
-if (!fs.existsSync(dirPath)) {
-  fs.mkdirSync(dirPath, { recursive: true });
-}
+export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
 
-// Ensure file exists
-if (!fs.existsSync(filePath)) {
-  fs.writeFileSync(filePath, JSON.stringify([]));
-}
+  // 1. Rate Limiting
+  if (!rateLimit(ip, 3)) {
+    return NextResponse.json({ message: "Too many requests. Please slow down." }, { status: 429 });
+  }
 
-export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, phone, property, location } = body;
 
-    // 1. BASIC RATE LIMIT / VALIDATION
-    if (!name || !phone || name.trim().length < 2 || phone.trim().length < 10) {
-      return NextResponse.json(
-        { message: "Invalid data. Please check all fields." },
-        { status: 400 }
-      );
+    // 2. Input Validation
+    const validation = ContactSchema.safeParse(body);
+    if (!validation.success) {
+      if (isDev) console.log("❌ Validation Error:", validation.error.format());
+      return NextResponse.json({ 
+        message: "Invalid form data", 
+        error: isDev ? validation.error.format() : undefined 
+      }, { status: 400 });
     }
 
-    // 2. SAFE READ (Handle empty/corrupted file)
-    let existingLeads: Lead[] = [];
+    const { name, phone, property, location } = validation.data;
+
+    // 3. READ DATA (Safe JSON Parsing)
+    let existingLeads = [];
     try {
-      const raw = fs.readFileSync(filePath, "utf-8");
-      existingLeads = raw ? JSON.parse(raw) : [];
-    } catch (err) {
-      console.error("Error reading leads file, starting fresh:", err);
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, "utf-8");
+        existingLeads = raw ? JSON.parse(raw) : [];
+      }
+    } catch {
       existingLeads = [];
     }
 
-    // 3. DUPLICATE LEAD PREVENTION
-    const isDuplicate = existingLeads.some(
-      (lead: Lead) => lead.phone === phone && lead.property === property
-    );
+    // 4. ARRAY SAFETY
+    if (!Array.isArray(existingLeads)) existingLeads = [];
 
+    // 5. DUPLICATE CHECK
+    const isDuplicate = existingLeads.some((l: { phone: string; property: string }) => l.phone === phone && l.property === property);
     if (isDuplicate) {
-      return NextResponse.json(
-        { message: "Request already submitted for this property.", success: true },
-        { status: 200 }
-      );
+      return NextResponse.json({ message: "Request already submitted", success: true }, { status: 200 });
     }
 
-    // 4. PREPARE LEAD
-    const newLead = {
-      name: name.trim(),
-      phone: phone.trim(),
-      property: property.trim(),
-      location: location.trim(),
-      time: new Date().toISOString(),
-    };
+    // 6. SAVE
+    const newLead = { name, phone, property, location, time: new Date().toISOString() };
+    existingLeads.unshift(newLead);
 
-    existingLeads.push(newLead);
-
-    // 5. SORT LEADS (Newest on top)
-    existingLeads.sort(
-      (a: Lead, b: Lead) => new Date(b.time).getTime() - new Date(a.time).getTime()
-    );
-
-    // 6. ATOMIC SECURE WRITE (Write to temp then rename)
     const tempPath = filePath + ".tmp";
-    try {
-      fs.writeFileSync(tempPath, JSON.stringify(existingLeads, null, 2));
-      fs.renameSync(tempPath, filePath);
-    } catch (err) {
-      console.error("Critical Error saving lead atomically:", err);
-      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); // Clean up temp file
-      return NextResponse.json(
-        { message: "Server error while saving lead.", success: false },
-        { status: 500 }
-      );
-    }
+    fs.writeFileSync(tempPath, JSON.stringify(existingLeads, null, 2));
+    fs.renameSync(tempPath, filePath);
 
-    // LOG DATA CLEARLY
-    console.log("🔥 NEW LEAD SAVED:", newLead);
+    auditLog('public', 'guest', 'CONTACT_FORM_SUBMITTED', { property, ip });
 
     return NextResponse.json({ message: "Success", success: true }, { status: 200 });
-  } catch (error) {
-    console.error("API Error:", error);
+  } catch (err) {
+    if (isDev) console.warn("Contact API Error:", err);
     return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }

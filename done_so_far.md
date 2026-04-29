@@ -4,6 +4,54 @@ This document provides a comprehensive breakdown of the Home4Stay monorepo archi
 
 ---
 
+## 🚀 Latest Update (2026-04-29)
+
+### 🔐 Authentication System
+- Implemented JWT-based dual-token system (Access + Refresh)
+- Added role-based access control (Admin, Partner)
+- Implemented secure cookies (HttpOnly, SameSite, Secure)
+- Added token expiry + refresh flow
+
+### 🛡️ Security Hardening
+- Added API-level `jwtVerify` (Hard Gate)
+- Implemented CSRF protection (double-submit pattern)
+- Added rate limiting for login, refresh, and contact APIs
+- Enforced strict Zod validation across all mutation endpoints
+
+### ⚡ Proxy Optimization
+- Migrated middleware → dedicated proxy architecture
+- Implemented lightweight `decodeJwt` validation for high-performance routing
+- Added role-based route guards and redirect logic
+- Added issuer (`iss`) and audience (`aud`) validation
+- Added clock skew tolerance (60s) for robust session handling
+- Implemented refresh-aware routing (allows silent refresh via API)
+
+### 📊 Audit Logging System
+- **Async Non-blocking Architecture**: Uses `fs.promises` to prevent event-loop blocking.
+- **Fire-and-Forget Logic**: Optimized APIs to trigger logging without adding request latency.
+- **Sequential Write Queue**: Ensures data integrity by serializing log writes, preventing race conditions.
+- **Multi-Pivot Rotation**: 
+  - Daily rotation (`audit-YYYY-MM-DD.log`).
+  - File size-based rotation (auto-parts if > 10MB).
+- **Structured JSON Logs**: Detailed schemas including `ts`, `userId`, `role`, `action`, and `rid`.
+- **Log Levels**: Support for `info`, `warn`, and `error` tiers.
+- **Request Correlation (RID)**: Unique IDs to track request lifecycles across logs.
+- **Safe Environment**: Logs stored in non-watched `/logs` directory with environment-aware guards (Dev + Prod).
+
+### 🧠 Dev Infrastructure
+- **PID-based Management**: Integrated tracking of development processes.
+- **Safe Automation**: Custom start/stop scripts to handle port conflicts and stale processes.
+- **Status Monitoring**: Real-time health checking of the monorepo environment.
+- **Crawler Integration**: Automated "Hardened QA" crawler for session-aware route testing.
+
+### 🐛 Stability Fixes
+- **Infinite Loop Resolution**: Fixed file-watch loops caused by log writing.
+- **Architecture Cleanup**: Resolved duplicate export errors and server-side logic in UI components (Footer).
+- **Client/Server Separation**: Strict isolation of `fs` and `path` logic from client-side bundles.
+- **Dev Stabilization**: Zeroed out all TypeScript linting errors and unused variable warnings.
+
+---
+
 ## 📂 Project Structure
 - **`apps/main-site`**: The public-facing marketing platform and administrative nerve center. Handles lead generation, property management, and partner relations.
 - **`apps/property-site`**: The dynamic engine that powers hundreds of individual property websites. It uses a single code base to serve different property profiles based on the URL.
@@ -68,7 +116,7 @@ The "Partner with Us" form uses a hardened API endpoint that validates every fie
 ## ✨ 5. Design & Tech Standards
 - **Design System**: Built on a modern "Zinc-900" (Black & White) aesthetic. It uses high-contrast typography and subtle glassmorphism to feel "Premium" and "High-Trust."
 - **Next.js 15+ & React 19**: Utilizing the latest React features like Server Components for speed and Client Components for interactivity.
-- **Indian Market Localization**: Currencies are formatted using the Indian numbering system (`₹3,00,000` instead of `300,000`).
+- **Indian Market Localization**: Currencies are formatted using the Indian numbering system (`₹3,0,000` instead of `300,000`).
 
 ---
 
@@ -126,4 +174,3 @@ The "Partner with Us" form uses a hardened API endpoint that validates every fie
 2.  **Add a property**: Go to `/admin/properties` (login with `admin` / `123456`) and add a test property.
 3.  **Manage Assets**: Click on **"Rooms"** or **"Images"** on the property card to build your inventory.
 4.  **View the result**: Check `/explore` on the main site or visit `localhost:3001/[your-slug]` to see your optimized gallery and rooms live.
-
