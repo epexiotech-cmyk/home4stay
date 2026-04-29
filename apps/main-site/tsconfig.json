@@ -20,7 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@home4stay/data": ["../../packages/data/index.ts"]
+      "@home4stay/data": ["../../packages/data"]
     }
   },
   "include": [

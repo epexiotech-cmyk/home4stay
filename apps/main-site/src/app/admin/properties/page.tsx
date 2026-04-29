@@ -1,6 +1,7 @@
 import { getAllProperties } from "@home4stay/data";
-import PropertyForm from "../../../components/PropertyForm";
-import LogoutButton from "../../../components/LogoutButton";
+import PropertyForm from "@/components/PropertyForm";
+import LogoutButton from "@/components/LogoutButton";
+import Link from "next/link";
 
 export default function PropertyManagementPage() {
   const properties = getAllProperties();
