@@ -7,6 +7,7 @@
     "guests": "120+",
     "description": "Beautiful mountain stay near Mall Road",
     "createdAt": "2026-04-29T10:00:00.000Z",
+    "images": [],
     "rooms": [
       {
         "name": "Deluxe Room",
@@ -30,6 +31,7 @@
     "guests": "80+",
     "description": "Luxury villa near beach",
     "createdAt": "2026-04-29T10:00:00.000Z",
+    "images": [],
     "rooms": [
       {
         "name": "Sea View Room",

@@ -46,9 +46,23 @@ export default function PropertyManagementPage() {
                         ₹{property.price.toLocaleString("en-IN")}
                         <span className="text-[10px] font-normal text-zinc-400 ml-1">/ night</span>
                       </p>
-                      <button className="text-[10px] font-bold text-zinc-400 hover:text-zinc-900 uppercase underline underline-offset-4">
-                        Edit
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <Link 
+                          href={`/admin/properties/${property.slug}/rooms`}
+                          className="text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase underline underline-offset-4"
+                        >
+                          Rooms
+                        </Link>
+                        <Link 
+                          href={`/admin/properties/${property.slug}/images`}
+                          className="text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase underline underline-offset-4"
+                        >
+                          Images
+                        </Link>
+                        <button className="text-[10px] font-bold text-zinc-400 hover:text-zinc-900 uppercase underline underline-offset-4">
+                          Edit
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

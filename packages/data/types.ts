@@ -14,6 +14,7 @@ export interface Property {
   description: string;
   rooms: Room[];
   createdAt: string;
+  images: string[];
 }
 
 export type PropertyMap = Record<string, Property>;

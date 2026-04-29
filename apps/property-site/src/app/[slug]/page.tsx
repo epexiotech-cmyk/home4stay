@@ -89,13 +89,43 @@ export default function PropertyHomePage({
       {/* GALLERY SECTION */}
       <section className="mx-auto max-w-7xl px-6 py-20">
         <h2 className="mb-10 text-3xl font-bold text-zinc-900">The Experience</h2>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="md:col-span-2 aspect-video w-full rounded-2xl bg-zinc-100"></div>
-          <div className="grid grid-cols-1 gap-6">
-            <div className="aspect-video w-full rounded-2xl bg-zinc-100"></div>
-            <div className="aspect-video w-full rounded-2xl bg-zinc-100"></div>
+        {property.images && property.images.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {/* Main Featured Image */}
+            <div className="md:col-span-2 aspect-video w-full rounded-2xl overflow-hidden bg-zinc-100">
+              <img 
+                src={property.images[0]} 
+                alt={`${property.name} experience`}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            {/* Sidebar Images */}
+            <div className="grid grid-cols-1 gap-6">
+              <div className="aspect-video w-full rounded-2xl overflow-hidden bg-zinc-100">
+                <img 
+                  src={property.images[1] || property.images[0]} 
+                  alt={`${property.name} view`}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="aspect-video w-full rounded-2xl overflow-hidden bg-zinc-100">
+                <img 
+                  src={property.images[2] || property.images[0]} 
+                  alt={`${property.name} detail`}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="md:col-span-2 aspect-video w-full rounded-2xl bg-zinc-100"></div>
+            <div className="grid grid-cols-1 gap-6">
+              <div className="aspect-video w-full rounded-2xl bg-zinc-100"></div>
+              <div className="aspect-video w-full rounded-2xl bg-zinc-100"></div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* WHY CHOOSE THIS STAY SECTION */}

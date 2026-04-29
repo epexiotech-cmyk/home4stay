@@ -101,6 +101,7 @@ export async function POST(request: Request) {
       guests: "0+",
       description: `Luxury stay at ${cleanName}`,
       createdAt: new Date().toISOString(),
+      images: [],
       rooms: [
         {
           name: "Standard Room",
