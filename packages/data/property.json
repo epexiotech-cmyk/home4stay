@@ -1,0 +1,42 @@
+{
+  "shivay": {
+    "name": "Shivay Resort",
+    "location": "Manali, Himachal Pradesh",
+    "price": 3000,
+    "rating": 4.8,
+    "guests": "120+",
+    "description": "Beautiful mountain stay near Mall Road",
+    "createdAt": "2026-04-29T10:00:00.000Z",
+    "rooms": [
+      {
+        "name": "Deluxe Room",
+        "price": 3000,
+        "capacity": "2 Guests",
+        "view": "Mountain View"
+      },
+      {
+        "name": "Luxury Suite",
+        "price": 5500,
+        "capacity": "2 Guests",
+        "view": "Valley View"
+      }
+    ]
+  },
+  "royalvilla": {
+    "name": "Royal Villa",
+    "location": "Goa",
+    "price": 5000,
+    "rating": 4.6,
+    "guests": "80+",
+    "description": "Luxury villa near beach",
+    "createdAt": "2026-04-29T10:00:00.000Z",
+    "rooms": [
+      {
+        "name": "Sea View Room",
+        "price": 5000,
+        "capacity": "2 Guests",
+        "view": "Sea View"
+      }
+    ]
+  }
+}
