@@ -53,17 +53,17 @@ export default function ContactForm() {
 
   if (success) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center shadow-sm">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 text-green-500">
+      <div className="rounded-3xl border border-border bg-surface p-12 text-center shadow-xl">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-success/10 text-success text-2xl font-bold">
           ✓
         </div>
-        <h3 className="text-2xl font-bold text-zinc-900">Request submitted!</h3>
-        <p className="mt-4 text-zinc-600">
+        <h3 className="text-3xl font-extrabold text-primary">Request submitted!</h3>
+        <p className="mt-4 text-secondary">
           We have received your details and will contact you within 24 hours.
         </p>
         <button
           onClick={() => setSuccess(false)}
-          className="mt-8 text-sm font-bold text-zinc-900 underline"
+          className="mt-8 text-sm font-bold text-primary underline underline-offset-8 hover:text-accent transition-colors"
         >
           Send another request
         </button>
@@ -72,11 +72,11 @@ export default function ContactForm() {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
-      <form className="space-y-6" onSubmit={handleSubmit}>
+    <div className="rounded-3xl border border-border bg-surface p-10 shadow-2xl">
+      <form className="space-y-8" onSubmit={handleSubmit}>
         {/* Name */}
         <div>
-          <label htmlFor="name" className="block text-sm font-semibold text-zinc-900">
+          <label htmlFor="name" className="block text-sm font-bold text-primary mb-2">
             Full Name
           </label>
           <input
@@ -87,14 +87,14 @@ export default function ContactForm() {
             value={formData.name}
             onChange={handleChange}
             placeholder="John Doe"
-            className="mt-2 h-12 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none disabled:opacity-50"
+            className="h-14 w-full rounded-xl border border-border bg-surface-alt px-5 text-primary focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none disabled:opacity-50 transition-all"
             disabled={loading}
           />
         </div>
 
         {/* Phone */}
         <div>
-          <label htmlFor="phone" className="block text-sm font-semibold text-zinc-900">
+          <label htmlFor="phone" className="block text-sm font-bold text-primary mb-2">
             Phone Number
           </label>
           <input
@@ -104,14 +104,14 @@ export default function ContactForm() {
             value={formData.phone}
             onChange={handleChange}
             placeholder="+91 98765 43210"
-            className="mt-2 h-12 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none disabled:opacity-50"
+            className="h-14 w-full rounded-xl border border-border bg-surface-alt px-5 text-primary focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none disabled:opacity-50 transition-all"
             disabled={loading}
           />
         </div>
 
         {/* Property Name */}
         <div>
-          <label htmlFor="property" className="block text-sm font-semibold text-zinc-900">
+          <label htmlFor="property" className="block text-sm font-bold text-primary mb-2">
             Property Name
           </label>
           <input
@@ -121,14 +121,14 @@ export default function ContactForm() {
             value={formData.property}
             onChange={handleChange}
             placeholder="E.g. Shivay Resort"
-            className="mt-2 h-12 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none disabled:opacity-50"
+            className="h-14 w-full rounded-xl border border-border bg-surface-alt px-5 text-primary focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none disabled:opacity-50 transition-all"
             disabled={loading}
           />
         </div>
 
         {/* Location */}
         <div>
-          <label htmlFor="location" className="block text-sm font-semibold text-zinc-900">
+          <label htmlFor="location" className="block text-sm font-bold text-primary mb-2">
             Property Location
           </label>
           <input
@@ -138,7 +138,7 @@ export default function ContactForm() {
             value={formData.location}
             onChange={handleChange}
             placeholder="E.g. Manali, Himachal Pradesh"
-            className="mt-2 h-12 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none disabled:opacity-50"
+            className="h-14 w-full rounded-xl border border-border bg-surface-alt px-5 text-primary focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none disabled:opacity-50 transition-all"
             disabled={loading}
           />
         </div>
@@ -146,7 +146,7 @@ export default function ContactForm() {
         {/* Submit Button */}
         <button
           type="submit"
-          className="w-full rounded-lg bg-zinc-900 py-4 font-bold text-white transition hover:bg-zinc-800 disabled:bg-zinc-400"
+          className="btn btn-secondary w-full py-5 text-lg rounded-xl"
           disabled={loading}
         >
           {loading ? "Submitting..." : "Submit Request"}
@@ -155,21 +155,21 @@ export default function ContactForm() {
 
       {/* WhatsApp Fallback */}
       {!loading && (
-        <div className="mt-8 border-t border-zinc-100 pt-8 text-center">
-          <p className="text-sm text-zinc-500">Or contact us instantly on WhatsApp</p>
+        <div className="mt-12 border-t border-border pt-10 text-center">
+          <p className="text-sm text-secondary mb-6">Or contact us instantly on WhatsApp</p>
           <a
             href="https://wa.me/919019650157?text=Hi, I want to book a room at Shivay Resort"
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-6 py-3 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50"
+            className="inline-flex items-center gap-3 rounded-full border border-border bg-surface px-8 py-4 text-sm font-bold text-primary shadow-sm hover:shadow-md hover:bg-surface-alt transition-all"
           >
-            <span className="text-green-500">●</span> Chat on WhatsApp
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span> Chat on WhatsApp
           </a>
         </div>
       )}
 
       {/* TRUST LINE */}
-      <div className="mt-8 text-center text-[10px] font-medium text-zinc-400 uppercase tracking-widest">
+      <div className="mt-12 text-center text-[10px] font-bold text-secondary/40 uppercase tracking-[0.2em]">
         No spam • Quick setup • 24-hour response
       </div>
     </div>

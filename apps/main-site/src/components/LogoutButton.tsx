@@ -6,9 +6,10 @@ export default function LogoutButton() {
   const router = useRouter();
 
   const handleLogout = () => {
-    // Clear cookie
-    document.cookie = "admin-auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-    router.push("/admin/login");
+    // Clear cookies
+    document.cookie = "access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    document.cookie = "refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    router.push("/auth/login");
   };
 
   return (

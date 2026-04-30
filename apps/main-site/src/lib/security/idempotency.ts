@@ -1,15 +1,11 @@
 /**
  * Idempotency Layer with Distributed Locking (Ownership-Safe)
- * Prevents duplicate processing and race conditions.
- * 
- * PHILOSOPHY:
- * - Idempotency cache is ADVISORY, not authoritative.
- * - System correctness must NEVER depend solely on Redis availability.
- * - Database transactions are the final source of truth.
- * - Cache corruption or Redis failure triggers safe recovery/re-processing.
+ * Migrated to ioredis for self-hosted infrastructure.
  */
 import crypto from "crypto"
-import { redis } from "../redis/client"
+import { getRedis } from "../redis/client"
+const redis = getRedis()
+
 import { logger } from "../observability/logger"
 import { AppError } from "../errors/handler"
 
@@ -31,7 +27,6 @@ const ROUTE_LOCK_TTL: Record<string, number> = {
 
 /**
  * SAFE REDIS WRAPPER
- * Standardizes error handling and ensures critical paths fail fast.
  */
 async function safeRedis<T>(
   fn: () => Promise<T>,
@@ -71,7 +66,6 @@ export async function getIdempotencyResponse<T>(userId: string, key: string, req
       requestId: requestId || "unknown",
     })
     
-    // Purge corrupted key to prevent repeated failures
     await safeRedis(() => redis.del(fullKey), { critical: false, requestId })
     
     return null
@@ -81,28 +75,28 @@ export async function getIdempotencyResponse<T>(userId: string, key: string, req
 export async function setIdempotencyResponse(userId: string, key: string, response: unknown, requestId?: string) {
   const fullKey = `${PREFIX.CACHE}:${userId}:${key}`
   await safeRedis(
-    () => redis.set(fullKey, JSON.stringify(response), { ex: TTL.RESPONSE }),
+    () => redis.set(fullKey, JSON.stringify(response), "EX", TTL.RESPONSE),
     { critical: false, requestId }
   )
 }
 
 /**
  * Acquires a distributed lock with ownership safety.
- * Returns { acquired: boolean, lockValue?: string }
  */
 export async function acquireIdempotencyLock(userId: string, key: string, route: string = "default", requestId?: string) {
   const lockKey = `${PREFIX.LOCK}:${userId}:${key}`
   const lockValue = crypto.randomUUID()
   const ttl = ROUTE_LOCK_TTL[route] || TTL.LOCK_DEFAULT
 
+  // ioredis syntax for NX + EX
   const acquired = await safeRedis(
-    () => redis.set(lockKey, lockValue, { nx: true, ex: ttl }),
-    { critical: true, requestId } // Locking is CRITICAL for data consistency
+    () => redis.set(lockKey, lockValue, "EX", ttl, "NX"),
+    { critical: true, requestId }
   )
   
   return {
-    acquired: !!acquired,
-    lockValue: acquired ? lockValue : undefined
+    acquired: acquired === "OK",
+    lockValue: acquired === "OK" ? lockValue : undefined
   }
 }
 
@@ -121,7 +115,7 @@ export async function releaseIdempotencyLock(userId: string, key: string, lockVa
   `
 
   await safeRedis(
-    () => redis.eval(luaScript, [lockKey], [lockValue]),
-    { critical: false, requestId } // Failure to release lock will eventually expire anyway
+    () => redis.eval(luaScript, 1, lockKey, lockValue),
+    { critical: false, requestId }
   )
 }

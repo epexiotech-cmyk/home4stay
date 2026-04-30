@@ -7,16 +7,19 @@ const url = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 const start = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
 
 const opts = {
-  resources: [url],
-  timeout: 30000, // 30 seconds
+  resources: [`tcp:127.0.0.1:3000`],
+  timeout: 60000, // 60 seconds
 };
 
 console.log(`🚀 Waiting for server at ${url}...`);
 
 waitOn(opts)
   .then(() => {
-    console.log(`✅ Server is up! Opening browser...`);
-    exec(`${start} ${url}`);
+    console.log(`✅ Port 3000 is open. Waiting 2s for Next.js to be ready...`);
+    setTimeout(() => {
+      console.log(`🚀 Opening browser at ${url}...`);
+      exec(`${start} ${url}`);
+    }, 2000);
   })
   .catch((err) => {
     console.error(`❌ Error waiting for server:`, err);

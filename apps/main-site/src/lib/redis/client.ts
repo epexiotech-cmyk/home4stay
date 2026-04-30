@@ -1,12 +1,27 @@
-import { Redis } from '@upstash/redis'
+import Redis from "ioredis"
 
-const isProd = process.env.NODE_ENV === 'production'
+// NOTE:
+// Redis runs inside WSL Ubuntu.
+// Always ensure Redis is started before running the app:
+// sudo service redis-server start
 
-if (isProd && (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN)) {
-  throw new Error("MANDATORY: Upstash Redis environment variables are missing in production.")
+let redis: Redis | null = null
+
+export function getRedis() {
+  if (!redis) {
+    redis = new Redis(process.env.REDIS_URL as string, {
+      maxRetriesPerRequest: 2,
+      retryStrategy: (times) => Math.min(times * 50, 2000),
+    })
+
+    redis.on("connect", () => {
+      console.log("✅ Redis connected")
+    })
+
+    redis.on("error", (err) => {
+      console.error("❌ Redis error:", err.message)
+    })
+  }
+
+  return redis
 }
-
-export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || '',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
-})

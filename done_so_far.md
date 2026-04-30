@@ -210,3 +210,31 @@ The "Partner with Us" form uses a hardened API endpoint that validates every fie
 3.  **Add a property**: Go to `/admin/properties` (login with `admin` / `123456`) and add a test property.
 4.  **Manage Assets**: Click on **"Rooms"** or **"Images"** on the property card to build your inventory.
 5.  **View the result**: Check `/explore` on the main site or visit `localhost:3001/[your-slug]` to see your optimized gallery and rooms live.
+
+---
+
+### 🔐 Multi-Portal Auth & Database Refactor (2026-04-30)
+
+#### 🏛️ Multi-Portal Architecture
+- **Route Group Strategy**: Implemented `(marketing)` and `(portal)` route groups to cleanly separate public pages from administrative dashboards.
+- **Optimized Folder Structure**: Refactored the authentication routes into a flat, intuitive hierarchy under `/(portal)/(auth)/` while strictly maintaining clean URL paths (`/auth/login`, `/partner/login`, `/admin/login`).
+- **Focused Auth Layout**: Created a centralized, centered-card layout in `/(portal)/(auth)/layout.tsx` for a distraction-free login experience across all portals.
+
+#### 🗄️ PostgreSQL Database Layer
+- **Robust User Schema**: Implemented a scalable `users` table with UUID primary keys, unique email constraints, and role-based validation.
+- **Multi-Role Support**: Native support for `customer`, `owner`, `manager`, `admin`, and `super_admin` roles.
+- **Connection Management**: Configured a high-performance PostgreSQL pool in `src/lib/db.ts` with environment-aware SSL settings.
+- **Type-Safe User Model**: Developed helper functions (`createUser`, `findUserByEmail`, `findUserById`) with integrated password hashing.
+
+#### 🛡️ Secure Authentication System
+- **Next.js Edge Middleware**: Implemented a secure, role-based middleware in `src/middleware.ts` compatible with Next.js Edge Runtime.
+- **Jose JWT Integration**: Transitioned to the `jose` library for JWT signing and verification to ensure 100% compatibility with Edge middleware.
+- **HTTP-Only Cookies**: Secured sessions using HTTP-only, secure, and SameSite=Strict cookies to protect against XSS and CSRF.
+- **Role-Based Access Control (RBAC)**: Strictly enforced portal-specific access (e.g., only owners/managers can access `/partner/*`).
+
+#### 🌐 Frontend Auth Integration
+- **AuthContext & Hook**: Created a global `AuthContext` to manage user sessions, loading states, and unified login/logout logic.
+- **Session Hydration**: Integrated automatic session restoration on app load using the secure `/api/auth/me` endpoint.
+- **Dynamic UI Logic**: Updated the `Navbar` to dynamically reflect authentication status, showing user names and logout options.
+- **UX Polish**: Optimized the initial auth check with mounting protections to prevent "cascading render" warnings and redundant API calls.
+

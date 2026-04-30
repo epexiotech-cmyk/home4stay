@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Footer from "../components/Footer";
-import Navbar from "../components/Navbar";
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,6 +16,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Home4Stay | Find your perfect stay",
   description: "Book homestays, hotels, and villas on Home4Stay.",
+  icons: {
+    icon: "/logo/logo-icon.png",
+    apple: "/logo/logo-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -29,10 +32,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+      <body className="min-h-full flex flex-col bg-background">
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

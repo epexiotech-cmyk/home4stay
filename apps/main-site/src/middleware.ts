@@ -1,0 +1,63 @@
+import { NextRequest, NextResponse } from "next/server";
+import { verifyToken } from "@/lib/auth/jwt";
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // 1. Define login paths and public paths
+  const loginPaths = ["/auth/login", "/partner/login", "/admin/login"];
+  
+  // 2. Skip middleware if it's a login page
+  if (loginPaths.includes(pathname)) {
+    return NextResponse.next();
+  }
+
+  // 3. Get token from cookies
+  const token = request.cookies.get("token")?.value;
+
+  // 4. Handle redirects for missing tokens
+  if (!token) {
+    const loginUrl = pathname.startsWith("/admin") 
+      ? "/admin/login" 
+      : "/partner/login";
+    return NextResponse.redirect(new URL(loginUrl, request.url));
+  }
+
+  // 5. Verify token
+  const payload = await verifyToken(token);
+  if (!payload) {
+    const loginUrl = pathname.startsWith("/admin") 
+      ? "/admin/login" 
+      : "/partner/login";
+    const response = NextResponse.redirect(new URL(loginUrl, request.url));
+    response.cookies.delete("token");
+    return response;
+  }
+
+  // 6. Role-Based Access Control (RBAC)
+  const userRole = payload.role as string;
+  
+  if (pathname.startsWith("/admin")) {
+    const allowedRoles = ["admin", "super_admin"];
+    if (!allowedRoles.includes(userRole)) {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
+  }
+
+  if (pathname.startsWith("/partner")) {
+    const allowedRoles = ["owner", "manager"];
+    if (!allowedRoles.includes(userRole)) {
+      return NextResponse.redirect(new URL("/partner/login", request.url));
+    }
+  }
+
+  return NextResponse.next();
+}
+
+// 7. Matcher Config
+export const config = {
+  matcher: [
+    "/partner/:path*",
+    "/admin/:path*",
+  ],
+};

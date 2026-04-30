@@ -1,4 +1,6 @@
-import { redis } from "../redis/client"
+import { getRedis } from "../redis/client"
+const redis = getRedis()
+
 import { logger } from "../observability/logger"
 
 const ABUSE_THRESHOLD_BLOCK = 5 
@@ -38,6 +40,7 @@ export async function trackAbuse(ip: string, event: string, requestId: string) {
 
 export async function isBlocked(ip: string, event: string) {
   const key = `abuse:${ip}:${event}`
-  const count = await redis.get<number>(key)
-  return (count || 0) >= ABUSE_THRESHOLD_BLOCK
+  const raw = await redis.get(key)
+  const count = raw ? parseInt(raw, 10) : 0
+  return count >= ABUSE_THRESHOLD_BLOCK
 }
