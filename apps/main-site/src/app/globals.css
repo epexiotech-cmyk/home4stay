@@ -1,26 +1,81 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Colors */
+  --color-primary: #0E5A75;
+  --color-primary-light: #0983B0;
+  --color-primary-dark: #0A4459;
+
+  --color-accent: #F24633;
+  --color-accent-hover: #D83A2A;
+
+  --color-success: #159665;
+  --color-success-light: #78D145;
+
+  --color-warning: #FCBC43;
+  --color-background: #FDF6F1;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F7EFEA;
+  
+  --color-text-primary: #0E5A75;
+  --color-text-secondary: #29655C;
+  --color-border: #E5E5E5;
+
+  /* Gradients */
+  --background-image-primary-gradient: linear-gradient(to right, #0E5A75, #0983B0);
+  --background-image-accent-gradient: linear-gradient(to right, #F24633, #FCBC43);
+  --background-image-success-gradient: linear-gradient(to right, #159665, #78D145);
+
+  /* Fonts - Synchronized with layout.tsx */
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer components {
+  /* Base Component Styles */
+  .btn {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-lg font-semibold transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Variant Styles - DO NOT @apply .btn here per Tailwind v4 best practices */
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-light shadow-lg shadow-primary/20;
+  }
+
+  .btn-accent {
+    @apply bg-accent text-white hover:bg-accent-hover shadow-lg shadow-accent/20;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary text-primary hover:bg-primary hover:text-white;
+  }
+
+  .btn-gradient {
+    @apply bg-primary-gradient text-white hover:opacity-90 shadow-xl;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-surface rounded-2xl border border-border p-6 transition-all duration-300;
+  }
+
+  .card-premium {
+    @apply hover:shadow-2xl hover:-translate-y-1 hover:border-primary/20;
+  }
+
+  .card-flat {
+    @apply bg-surface-alt rounded-2xl p-6 border border-transparent;
+  }
+
+  /* Text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-primary-gradient;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  @apply antialiased;
 }

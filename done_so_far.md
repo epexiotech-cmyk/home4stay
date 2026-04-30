@@ -169,8 +169,44 @@ The "Partner with Us" form uses a hardened API endpoint that validates every fie
 
 ---
 
+### 🚀 Enterprise Production Transformation (2026-04-30)
+
+#### 🛡️ Distributed Reliability Guards
+- **Leak-Free Performance**: Refactored `withTimeout` to ensure all timers are cleared, preventing memory leaks in high-concurrency environments.
+- **Smart Retries**: Implemented **Exponential Backoff with Jitter** in `withRetry` to prevent "thundering herd" issues during service recovery.
+- **Capped Delays**: Strictly enforced a 2-second backoff cap to prevent request starvation and maintain system responsiveness.
+- **Standardized Traceability**: Integrated `AppError` with `requestId` propagation across all reliability utilities.
+
+#### 🔐 Atomic Idempotency Layer (Race-Condition Proof)
+- **Ownership-Safe Locking**: Implemented distributed Redis locks (`SETNX`) with unique request-based UUIDs to prevent accidental cross-request unlocking.
+- **Atomic Release**: Developed **Lua scripts** for Redis lock releasing, ensuring "Check-and-Delete" operations are 100% atomic.
+- **Smart Retry UX**: Added a 3-pass retry loop (100ms intervals) for concurrent requests, allowing "In-Progress" requests to wait for results instead of failing.
+- **Safe JSON Integrity**: Implemented resilient JSON parsing with **auto-purge corruption recovery** to handle malformed cache data without crashing.
+- **Safe Redis Wrapper**: Created a `safeRedis` handler with strict failure policies (Fail-Fast for critical writes, Graceful Degradation for caching).
+
+#### 📊 Advanced Observability & Monitoring
+- **Structured JSON Logging**: Implemented an enterprise logger with cost-control sampling and request-timing metrics.
+- **Distributed Request Tracing**: Enforced global `x-request-id` propagation through middleware and all backend services.
+- **Real-time Health Monitoring**: Created `/api/health` and `/api/ready` endpoints with live Redis and PostgreSQL connectivity checks.
+- **Global Error Boundary**: Replaced all `any` and generic `Function` types in `withErrorHandler` with strict, type-safe guards and standardized response formats.
+
+#### 🧱 Database & Transaction Safety
+- **Atomic Transactions**: Integrated `withTransaction` for all critical booking and inventory workflows.
+- **Row-Level Locking**: Implemented `FOR UPDATE` queries to prevent double-booking and race conditions during high-concurrency operations.
+- **Source of Truth Philosophy**: Reinforced that the database is the final authority, treating the Redis cache as purely advisory.
+
+---
+
+### 🚦 Future Hardening (Audit Backlog)
+- **JWT Revocation**: Implementation of a Redis-based blacklist for immediate token invalidation.
+- **Transaction Timeouts**: Adding internal timeouts to `withTransaction` to prevent deadlock hangs.
+- **Circuit Breakers**: Enhancing `safeRedis` to support "Safe Degraded Mode" for read-only operations during infra instability.
+
+---
+
 ### 🚀 Developer Onboarding Checklist
 1.  **Run the project**: `npm run dev` in the root.
-2.  **Add a property**: Go to `/admin/properties` (login with `admin` / `123456`) and add a test property.
-3.  **Manage Assets**: Click on **"Rooms"** or **"Images"** on the property card to build your inventory.
-4.  **View the result**: Check `/explore` on the main site or visit `localhost:3001/[your-slug]` to see your optimized gallery and rooms live.
+2.  **Infrastructure Check**: Visit `/api/ready` to ensure your local Redis and DB are connected.
+3.  **Add a property**: Go to `/admin/properties` (login with `admin` / `123456`) and add a test property.
+4.  **Manage Assets**: Click on **"Rooms"** or **"Images"** on the property card to build your inventory.
+5.  **View the result**: Check `/explore` on the main site or visit `localhost:3001/[your-slug]` to see your optimized gallery and rooms live.
