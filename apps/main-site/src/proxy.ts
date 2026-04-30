@@ -26,6 +26,10 @@ export default async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/api/:path*",
+    "/admin/:path*",
+    "/partner/:path*",
+    "/auth/:path*",
     "/((?!_next|.*\\..*).*)",
   ],
 }

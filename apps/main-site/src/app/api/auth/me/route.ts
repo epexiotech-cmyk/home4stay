@@ -1,31 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth/jwt";
 import { findUserById } from "@/lib/models/user";
+import { requireRole } from "@/lib/auth/rbac";
 
 export async function GET(request: NextRequest) {
   try {
-    // 1. Get token from cookies
-    const token = request.cookies.get("token")?.value;
+    // 1. Authenticate (any role allowed)
+    const { authorized, response, userId } = await requireRole(request, ["admin", "super_admin", "partner", "owner", "manager", "customer"]);
+    
+    if (!authorized) return response!;
 
-    if (!token) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
-    }
-
-    // 2. Verify token
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { error: "Invalid or expired token" },
-        { status: 401 }
-      );
-    }
-
-    // 3. Find user by ID (userId from JWT payload)
-    const userId = payload.userId as string;
-    const user = await findUserById(userId);
+    // 2. Find user by ID
+    const user = await findUserById(userId!);
 
     if (!user) {
       return NextResponse.json(
@@ -34,7 +19,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 4. Return user data (securely)
+    // 3. Return user data (securely)
     return NextResponse.json({
       user: {
         id: user.id,

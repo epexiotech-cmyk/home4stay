@@ -1,10 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
-import { jwtVerify } from "jose";
 import { z } from "zod";
 import { logger } from "@/lib/observability/logger";
-
-const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
-const encodedSecret = new TextEncoder().encode(JWT_SECRET);
+import { requireRole } from "@/lib/auth/rbac";
 
 const PropertySchema = z.object({
   name: z.string().min(3).max(100),
@@ -13,22 +10,14 @@ const PropertySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const requestId = request.headers.get('x-request-id') || 'unknown';
+  const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
   const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
 
   try {
-    // 1. AUTHENTICATION (Hard Gate)
-    const token = request.cookies.get('access-token')?.value;
-    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    let user: { username: string; role: string } | null = null;
-    try {
-      const { payload } = await jwtVerify(token, encodedSecret, { issuer: "home4stay", audience: "web" }) as { payload: { username: string; role: string } };
-      user = payload;
-      if (user.role !== "admin") return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-    } catch {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
-    }
+    // 1. RBAC Check (Admin Only)
+    const { authorized, response, userId, role } = await requireRole(request, ["admin", "super_admin"]);
+    
+    if (!authorized) return response!;
 
     // 2. INPUT VALIDATION
     const body = await request.json();
@@ -45,8 +34,8 @@ export async function POST(request: NextRequest) {
     await logger({
       level: 'info',
       event: 'CREATE_PROPERTY',
-      message: `Property ${name} in ${location} (₹${price}) created by ${user.username}`,
-      userId: user.username,
+      message: `Property ${name} in ${location} (₹${price}) created by user ${userId}`,
+      userId: userId!,
       ip,
       requestId,
       route: '/api/property'

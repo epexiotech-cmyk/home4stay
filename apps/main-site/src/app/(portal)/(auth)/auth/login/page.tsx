@@ -1,11 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
+type LoginFormData = {
+  email: string;
+  password: string;
+};
+
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState<LoginFormData>({
+    email: "",
+    password: "",
+  });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
@@ -16,9 +24,10 @@ export default function LoginPage() {
     setError("");
 
     try {
-      await login(email, password, "customer");
-    } catch (err: any) {
-      setError(err.message || "Invalid credentials");
+      await login(formData.email, formData.password, "customer");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Invalid credentials";
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -37,8 +46,8 @@ export default function LoginPage() {
           <input
             type="email"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className="mt-2 h-12 w-full rounded-xl border border-border bg-background px-4 text-sm focus:border-primary focus:outline-none"
             placeholder="Enter email"
           />
@@ -49,8 +58,8 @@ export default function LoginPage() {
           <input
             type="password"
             required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             className="mt-2 h-12 w-full rounded-xl border border-border bg-background px-4 text-sm focus:border-primary focus:outline-none"
             placeholder="••••••••"
           />
@@ -72,6 +81,15 @@ export default function LoginPage() {
           {submitting ? "Signing in..." : "Sign In"}
         </button>
       </form>
+
+      <div className="mt-8 text-center text-sm">
+        <p className="text-secondary">
+          Don&apos;t have an account?{" "}
+          <Link href="/auth/register" className="font-bold text-primary hover:underline">
+            Sign Up
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

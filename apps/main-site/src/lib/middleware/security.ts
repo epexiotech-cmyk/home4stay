@@ -5,7 +5,6 @@ import { CSRF_EXCLUDED } from '../security/config'
 
 /**
  * getClientIp
- * Helper to extract client IP safely in Edge Runtime.
  */
 function getClientIp(req: NextRequest) {
   return (
@@ -18,31 +17,39 @@ function getClientIp(req: NextRequest) {
 /**
  * handleSecurity
  * Manages rate limiting, CSRF validation, and initial security checks.
- * Returns a NextResponse if the request should be blocked, otherwise null.
  */
 export async function handleSecurity(request: NextRequest): Promise<NextResponse | null> {
   const pathname = request.nextUrl.pathname
   const method = request.method
   const ip = getClientIp(request)
-  const requestId = crypto.randomUUID()
+  const requestId = request.headers.get("x-request-id") || crypto.randomUUID()
 
   // API Security Gate
   if (pathname.startsWith('/api')) {
+    // 1. SELECTIVE STRICT RATE LIMITING
+    const isCritical = pathname.startsWith('/api/auth')
     
-    // 1. Adaptive Rate Limiting
     const { success, limit, remaining, reset } = await adaptiveRateLimit({
       ip,
-      route: pathname
+      route: pathname,
+      isCritical,
+      requestId
     })
 
     if (!success) {
       return new NextResponse(
         JSON.stringify({ 
           success: false, 
-          error: { code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded", requestId } 
+          error: { 
+            code: isCritical ? "SECURITY_GATE_CLOSED" : "TOO_MANY_REQUESTS", 
+            message: isCritical 
+              ? "Security infrastructure unavailable. Access temporarily restricted." 
+              : "Rate limit exceeded. Please try again later.", 
+            requestId 
+          } 
         }),
         { 
-          status: 429, 
+          status: isCritical ? 503 : 429, 
           headers: { 
             'Content-Type': 'application/json',
             'X-RateLimit-Limit': limit.toString(),

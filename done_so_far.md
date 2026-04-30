@@ -238,3 +238,29 @@ The "Partner with Us" form uses a hardened API endpoint that validates every fie
 - **Dynamic UI Logic**: Updated the `Navbar` to dynamically reflect authentication status, showing user names and logout options.
 - **UX Polish**: Optimized the initial auth check with mounting protections to prevent "cascading render" warnings and redundant API calls.
 
+### 🛡️ Security Infrastructure Refinement (2026-04-30)
+
+#### 🔐 Advanced Lockout & Brute-Force Protection
+- **Email + IP Binding**: Hardened the lockout strategy to use an `email:ip` composite key, preventing attackers from locking out legitimate users by spoofing their email from different locations.
+- **Fail-Secure Lockout**: If the security infrastructure (Redis) is unavailable, the system defaults to a "Strict Block" for authentication attempts, ensuring no bypasses are possible during instability.
+- **Auto-Reset Logic**: Integrated automatic lockout resets upon successful login to ensure a seamless experience for recovered accounts.
+
+#### 📊 Enterprise Security Observability
+- **Structured Audit Events**: Integrated the unified `logger` across all security-critical paths (Lockout, Rate Limiting, RBAC).
+- **Security Event Triggers**:
+  - `AUTH_LOCKOUT_TRIGGERED` / `AUTH_LOCKOUT_CHECK`
+  - `AUTH_LOGIN_FAILURE` (with reason) / `AUTH_LOGIN_SUCCESS`
+  - `RATE_LIMIT_EXCEEDED`
+  - `REDIS_CONNECTION_FAILURE` (with failure mode context)
+- **Forensic Context**: Every security log now captures `requestId`, `ip`, `userId`, and `method` for rapid incident response and auditing.
+
+#### ⚡ Intelligent Redis Resilience (Selective Strictness)
+- **Critical Strictness**: Enforced **Strict Mode** for all `/api/auth/*` routes—blocking access if Redis is down to guarantee authentication integrity.
+- **Graceful Fail-Open**: Implemented a "Fail-Open" fallback for non-critical content routes (e.g., property listings). If Redis fails, the system allows the request to pass with a warning, maintaining site availability while protecting the auth perimeter.
+- **Smart Adaptive Rate Limiting**: The rate limiter now detects the criticality of the route and adjusts its failure strategy dynamically.
+
+#### 🔑 Hardened Token & RBAC Enforcement
+- **Server-Side Role Gating**: Standardized authorization using the `requireRole` helper, ensuring all `/api/admin/*` and `/api/partner/*` routes enforce strict server-side checks independent of frontend state.
+- **Comprehensive Session Audit**: Verified JWT expiry (15m access / 7d refresh) and audience/issuer validation across all protected backend services.
+
+

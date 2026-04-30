@@ -1,10 +1,19 @@
+"use client";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
+type LoginFormData = {
+  email: string;
+  password: string;
+};
+
 export default function PartnerLoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState<LoginFormData>({
+    email: "",
+    password: "",
+  });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
@@ -15,9 +24,10 @@ export default function PartnerLoginPage() {
     setError("");
 
     try {
-      await login(email, password, "partner");
-    } catch (err: any) {
-      setError(err.message || "Invalid credentials");
+      await login(formData.email, formData.password, "partner");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Invalid credentials";
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -36,8 +46,8 @@ export default function PartnerLoginPage() {
           <input
             type="email"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className="w-full h-12 rounded-xl border border-border bg-background px-4 focus:ring-2 focus:ring-primary outline-none transition-all"
             placeholder="partner@example.com"
           />
@@ -47,8 +57,8 @@ export default function PartnerLoginPage() {
           <input
             type="password"
             required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             className="w-full h-12 rounded-xl border border-border bg-background px-4 focus:ring-2 focus:ring-primary outline-none transition-all"
             placeholder="••••••••"
           />

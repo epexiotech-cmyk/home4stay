@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createUser, findUserByEmail } from "@/lib/models/user";
+import { PASSWORD_REGEX } from "@/lib/utils/password";
 
 // Validation schema
 const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters long"),
+  password: z.string().regex(
+    PASSWORD_REGEX,
+    "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character"
+  ),
 });
 
 export async function POST(request: NextRequest) {

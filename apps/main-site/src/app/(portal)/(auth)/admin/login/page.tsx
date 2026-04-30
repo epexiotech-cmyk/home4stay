@@ -1,9 +1,18 @@
+"use client";
+
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
+type LoginFormData = {
+  email: string;
+  password: string;
+};
+
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState<LoginFormData>({
+    email: "",
+    password: "",
+  });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
@@ -14,9 +23,10 @@ export default function AdminLoginPage() {
     setError("");
 
     try {
-      await login(email, password, "admin");
-    } catch (err: any) {
-      setError(err.message || "Invalid credentials");
+      await login(formData.email, formData.password, "admin");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Invalid credentials";
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -38,8 +48,8 @@ export default function AdminLoginPage() {
           <input
             type="email"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className="w-full h-14 rounded-2xl border-2 border-border bg-background px-6 focus:border-primary outline-none transition-all font-bold"
             placeholder="admin@home4stay.com"
           />
@@ -49,8 +59,8 @@ export default function AdminLoginPage() {
           <input
             type="password"
             required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             className="w-full h-14 rounded-2xl border-2 border-border bg-background px-6 focus:border-primary outline-none transition-all font-bold"
             placeholder="••••••••"
           />

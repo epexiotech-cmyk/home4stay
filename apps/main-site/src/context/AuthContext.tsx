@@ -80,7 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.error || "Login failed");
+      const errorMessage = typeof data.error === 'object' ? data.error.message : data.error;
+      throw new Error(errorMessage || "Login failed");
     }
 
     await fetchUser();

@@ -1,21 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth/jwt";
 
-export async function middleware(request: NextRequest) {
+/**
+ * handleAuth
+ * Manages authentication and RBAC for protected routes.
+ * Returns a NextResponse (either a redirect or next()).
+ */
+export async function handleAuth(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
   // 1. Define login paths and public paths
   const loginPaths = ["/auth/login", "/partner/login", "/admin/login"];
   
-  // 2. Skip middleware if it's a login page
+  // 2. Skip auth if it's a login page
   if (loginPaths.includes(pathname)) {
     return NextResponse.next();
   }
 
-  // 3. Get token from cookies
+  // 3. Check if the route is protected
+  const isProtectedRoute = pathname.startsWith("/admin") || pathname.startsWith("/partner");
+  
+  // If not a protected route, allow access
+  if (!isProtectedRoute) {
+    return NextResponse.next();
+  }
+
+  // 4. Get token from cookies
   const token = request.cookies.get("token")?.value;
 
-  // 4. Handle redirects for missing tokens
+  // 5. Handle redirects for missing tokens
   if (!token) {
     const loginUrl = pathname.startsWith("/admin") 
       ? "/admin/login" 
@@ -23,7 +36,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(loginUrl, request.url));
   }
 
-  // 5. Verify token
+  // 6. Verify token
   const payload = await verifyToken(token);
   if (!payload) {
     const loginUrl = pathname.startsWith("/admin") 
@@ -34,12 +47,14 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // 6. Role-Based Access Control (RBAC)
+  // 7. Role-Based Access Control (RBAC)
   const userRole = payload.role as string;
   
   if (pathname.startsWith("/admin")) {
     const allowedRoles = ["admin", "super_admin"];
     if (!allowedRoles.includes(userRole)) {
+      // If user is authenticated but doesn't have admin role, redirect to admin login
+      // (or potentially an unauthorized page, but following original logic)
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }
   }
@@ -53,11 +68,3 @@ export async function middleware(request: NextRequest) {
 
   return NextResponse.next();
 }
-
-// 7. Matcher Config
-export const config = {
-  matcher: [
-    "/partner/:path*",
-    "/admin/:path*",
-  ],
-};
