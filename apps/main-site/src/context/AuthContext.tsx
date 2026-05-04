@@ -8,6 +8,10 @@ interface User {
   name: string;
   email: string;
   role: string;
+  phone?: string;
+  city?: string;
+  image_url?: string;
+  created_at?: string;
 }
 
 interface AuthContextType {

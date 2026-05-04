@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getRedis } from '@/lib/redis/client'
+import { getRedis } from '@/lib/server/redis'
 import { pool } from '@/lib/database/transactions'
 
 export async function GET() {
@@ -49,7 +49,8 @@ export async function GET() {
     return NextResponse.json({ 
       status: redisStatus === "ok" ? "ready" : "ready (with warnings)",
       db: dbStatus,
-      redis: redisStatus
+      redis: redisStatus,
+      smtp: "checking (see console)"
     }, { status: statusCode })
   } catch (err) {
     return NextResponse.json({ 

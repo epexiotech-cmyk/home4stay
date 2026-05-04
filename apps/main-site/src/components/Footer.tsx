@@ -3,30 +3,32 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-border bg-surface-alt py-12">
-      <div className="mx-auto max-w-full px-6">
-        <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-          <div className="flex flex-col gap-4 sm:items-start">
-            <Logo variant="full" size="sm" />
-            <p className="text-sm text-secondary">
+    <footer className="mx-auto mb-10 w-[95vw] z-10">
+      <div className="mx-auto px-8 md:px-12 py-10 rounded-[3rem] border border-white/20 bg-white/80 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
+        <div className="flex flex-col items-center justify-between gap-8 sm:flex-row">
+          <div className="flex flex-col gap-4 sm:items-start text-center sm:text-left">
+            <Logo variant="full" size="md" />
+            <p className="text-sm font-medium text-gray-500">
               © 2026 Home4Stay. All rights reserved.
             </p>
-            <div className="flex gap-4 text-xs text-secondary/60">
-              <Link href="/privacy" className="hover:text-primary transition-all duration-300">
+            <div className="flex gap-6 text-sm font-bold text-gray-400">
+              <Link href="/privacy" className="hover:text-primary transition-all duration-300 hover:underline">
                 Privacy
               </Link>
-              <span>|</span>
-              <Link href="/terms" className="hover:text-primary transition-all duration-300">
+              <Link href="/terms" className="hover:text-primary transition-all duration-300 hover:underline">
                 Terms
               </Link>
             </div>
           </div>
-          <div className="flex items-center gap-8">
-            <Link href="/explore" className="text-sm text-secondary hover:text-primary transition-all duration-300">
+          <div className="flex items-center gap-10">
+            <Link href="/explore" className="text-sm font-bold text-gray-600 hover:text-primary transition-all duration-300">
               Explore
             </Link>
-            <Link href="/partner" className="text-sm text-secondary hover:text-primary transition-all duration-300">
+            <Link href="/partner" className="text-sm font-bold text-gray-600 hover:text-primary transition-all duration-300">
               Partner
+            </Link>
+            <Link href="/help" className="text-sm font-bold text-gray-600 hover:text-primary transition-all duration-300">
+              Help Center
             </Link>
           </div>
         </div>

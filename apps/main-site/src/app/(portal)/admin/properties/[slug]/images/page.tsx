@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getPropertyOrThrow } from "@home4stay/data";
 import ImageForm from "@/components/ImageForm";
 import Link from "next/link";
@@ -41,10 +42,11 @@ export default function ImageManagementPage({
                 {property.images && property.images.length > 0 ? (
                   property.images.map((img, index) => (
                     <div key={index} className="group relative aspect-square overflow-hidden rounded-xl bg-zinc-100 border border-zinc-100">
-                      <img 
+                      <Image 
                         src={img} 
                         alt={`${property.name} ${index + 1}`}
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-110"
+                        fill
+                        className="object-cover transition duration-300 group-hover:scale-110"
                       />
                     </div>
                   ))

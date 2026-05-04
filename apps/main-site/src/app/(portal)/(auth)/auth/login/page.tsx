@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 
 type LoginFormData = {
   email: string;
@@ -53,17 +54,22 @@ export default function LoginPage() {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-primary">Password</label>
-          <input
-            type="password"
-            required
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="mt-2 h-12 w-full rounded-xl border border-border bg-background px-4 text-sm focus:border-primary focus:outline-none"
-            placeholder="••••••••"
-          />
-        </div>
+        <PasswordInput
+          label="Password"
+          required
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          placeholder="••••••••"
+          className="h-12 text-sm"
+        />
+          <div className="flex justify-end">
+            <Link 
+              href="/auth/forgot-password" 
+              className="text-xs font-bold text-primary hover:underline transition-all"
+            >
+              Forgot Password?
+            </Link>
+          </div>
 
         {error && (
           <div className="rounded-lg bg-red-50 p-4 text-sm font-medium text-red-600">

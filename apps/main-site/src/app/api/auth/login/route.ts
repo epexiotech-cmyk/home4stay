@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import bcrypt from "bcryptjs";
 import { findUserByEmail } from "@/lib/models/user";
 import { signToken } from "@/lib/auth/jwt";
 import { checkLockout, recordFailure, resetLockout } from "@/lib/auth/lockout";
@@ -8,7 +7,7 @@ import { logger } from "@/lib/observability/logger";
 
 // Validation schema
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  email: z.string().email("Invalid email address").trim(),
   password: z.string().min(1, "Password is required"),
   loginType: z.enum(["customer", "partner", "admin"]),
 });
@@ -29,7 +28,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, loginType } = validation.data;
+    const { password, loginType } = validation.data;
+    const email = validation.data.email.toLowerCase();
 
     // 2. CHECK LOCKOUT
     const { locked, remainingSeconds } = await checkLockout(email, ip, requestId);
@@ -61,11 +61,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Compare password
-    const isPasswordCorrect = await bcrypt.compare(password, user.password!);
+    // 5. Compare password with intelligent migration
+    const { comparePasswords, hashPassword } = await import("@/lib/server/password");
+    const { isValid, needsUpgrade } = await comparePasswords(password, user.password!);
 
     // 6. If password incorrect
-    if (!isPasswordCorrect) {
+    if (!isValid) {
       await recordFailure(email, ip, requestId);
       await logger({
         level: 'warn',
@@ -79,6 +80,14 @@ export async function POST(request: NextRequest) {
         { error: "Invalid credentials" },
         { status: 401 }
       );
+    }
+
+    // 6.1 Automatic Hash Upgrade (bcrypt -> Argon2)
+    if (needsUpgrade) {
+      const { updateUserPassword } = await import("@/lib/models/user");
+      const newHash = await hashPassword(password);
+      await updateUserPassword(user.id, newHash);
+      console.log(`[SECURITY] Upgraded password hash for user ${user.id} to Argon2`);
     }
 
     // 7. ROLE VALIDATION
@@ -108,11 +117,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 8. Generate JWT
-    const token = await signToken({
+    // 8. Generate JWTs (Dual-Token System)
+    const accessToken = await signToken({
       userId: user.id,
       role: user.role,
-    });
+      type: "access"
+    }, "15m");
+
+    const refreshToken = await signToken({
+      userId: user.id,
+      role: user.role,
+      type: "refresh"
+    }, "7d");
 
     // 9. Success response
     const response = NextResponse.json(
@@ -128,12 +144,31 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
 
-    response.cookies.set("token", token, {
+    // Set Access Token
+    response.cookies.set("access-token", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/",
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 15 * 60, // 15 minutes
+    });
+
+    // Set Refresh Token
+    response.cookies.set("refresh-token", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
+
+    // For backward compatibility, also set "token"
+    response.cookies.set("token", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      maxAge: 15 * 60,
     });
 
     // 10. Reset lockout & log success

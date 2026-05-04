@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createUser, findUserByEmail } from "@/lib/models/user";
-import { PASSWORD_REGEX } from "@/lib/utils/password";
+import { PASSWORD_REGEX } from "@/lib/server/password";
 
 // Validation schema
 const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
+  email: z.string().email("Invalid email address").trim(),
+  phone: z.string().min(10, "Phone number is too short"),
   password: z.string().regex(
     PASSWORD_REGEX,
     "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character"
@@ -26,7 +27,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, password } = validation.data;
+    const { name, password, phone } = validation.data;
+    const email = validation.data.email.toLowerCase();
 
     // 2. Check if user already exists
     const existingUser = await findUserByEmail(email);
@@ -42,6 +44,7 @@ export async function POST(request: NextRequest) {
       name,
       email,
       password,
+      phone,
       role: "customer"
     });
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 
 type LoginFormData = {
   email: string;
@@ -54,17 +55,14 @@ export default function AdminLoginPage() {
             placeholder="admin@home4stay.com"
           />
         </div>
-        <div>
-          <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Security Key</label>
-          <input
-            type="password"
-            required
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="w-full h-14 rounded-2xl border-2 border-border bg-background px-6 focus:border-primary outline-none transition-all font-bold"
-            placeholder="••••••••"
-          />
-        </div>
+        <PasswordInput
+          label="Security Key"
+          required
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          placeholder="••••••••"
+          className="h-14 rounded-2xl border-2 px-6 font-bold"
+        />
 
         {error && (
           <div className="rounded-lg bg-red-50 p-4 text-sm font-medium text-red-600">

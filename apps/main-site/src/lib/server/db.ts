@@ -1,4 +1,6 @@
+import 'server-only';
 import { Pool } from 'pg';
+import './email'; // Trigger SMTP verification on startup
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

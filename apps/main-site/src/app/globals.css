@@ -82,3 +82,68 @@
     -webkit-font-smoothing: antialiased;
   }
 }
+
+/* Custom Phone Input Styling */
+.custom-phone-input {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: 0.75rem;
+  padding: 0 0.5rem;
+  transition: all 0.3s ease;
+  height: 3rem;
+  border: 1px solid var(--color-border);
+}
+
+.custom-phone-input:focus-within {
+  background: white;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(14, 90, 117, 0.05);
+}
+
+.custom-phone-input .PhoneInputCountry {
+  margin-left: 2.5rem;
+  margin-right: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.custom-phone-input .PhoneInputCountrySelect {
+  cursor: pointer;
+}
+
+.custom-phone-input .PhoneInputCountrySelectArrow {
+  opacity: 0.4;
+  margin-left: 0.25rem;
+  color: var(--color-primary);
+}
+
+.custom-phone-input input {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  padding: 0 0.75rem;
+  height: 100%;
+}
+
+.custom-phone-input input::placeholder {
+  color: #CBD5E1;
+  font-weight: 400;
+}
+@keyframes jiggle {
+  0% { transform: scale(1.1) rotate(0deg); }
+  25% { transform: scale(1.1) rotate(-10deg); }
+  50% { transform: scale(1.1) rotate(10deg); }
+  75% { transform: scale(1.1) rotate(-10deg); }
+  100% { transform: scale(1.1) rotate(0deg); }
+}
+
+.jiggle-on-hover:hover {
+  animation: jiggle 0.5s ease-in-out;
+}

@@ -3,7 +3,7 @@
  * Migrated to ioredis for self-hosted infrastructure.
  */
 import crypto from "crypto"
-import { getRedis } from "../redis/client"
+import { getRedis } from "../server/redis"
 const redis = getRedis()
 
 import { logger } from "../observability/logger"

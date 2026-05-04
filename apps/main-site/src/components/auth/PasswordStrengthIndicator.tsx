@@ -1,21 +1,17 @@
 "use client";
 
 import React from "react";
-import { validatePassword } from "@/lib/utils/password";
+import { validatePassword } from "@/lib/client/password";
 
 interface PasswordStrengthIndicatorProps {
   password: string;
 }
 
-interface RequirementItemProps {
-  label: string;
-  met: boolean;
-}
 
-const RequirementItem = ({ label, met }: RequirementItemProps) => (
-  <div className={`flex items-center space-x-2 text-xs font-medium ${met ? "text-green-600" : "text-secondary/60"}`}>
-    <div className={`w-1.5 h-1.5 rounded-full ${met ? "bg-green-500" : "bg-gray-300"}`} />
-    <span>{label}</span>
+const RequirementItem = ({ label }: { label: string }) => (
+  <div className="flex items-center space-x-2 text-xs font-bold text-red-500 animate-in fade-in slide-in-from-left-2 duration-300">
+    <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+    <span className="uppercase tracking-tight">{label}</span>
   </div>
 );
 
@@ -44,6 +40,14 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
     }
   };
 
+  const unmetRequirements = [
+    { label: "8+ Characters", met: requirements.length },
+    { label: "Uppercase", met: requirements.uppercase },
+    { label: "Lowercase", met: requirements.lowercase },
+    { label: "Number", met: requirements.number },
+    { label: "Special Character", met: requirements.special },
+  ].filter(req => !req.met);
+
   return (
     <div className="mt-3 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
       {/* Strength Bar */}
@@ -55,14 +59,14 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
         <span className="text-[10px] font-black uppercase tracking-widest text-secondary/40">Strength: {strength.toUpperCase()}</span>
       </div>
 
-      {/* Checklist */}
-      <div className="grid grid-cols-2 gap-2 p-4 rounded-xl bg-surface border border-border/50">
-        <RequirementItem label="8+ Characters" met={requirements.length} />
-        <RequirementItem label="Uppercase" met={requirements.uppercase} />
-        <RequirementItem label="Lowercase" met={requirements.lowercase} />
-        <RequirementItem label="Number" met={requirements.number} />
-        <RequirementItem label="Special (@$!%*?&)" met={requirements.special} />
-      </div>
+      {/* Checklist - Only show unmet */}
+      {unmetRequirements.length > 0 && (
+        <div className="grid grid-cols-2 gap-y-3 gap-x-4 p-4 rounded-xl bg-red-50/30 border border-red-100/50">
+          {unmetRequirements.map((req) => (
+            <RequirementItem key={req.label} label={req.label} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

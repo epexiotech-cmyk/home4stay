@@ -4,12 +4,16 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
-import { validatePassword } from "@/lib/utils/password";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { PhoneInput } from "@/components/auth/PhoneInput";
+import { validatePassword } from "@/lib/client/password";
+import { isValidPhoneNumber } from "react-phone-number-input";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
   });
@@ -18,9 +22,13 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
+  const [showPasswords, setShowPasswords] = useState(false);
+
   const passwordValidation = useMemo(() => validatePassword(formData.password), [formData.password]);
   const passwordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword !== "";
-  const canSubmit = formData.name && formData.email && passwordValidation.isValid && passwordsMatch;
+  
+  const isPhoneValid = formData.phone ? isValidPhoneNumber(formData.phone) : false; 
+  const canSubmit = formData.name && formData.email && isPhoneValid && passwordValidation.isValid && passwordsMatch;
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +44,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
+          phone: formData.phone,
           password: formData.password,
         }),
       });
@@ -99,35 +108,35 @@ export default function RegisterPage() {
           />
         </div>
 
-        <div>
-          <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Password</label>
-          <input
-            type="password"
-            required
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="w-full h-12 rounded-xl border border-border bg-background px-4 focus:border-primary outline-none transition-all"
-            placeholder="••••••••"
-          />
-          <PasswordStrengthIndicator password={formData.password} />
-        </div>
+        <PhoneInput
+          label="Mobile Number"
+          value={formData.phone}
+          onChange={(val) => setFormData({ ...formData, phone: val })}
+        />
 
-        <div>
-          <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Confirm Password</label>
-          <input
-            type="password"
-            required
-            value={formData.confirmPassword}
-            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-            className={`w-full h-12 rounded-xl border bg-background px-4 outline-none transition-all ${
-              formData.confirmPassword && !passwordsMatch ? "border-red-300 focus:border-red-500" : "border-border focus:border-primary"
-            }`}
-            placeholder="••••••••"
-          />
-          {formData.confirmPassword && !passwordsMatch && (
-            <p className="mt-1.5 text-[10px] font-bold text-red-500 uppercase tracking-widest">Passwords do not match</p>
-          )}
-        </div>
+        <PasswordInput
+          label="Password"
+          required
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          placeholder="••••••••"
+          show={showPasswords}
+          onToggle={() => setShowPasswords(!showPasswords)}
+          success={passwordsMatch}
+        />
+        <PasswordStrengthIndicator password={formData.password} />
+
+        <PasswordInput
+          label="Confirm Password"
+          required
+          value={formData.confirmPassword}
+          onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+          error={formData.confirmPassword && !passwordsMatch ? "Passwords do not match" : ""}
+          placeholder="••••••••"
+          show={showPasswords}
+          onToggle={() => setShowPasswords(!showPasswords)}
+          success={passwordsMatch}
+        />
 
         {error && (
           <div className="rounded-xl bg-red-50 p-4 text-xs font-bold text-red-600 border border-red-100">

@@ -15,6 +15,10 @@ export const CSRF_EXCLUDED = [
   "/api/auth/login",
   "/api/login",
   "/api/auth/register",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+  "/api/auth/profile",
+  "/api/auth/me",
   "/api/webhook"
 ]
 

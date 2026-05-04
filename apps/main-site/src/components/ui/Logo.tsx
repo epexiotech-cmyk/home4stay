@@ -11,9 +11,9 @@ interface LogoProps {
 }
 
 const sizes = {
-  sm: { height: 32, width: 128, iconWidth: 32 },
-  md: { height: 40, width: 160, iconWidth: 40 },
-  lg: { height: 64, width: 256, iconWidth: 64 },
+  sm: { height: 32, width: 75, iconWidth: 32 },
+  md: { height: 40, width: 94, iconWidth: 40 },
+  lg: { height: 64, width: 151, iconWidth: 64 },
 };
 
 export default function Logo({
@@ -37,6 +37,7 @@ export default function Logo({
         alt="Home4Stay Logo"
         width={logoWidth}
         height={height}
+        style={{ width: 'auto', height: 'auto' }}
         className="object-contain hover:opacity-90 transition-opacity duration-300"
         priority
       />

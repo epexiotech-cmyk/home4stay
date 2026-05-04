@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. RBAC Check (Admin Only)
-    const { authorized, response, userId, role } = await requireRole(request, ["admin", "super_admin"]);
+    const { authorized, response, userId } = await requireRole(request, ["admin", "super_admin"]);
     
     if (!authorized) return response!;
 

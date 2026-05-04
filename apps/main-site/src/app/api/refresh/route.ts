@@ -1,8 +1,6 @@
-import { NextResponse, NextRequest } from 'next/server'
-import { jwtVerify, SignJWT } from 'jose'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret'
-const encodedSecret = new TextEncoder().encode(JWT_SECRET)
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyToken, signToken } from '@/lib/auth/jwt'
+import { isJtiRevoked } from '@/lib/auth/blacklist'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,26 +11,23 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Verify Refresh Token
-    const { payload } = await jwtVerify(refreshToken, encodedSecret, {
-      issuer: 'home4stay',
-      audience: 'web'
-    })
+    const payload = await verifyToken(refreshToken);
     
-    if (payload.type !== 'refresh') {
-      throw new Error('Invalid token type')
+    if (!payload || payload.type !== 'refresh') {
+      return NextResponse.json({ error: 'Invalid or expired refresh token' }, { status: 401 })
     }
 
-    // 2. Issue new Access Token
-    const accessToken = await new SignJWT({ 
-      role: payload.role as string, 
-      username: payload.username as string 
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setIssuer('home4stay')
-      .setAudience('web')
-      .setExpirationTime('15m')
-      .sign(encodedSecret)
+    // 2. CHECK BLACKLIST (JTI-based revocation)
+    if (payload.jti && await isJtiRevoked(payload.jti as string)) {
+      return NextResponse.json({ error: 'Refresh token revoked' }, { status: 401 })
+    }
+
+    // 3. Issue new Access Token
+    const accessToken = await signToken({ 
+      userId: payload.userId as string,
+      role: payload.role as string,
+      type: "access"
+    }, '15m');
 
     // 3. Set Cookie
     const response = NextResponse.json({ success: true })

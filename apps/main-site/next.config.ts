@@ -6,7 +6,22 @@ const nextConfig: NextConfig = {
   turbopack: {
     // Set root to the monorepo root to allow resolving hoisted dependencies
     root: path.resolve(__dirname, "../../")
-  }
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+    ],
+  },
+  experimental: {
+    serverActions: {},
+  },
 };
 
 export default nextConfig;

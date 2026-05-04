@@ -1,3 +1,4 @@
+import 'server-only'
 import { Pool, PoolClient } from 'pg'
 
 const isProd = process.env.NODE_ENV === 'production'

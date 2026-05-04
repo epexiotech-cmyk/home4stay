@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 
 type LoginFormData = {
   email: string;
@@ -52,17 +53,13 @@ export default function PartnerLoginPage() {
             placeholder="partner@example.com"
           />
         </div>
-        <div>
-          <label className="block text-sm font-bold text-primary mb-2">Password</label>
-          <input
-            type="password"
-            required
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="w-full h-12 rounded-xl border border-border bg-background px-4 focus:ring-2 focus:ring-primary outline-none transition-all"
-            placeholder="••••••••"
-          />
-        </div>
+        <PasswordInput
+          label="Password"
+          required
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          placeholder="••••••••"
+        />
 
         {error && (
           <div className="rounded-lg bg-red-50 p-4 text-sm font-medium text-red-600">

@@ -5,9 +5,11 @@ import { requireRole } from "@/lib/auth/rbac";
 export async function GET(request: NextRequest) {
   try {
     // 1. Authenticate (any role allowed)
-    const { authorized, response, userId } = await requireRole(request, ["admin", "super_admin", "partner", "owner", "manager", "customer"]);
+    const { authorized, userId } = await requireRole(request, ["admin", "super_admin", "partner", "owner", "manager", "customer"]);
     
-    if (!authorized) return response!;
+    if (!authorized) {
+      return NextResponse.json({ user: null });
+    }
 
     // 2. Find user by ID
     const user = await findUserById(userId!);
@@ -25,7 +27,11 @@ export async function GET(request: NextRequest) {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        phone: user.phone,
+        city: user.city,
+        image_url: user.image_url,
+        created_at: user.created_at
       }
     });
 

@@ -1,4 +1,4 @@
-import { getRedis } from "../redis/client"
+import { getRedis } from "../server/redis"
 const redis = getRedis()
 
 import { logger } from "../observability/logger"

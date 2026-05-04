@@ -1,4 +1,5 @@
-import { getRedis } from "@/lib/redis/client"
+import 'server-only'
+import { getRedis } from "@/lib/server/redis"
 import { Pool } from "pg"
 
 /**

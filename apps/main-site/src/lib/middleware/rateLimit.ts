@@ -1,4 +1,4 @@
-import { getRedis } from "../redis/client"
+import { getRedis } from "../server/redis"
 import { RATE_LIMIT_CONFIG } from "../security/config"
 import { logger } from "../observability/logger";
 
