@@ -6,8 +6,39 @@
     "rating": 4.8,
     "guests": "120+",
     "description": "Beautiful mountain stay near Mall Road",
+    "tagline": "Your Mountain Sanctuary Above the Clouds",
     "createdAt": "2026-04-29T10:00:00.000Z",
-    "images": [],
+    "slug": "shivay",
+    "type": "Villa",
+    "image": "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=800",
+    "themeColor": "#2563EB",
+    "theme": {
+      "primary": "#2563EB",
+      "secondary": "#60A5FA",
+      "accent": "#F59E0B"
+    },
+    "contact": {
+      "phone": "+91 9876543210",
+      "whatsapp": "+919876543210"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=1200",
+      "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=800"
+    ],
+    "gallery": [
+      { "url": "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=1200", "category": "Exterior", "description": "Main entrance of the villa" },
+      { "url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=1200", "category": "Living Room", "description": "Spacious living area with mountain views" },
+      { "url": "https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?auto=format&fit=crop&q=80&w=1200", "category": "Bedrooms", "description": "Master bedroom with king size bed" },
+      { "url": "https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&q=80&w=1200", "category": "Bedrooms", "description": "Cozy twin bedroom" },
+      { "url": "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&q=80&w=1200", "category": "Bathrooms", "description": "Modern bathroom with rain shower" },
+      { "url": "https://images.unsplash.com/photo-1560185007-cde436f6a4d0?auto=format&fit=crop&q=80&w=1200", "category": "Living Room", "description": "Entertainment lounge" },
+      { "url": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1200", "category": "Exterior", "description": "Aerial view of the resort" },
+      { "url": "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=1200", "category": "Pool", "description": "Infinity pool overlooking the valley" },
+      { "url": "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&q=80&w=1200", "category": "Exterior", "description": "Garden area" }
+    ],
     "rooms": [
       {
         "name": "Deluxe Room",
@@ -21,7 +52,23 @@
         "capacity": "2 Guests",
         "view": "Valley View"
       }
-    ]
+    ],
+    "sleepingArrangements": [
+      { "name": "Bedroom 1", "beds": "1 King bed", "image": "https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?auto=format&fit=crop&q=80&w=600" },
+      { "name": "Bedroom 2", "beds": "2 Single beds", "image": "https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&q=80&w=600" },
+      { "name": "Living Room", "beds": "1 Sofa bed", "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=600" }
+    ],
+    "owner": {
+      "name": "Rahul Sharma",
+      "avatar": "https://i.pravatar.cc/150?u=rahul",
+      "rating": 4.9,
+      "reviewsCount": 150,
+      "isSuperhost": true,
+      "bio": "I'm a passionate traveler and mountain lover. I've been hosting guests in Manali for over 5 years and love sharing the beauty of the Himalayas.",
+      "message": "Welcome to Shivay Resort! My goal is to make your stay as comfortable and memorable as possible. Whether you need trekking tips or the best local food recommendations, I'm here to help.",
+      "responseTime": "within 10 minutes",
+      "languages": ["English", "Hindi", "Gujarati"]
+    }
   },
   "royalvilla": {
     "name": "Royal Villa",
@@ -30,8 +77,28 @@
     "rating": 4.6,
     "guests": "80+",
     "description": "Luxury villa near beach",
+    "tagline": "Where Coastal Elegance Meets Modern Luxury",
     "createdAt": "2026-04-29T10:00:00.000Z",
-    "images": [],
+    "slug": "royalvilla",
+    "type": "Villa",
+    "image": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800",
+    "themeColor": "#E67E22",
+    "theme": {
+      "primary": "#E67E22",
+      "secondary": "#D35400",
+      "accent": "#F1C40F"
+    },
+    "contact": {
+      "phone": "+91 9876543211",
+      "whatsapp": "+919876543211"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1200",
+      "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=800"
+    ],
     "rooms": [
       {
         "name": "Sea View Room",
@@ -39,6 +106,136 @@
         "capacity": "2 Guests",
         "view": "Sea View"
       }
-    ]
+    ],
+    "sleepingArrangements": [
+      { "name": "Master Suite", "beds": "1 King bed", "image": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=600" },
+      { "name": "Guest Room", "beds": "2 Queen beds", "image": "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?auto=format&fit=crop&q=80&w=600" }
+    ],
+    "owner": {
+      "name": "Priya D'Souza",
+      "avatar": "https://i.pravatar.cc/150?u=priya",
+      "rating": 4.8,
+      "reviewsCount": 230,
+      "isSuperhost": true,
+      "bio": "Hospitality professional with a love for the ocean. I ensure every guest experiences the true essence of Goa with a touch of luxury.",
+      "message": "Enjoy the sound of the waves and the comfort of Royal Villa. I've personally curated every detail to ensure you have a relaxing tropical escape.",
+      "responseTime": "within an hour",
+      "languages": ["English", "Konkani", "Portuguese"]
+    }
+  },
+  "tajvilla": {
+    "name": "Taj Villa",
+    "location": "Agra, Uttar Pradesh",
+    "price": 7500,
+    "rating": 4.9,
+    "guests": "200+",
+    "description": "Exquisite stay with a view of the Taj Mahal",
+    "tagline": "Timeless Grandeur with Monumental Views",
+    "createdAt": "2026-05-05T09:00:00.000Z",
+    "slug": "tajvilla",
+    "type": "Villa",
+    "image": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=800",
+    "themeColor": "#D4AF37",
+    "theme": {
+      "primary": "#D4AF37",
+      "secondary": "#B8860B",
+      "accent": "#DAA520"
+    },
+    "contact": {
+      "phone": "+91 9876543212",
+      "whatsapp": "+919876543212"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=1200",
+      "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=800"
+    ],
+    "rooms": [
+      {
+        "name": "Heritage Suite",
+        "price": 7500,
+        "capacity": "2 Guests",
+        "view": "Monument View"
+      }
+    ],
+    "sleepingArrangements": [
+      { "name": "Imperial Bedroom", "beds": "1 King bed", "image": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=600" },
+      { "name": "Courtyard Room", "beds": "2 Single beds", "image": "https://images.unsplash.com/photo-1512918766671-56f0b17332d9?auto=format&fit=crop&q=80&w=600" }
+    ],
+    "owner": {
+      "name": "Vikram Singh",
+      "avatar": "https://i.pravatar.cc/150?u=vikram",
+      "rating": 5.0,
+      "reviewsCount": 45,
+      "isSuperhost": false,
+      "bio": "History buff and lover of Mughal architecture. I've restored this villa to provide guests with a royal experience in the city of love.",
+      "message": "Experience Agra like royalty. Our villa offers the most stunning, unobstructed views of the Taj Mahal. I'm delighted to host you.",
+      "responseTime": "within 30 minutes",
+      "languages": ["English", "Hindi", "Urdu"]
+    }
+  },
+  "oceanview": {
+    "name": "Ocean View Resort",
+    "location": "Varkala, Kerala",
+    "price": 4500,
+    "rating": 4.7,
+    "guests": "150+",
+    "description": "Cliff-side resort with stunning ocean views",
+    "tagline": "Cliffside Serenity with Endless Horizon Views",
+    "createdAt": "2026-05-05T09:00:00.000Z",
+    "slug": "oceanview",
+    "type": "Homestay",
+    "image": "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=800",
+    "themeColor": "#3498DB",
+    "theme": {
+      "primary": "#3498DB",
+      "secondary": "#2980B9",
+      "accent": "#1ABC9C"
+    },
+    "contact": {
+      "phone": "+91 9876543213",
+      "whatsapp": "+919876543213"
+    },
+    "images": [
+      "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=1200",
+      "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800"
+    ],
+    "gallery": [
+      { "url": "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=1200", "category": "Exterior", "description": "Resort exterior at sunset" },
+      { "url": "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&q=80&w=1200", "category": "Exterior", "description": "Beach access" },
+      { "url": "https://images.unsplash.com/photo-1505691938895-1758d7eaa511?auto=format&fit=crop&q=80&w=1200", "category": "Living Room", "description": "Open air lounge" },
+      { "url": "https://images.unsplash.com/photo-1512918766671-56f0b17332d9?auto=format&fit=crop&q=80&w=1200", "category": "Bedrooms", "description": "Cliff-view suite" },
+      { "url": "https://images.unsplash.com/photo-1515362778563-6a8d0e44bc0b?auto=format&fit=crop&q=80&w=1200", "category": "Bedrooms", "description": "Sunset bedroom" },
+      { "url": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1200", "category": "Bathrooms", "description": "Stone-finish bathroom" },
+      { "url": "https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&q=80&w=1200", "category": "Exterior", "description": "Cliff pathway" }
+    ],
+    "rooms": [
+      {
+        "name": "Ocean Breeze Room",
+        "price": 4500,
+        "capacity": "2 Guests",
+        "view": "Full Ocean View"
+      }
+    ],
+    "sleepingArrangements": [
+      { "name": "Oceanfront Room", "beds": "1 King bed", "image": "https://images.unsplash.com/photo-1515362778563-6a8d0e44bc0b?auto=format&fit=crop&q=80&w=600" },
+      { "name": "Sunset Room", "beds": "1 Queen bed", "image": "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=600" }
+    ],
+    "owner": {
+      "name": "Anjali Nair",
+      "avatar": "https://i.pravatar.cc/150?u=anjali",
+      "rating": 4.7,
+      "reviewsCount": 89,
+      "isSuperhost": true,
+      "bio": "Artist and nature lover. I moved to Varkala to capture its beauty, and now I host guests who seek peace and creative inspiration.",
+      "message": "Let the ocean breeze and the artistic vibes of our resort rejuvenate your soul. I look forward to welcoming you to our little piece of paradise.",
+      "responseTime": "within an hour",
+      "languages": ["English", "Malayalam", "Tamil"]
+    }
   }
 }

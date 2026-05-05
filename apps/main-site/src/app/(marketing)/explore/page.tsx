@@ -1,136 +1,68 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import OptimizedImage from "@/components/OptimizedImage";
+import { getAllProperties } from "@/properties-data";
+import { getPropertyUrl } from "@/lib/utils/domains";
 
-const PROPERTIES = [
-  {
-    id: 1,
-    title: "Luxury Himalayan Retreat",
-    location: "Manali, Himachal Pradesh",
-    price: "8,500",
-    rating: "4.9",
-    image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=800",
-    type: "Villa"
-  },
-  {
-    id: 2,
-    title: "Coastal Breeze Villa",
-    location: "Anjuna, Goa",
-    price: "12,000",
-    rating: "4.8",
-    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800",
-    type: "Villa"
-  },
-  {
-    id: 3,
-    title: "Vintage Heritage Home",
-    location: "Jaipur, Rajasthan",
-    price: "5,500",
-    rating: "4.7",
-    image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&q=80&w=800",
-    type: "Homestay"
-  },
-  {
-    id: 4,
-    title: "Serene Lakeside Cottage",
-    location: "Udaipur, Rajasthan",
-    price: "7,200",
-    rating: "4.9",
-    image: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&q=80&w=800",
-    type: "Budget Stay"
-  },
-  {
-    id: 5,
-    title: "Modern Jungle Stay",
-    location: "Wayanad, Kerala",
-    price: "4,800",
-    rating: "4.6",
-    image: "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=800",
-    type: "Homestay"
-  },
-  {
-    id: 6,
-    title: "Royal Palace Suite",
-    location: "Jodhpur, Rajasthan",
-    price: "15,000",
-    rating: "5.0",
-    image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=800",
-    type: "Villa"
-  },
-  {
-    id: 7,
-    title: "Backwater Zen House",
-    location: "Alleppey, Kerala",
-    price: "6,000",
-    rating: "4.8",
-    image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=800",
-    type: "Homestay"
-  },
-  {
-    id: 8,
-    title: "Mountain View Cabin",
-    location: "Shimla, Himachal Pradesh",
-    price: "3,500",
-    rating: "4.5",
-    image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=800",
-    type: "Budget Stay"
-  },
-  {
-    id: 9,
-    title: "Elegant Tea Estate Villa",
-    location: "Munnar, Kerala",
-    price: "9,000",
-    rating: "4.9",
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=800",
-    type: "Villa"
-  },
-  {
-    id: 10,
-    title: "Rustic Desert Camp",
-    location: "Jaisalmer, Rajasthan",
-    price: "2,500",
-    rating: "4.7",
-    image: "https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&q=80&w=800",
-    type: "Budget Stay"
-  },
-  {
-    id: 11,
-    title: "Urban Chic Apartment",
-    location: "Bandra, Mumbai",
-    price: "10,500",
-    rating: "4.6",
-    image: "https://images.unsplash.com/photo-1449156001533-cb3941e246ee?auto=format&fit=crop&q=80&w=800",
-    type: "Homestay"
-  },
-  {
-    id: 12,
-    title: "Quiet Riverbank Home",
-    location: "Rishikesh, Uttarakhand",
-    price: "4,000",
-    rating: "4.8",
-    image: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&q=80&w=800",
-    type: "Homestay"
-  }
-];
+import FilterPanel, { FilterState } from "@/components/FilterPanel";
+import PropertyCard from "@/components/PropertyCard";
+import { SlidersHorizontal } from "lucide-react";
 
 export default function ExplorePage() {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>({
+    priceRange: [1000, 10000],
+    propertyType: [],
+    guests: 1,
+    amenities: [],
+    rating: null
+  });
 
-  const filteredProperties = activeCategory === "All" 
-    ? PROPERTIES 
-    : PROPERTIES.filter(p => p.type === activeCategory);
+  const properties = useMemo(() => getAllProperties(), []);
+
+  const filteredProperties = useMemo(() => {
+    return properties.filter(p => {
+      // 1. Tab-based Category Filter
+      if (activeCategory !== "All" && p.type !== activeCategory) return false;
+
+      // 2. Price Filter
+      if (p.price > appliedFilters.priceRange[1]) return false;
+
+      // 3. Property Type Filter (Multi-select)
+      if (appliedFilters.propertyType.length > 0 && !appliedFilters.propertyType.includes(p.type)) return false;
+
+      // 4. Rating Filter
+      if (appliedFilters.rating && p.rating < appliedFilters.rating) return false;
+
+      return true;
+    });
+  }, [properties, activeCategory, appliedFilters]);
+
+  const activeFilterCount = 
+    (appliedFilters.propertyType.length > 0 ? 1 : 0) + 
+    (appliedFilters.guests > 1 ? 1 : 0) + 
+    (appliedFilters.amenities.length > 0 ? 1 : 0) + 
+    (appliedFilters.rating !== null ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-background pt-80 pb-20">
+    <div className="min-h-screen bg-[var(--bg)] pt-60 pb-20">
+      <FilterPanel 
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={setAppliedFilters}
+        initialFilters={appliedFilters}
+      />
+
       <div className="mx-auto max-w-7xl px-6">
         {/* Header Section */}
         <div className="mb-12">
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight sm:text-5xl mb-4">
+          <h1 className="text-5xl font-black text-[var(--text)] tracking-tighter sm:text-7xl mb-6">
             Find your next <span className="text-primary italic">adventure</span>
           </h1>
-          <p className="text-gray-500 font-medium text-lg max-w-xl">
+          <p className="text-[var(--text-muted)] font-medium text-xl max-w-xl leading-relaxed">
             Browse through our curated collection of premium homestays, villas, and budget stays.
           </p>
         </div>
@@ -143,67 +75,58 @@ export default function ExplorePage() {
               onClick={() => setActiveCategory(category)}
               className={`group flex items-center px-6 py-3 rounded-full border transition-all duration-500 shadow-sm ${
                 activeCategory === category 
-                  ? "bg-white border-primary shadow-lg scale-105" 
-                  : "border-gray-200 bg-white/40 backdrop-blur-md text-gray-600 hover:bg-white hover:shadow-lg hover:border-primary"
+                  ? "bg-[var(--card)] border-theme-primary shadow-lg scale-105" 
+                  : "border-[var(--border)] bg-[var(--bg-secondary)]/40 backdrop-blur-md text-[var(--text-muted)] hover:bg-[var(--card)] hover:shadow-lg hover:border-theme-primary"
               }`}
             >
               <span className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 mr-2.5 ${
                 activeCategory === category ? "bg-primary" : "bg-primary/40 group-hover:bg-primary"
               }`} />
-              <span className={`text-sm font-bold ${activeCategory === category ? "text-gray-900" : "text-gray-600"}`}>
+              <span className={`text-sm font-bold ${activeCategory === category ? "text-[var(--text)]" : "text-[var(--text-muted)]"}`}>
                 {category}
               </span>
             </button>
           ))}
           
-          <div className="ml-auto flex items-center gap-4">
-             <button className="flex items-center gap-2 px-5 py-3 rounded-full border border-gray-200 text-sm font-bold text-gray-600 hover:bg-white hover:shadow-md transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-                Filters
+          <div className="ml-auto">
+             <button 
+                onClick={() => setIsFilterOpen(true)}
+                className={`group flex items-center gap-2.5 px-6 py-3 rounded-full border transition-all duration-500 shadow-sm ${
+                  activeFilterCount > 0
+                    ? "bg-theme-primary text-white border-theme-primary shadow-lg scale-105"
+                    : "border-[var(--border)] bg-[var(--bg-secondary)]/40 backdrop-blur-md text-[var(--text-muted)] hover:bg-[var(--card)] hover:shadow-lg hover:border-theme-primary"
+                }`}
+             >
+                <SlidersHorizontal size={16} className={`transition-transform duration-500 group-hover:rotate-180 ${activeFilterCount > 0 ? "text-white" : "text-primary"}`} />
+                <span className="text-sm font-bold">
+                  Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}
+                </span>
              </button>
           </div>
         </div>
 
         {/* Properties Grid */}
-        <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-h-[600px]">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-h-[600px]">
           {filteredProperties.length > 0 ? (
             filteredProperties.map((property) => (
-              <Link key={property.id} href={`/explore/${property.id}`} className="group cursor-pointer animate-in fade-in slide-in-from-bottom-5 duration-500">
-                <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl bg-gray-100 shadow-sm transition-all duration-500 group-hover:shadow-2xl group-hover:-translate-y-2">
-                  <Image 
-                    src={property.image} 
-                    alt={property.title}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-110"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                  />
-                  <div className="absolute top-4 right-4 bg-white/70 backdrop-blur-md p-2 rounded-full shadow-sm hover:bg-white transition-colors">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 hover:text-red-500 transition-colors"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                  </div>
-                  <div className="absolute bottom-4 left-4 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
-                    {property.type}
-                  </div>
-                </div>
-                <div className="mt-5">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-bold text-gray-900 text-lg group-hover:text-primary transition-colors">{property.title}</h3>
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm font-black text-gray-900">★</span>
-                      <span className="text-sm font-bold text-gray-700">{property.rating}</span>
-                    </div>
-                  </div>
-                  <p className="text-sm font-medium text-gray-500 mb-3">{property.location}</p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-lg font-black text-gray-900">₹{property.price}</span>
-                    <span className="text-sm font-medium text-gray-500">/ night</span>
-                  </div>
-                </div>
-              </Link>
+              <PropertyCard key={property.slug} property={property} />
             ))
           ) : (
-            <div className="col-span-full py-20 text-center">
-              <p className="text-2xl font-black text-gray-300">No properties found in this category.</p>
-              <button onClick={() => setActiveCategory("All")} className="mt-4 text-primary font-black hover:underline">Show all properties</button>
+            <div className="col-span-full flex flex-col items-center justify-center py-32 text-center animate-in fade-in zoom-in duration-500">
+              <div className="w-24 h-24 bg-[var(--bg-secondary)] rounded-full flex items-center justify-center mb-8 text-5xl shadow-inner border border-[var(--border)]">🔍</div>
+              <h3 className="text-2xl font-black text-[var(--text)] mb-3 tracking-tight">No matches found</h3>
+              <p className="text-[var(--text-muted)] font-medium max-w-sm mx-auto leading-relaxed">
+                We couldn&apos;t find any properties matching your current filters. Try broadening your search or resetting filters.
+              </p>
+              <button 
+                onClick={() => {
+                  setAppliedFilters({ priceRange: [1000, 10000], propertyType: [], guests: 1, amenities: [], rating: null });
+                  setActiveCategory("All");
+                }}
+                className="mt-10 px-10 py-4 bg-primary/10 text-primary font-black rounded-2xl hover:bg-primary/20 transition-all active:scale-95 shadow-sm"
+              >
+                Reset all filters
+              </button>
             </div>
           )}
         </div>

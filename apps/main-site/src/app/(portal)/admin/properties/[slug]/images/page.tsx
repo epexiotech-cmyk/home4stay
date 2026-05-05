@@ -1,4 +1,4 @@
-import Image from "next/image";
+import OptimizedImage from "@/components/OptimizedImage";
 import { getPropertyOrThrow } from "@home4stay/data";
 import ImageForm from "@/components/ImageForm";
 import Link from "next/link";
@@ -42,11 +42,12 @@ export default function ImageManagementPage({
                 {property.images && property.images.length > 0 ? (
                   property.images.map((img, index) => (
                     <div key={index} className="group relative aspect-square overflow-hidden rounded-xl bg-zinc-100 border border-zinc-100">
-                      <Image 
+                      <OptimizedImage 
                         src={img} 
                         alt={`${property.name} ${index + 1}`}
                         fill
                         className="object-cover transition duration-300 group-hover:scale-110"
+                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 250px"
                       />
                     </div>
                   ))

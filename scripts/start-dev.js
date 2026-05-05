@@ -11,9 +11,15 @@ if (!fs.existsSync(pidFile)) {
 }
 
 // Start the process
-const child = spawn('npm', ['run', 'dev', `--workspace=${appName}`], {
+const isWin = process.platform === 'win32';
+const command = isWin ? 'cmd.exe' : 'npm';
+const args = isWin 
+  ? ['/c', 'npm', 'run', 'dev', `--workspace=${appName}`] 
+  : ['run', 'dev', `--workspace=${appName}`];
+
+const child = spawn(command, args, {
   stdio: 'inherit',
-  shell: true
+  shell: false
 });
 
 // Update PID file

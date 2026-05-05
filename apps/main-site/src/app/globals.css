@@ -1,5 +1,62 @@
 @import "tailwindcss";
 
+@layer base {
+  button, a, input, select, textarea, [role="button"], .card, .glass-card {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+:root {
+  --bg: #ffffff;
+  --bg-secondary: #f5f7fb;
+
+  --text: #1a2b4b;
+  --text-muted: #6b7a99;
+  --text-subtle: #9aa6c1;
+
+  --card: rgba(255, 255, 255, 0.75);
+  --card-solid: #ffffff;
+
+  --border: rgba(0, 0, 0, 0.12);
+
+  --primary: #0E5A75;
+  --primary-hover: #0A4459;
+  --primary-foreground: #ffffff;
+
+  --shadow: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="dark"] {
+  --bg: #0b1220;
+  --bg-secondary: #0f172a;
+
+  --text: #ffffff;
+  --text-muted: #9ca3af;
+  --text-subtle: #6b7280;
+
+  --card: rgba(15, 23, 42, 0.4);
+  --card-solid: #1e293b;
+
+  --border: rgba(255, 255, 255, 0.05);
+
+  --primary: #0983B0;
+  --primary-hover: #3b82f6;
+  --primary-foreground: #ffffff;
+
+  --shadow: rgba(0, 0, 0, 0.6);
+}
+
 @theme {
   /* Primary Colors - Deep Sea Blue */
   --color-primary: #0E5A75;
@@ -18,14 +75,20 @@
   /* Highlight Colors */
   --color-warning: #FCBC43;
 
-  /* Neutral Colors */
-  --color-background: #FDF6F1;
-  --color-surface: #FFFFFF;
-  --color-surface-alt: #F7EFEA;
-  --color-border: #E5E5E5;
+  /* Neutral Colors (Linked to Theme) */
+  --color-background: var(--bg);
+  --color-surface: var(--card-solid);
+  --color-surface-alt: var(--bg-secondary);
+  --color-border: var(--border);
+
+  /* Dynamic Theme Colors (Linked to CSS Variables) */
+  --color-theme-primary: var(--primary);
+  --color-theme-hover: var(--primary-hover);
+  --color-theme-light: var(--primary-light);
+  --color-theme-bg: var(--bg);
 
   /* Gradients */
-  --background-image-primary-gradient: linear-gradient(to right, #0E5A75, #0983B0);
+  --background-image-primary-gradient: linear-gradient(to right, var(--primary), var(--primary-hover));
   --background-image-accent-gradient: linear-gradient(to right, #F24633, #FCBC43);
   --background-image-success-gradient: linear-gradient(to right, #159665, #78D145);
 
@@ -47,59 +110,58 @@
   .btn:active { transform: scale(0.95); }
 
   .btn-primary {
-    background-color: var(--color-accent);
-    color: white;
+    background-color: var(--primary);
+    color: var(--primary-foreground);
   }
   .btn-primary:hover {
-    background-color: var(--color-accent-hover);
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px var(--shadow);
   }
 
   .btn-secondary {
-    background-color: var(--color-primary);
-    color: white;
+    background-color: var(--bg-secondary);
+    color: var(--text);
+    border: 1px solid var(--border);
   }
   .btn-secondary:hover {
-    background-color: var(--color-primary-dark);
+    background-color: var(--card-solid);
+    border-color: var(--primary);
   }
 
   .card {
-    background-color: var(--color-surface);
+    background-color: var(--card-solid);
     border-radius: 1rem;
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--border);
     padding: 1.5rem;
     transition: all 0.3s ease;
+    box-shadow: 0 4px 12px var(--shadow);
   }
   .card-premium:hover {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 25px 50px -12px var(--shadow);
     transform: translateY(-0.25rem);
   }
 }
 
-@layer base {
-  body {
-    background-color: var(--color-background);
-    color: var(--color-secondary);
-    -webkit-font-smoothing: antialiased;
-  }
-}
+
 
 /* Custom Phone Input Styling */
 .custom-phone-input {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--card);
   backdrop-filter: blur(8px);
   border-radius: 0.75rem;
   padding: 0 0.5rem;
   transition: all 0.3s ease;
   height: 3rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
 }
 
 .custom-phone-input:focus-within {
-  background: white;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(14, 90, 117, 0.05);
+  background: var(--bg);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-light);
 }
 
 .custom-phone-input .PhoneInputCountry {
@@ -116,7 +178,7 @@
 .custom-phone-input .PhoneInputCountrySelectArrow {
   opacity: 0.4;
   margin-left: 0.25rem;
-  color: var(--color-primary);
+  color: var(--primary);
 }
 
 .custom-phone-input input {
@@ -126,14 +188,14 @@
   background: transparent !important;
   flex: 1;
   font-size: 0.875rem;
-  color: var(--color-primary-dark);
+  color: var(--text);
   font-weight: 600;
   padding: 0 0.75rem;
   height: 100%;
 }
 
 .custom-phone-input input::placeholder {
-  color: #CBD5E1;
+  color: var(--text-subtle);
   font-weight: 400;
 }
 @keyframes jiggle {

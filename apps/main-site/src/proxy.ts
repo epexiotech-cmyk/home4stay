@@ -1,17 +1,42 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { handleSecurity } from "@/lib/middleware/security"
 import { handleAuth } from "@/lib/middleware/auth"
 import { SECURITY_HEADERS } from "@/lib/security/config"
+import { getSubdomain } from "@/lib/utils/domains"
 
 export default async function proxy(req: NextRequest) {
-  // 1. Run Security Layer
+  const url = req.nextUrl.clone();
+  const host = req.headers.get("host");
+  const { pathname } = url;
+
+  // 1. Run Security Layer (Rate limiting, etc.)
   const securityResponse = await handleSecurity(req)
   if (securityResponse) return securityResponse
 
-  // 2. Run Auth Layer
+  // 2. Subdomain Routing Layer
+  const isInternal = pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes("favicon.ico");
+  
+  if (!isInternal && !pathname.startsWith("/property/")) {
+    const subdomain = getSubdomain(host);
+    if (subdomain) {
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[Proxy] Subdomain detected: ${subdomain}. Rewriting ${pathname} -> /property/${subdomain}${pathname === "/" ? "" : pathname}`);
+      }
+      url.pathname = `/property/${subdomain}${pathname === "/" ? "" : pathname}`;
+      const response = NextResponse.rewrite(url);
+      
+      // Apply Global Security Headers to rewrite response
+      Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
+        response.headers.set(key, value)
+      })
+      return response;
+    }
+  }
+
+  // 3. Run Auth Layer
   const response = await handleAuth(req)
   
-  // 3. Apply Global Security Headers
+  // 4. Apply Global Security Headers
   Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
     response.headers.set(key, value)
   })

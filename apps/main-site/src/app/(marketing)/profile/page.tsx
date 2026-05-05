@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import OptimizedImage from "@/components/OptimizedImage";
 import { User, Mail, Shield, Phone, MapPin, Calendar, Edit3 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -75,13 +75,14 @@ export default function ProfilePage() {
             <div className="relative group">
               <div className="w-28 h-28 rounded-full bg-white ring-4 ring-white/50 shadow-xl flex items-center justify-center text-4xl font-bold text-primary/30 overflow-hidden transition-transform duration-500 group-hover:scale-105">
                 {user.image_url && !imageError ? (
-                  <Image 
+                  <OptimizedImage 
                     src={user.image_url} 
                     alt={user.name} 
                     width={112} 
                     height={112} 
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                     onError={() => setImageError(true)}
+                    sizes="112px"
                   />
                 ) : (
                   initials

@@ -1,0 +1,47 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getSubdomain } from "@/lib/utils/domains";
+
+export function middleware(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  const host = request.headers.get("host");
+
+  // 1. Skip if it's an internal Next.js path or API
+  const { pathname } = url;
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname.includes("favicon.ico")
+  ) {
+    return NextResponse.next();
+  }
+
+  // 2. Extract subdomain
+  const subdomain = getSubdomain(host);
+
+  // 3. Routing Logic
+  if (subdomain) {
+    console.log(`[Middleware] Rewriting ${host}${pathname} -> /property/${subdomain}${pathname === "/" ? "" : pathname}`);
+    
+    // Rewrite to /property/[slug]
+    // If pathname is '/', it rewrites to /property/tajvilla
+    // If pathname is '/gallery', it rewrites to /property/tajvilla/gallery
+    const rewritePath = `/property/${subdomain}${pathname === "/" ? "" : pathname}`;
+    
+    return NextResponse.rewrite(new URL(rewritePath, request.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+  ],
+};

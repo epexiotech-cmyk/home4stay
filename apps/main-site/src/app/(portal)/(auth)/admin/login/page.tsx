@@ -52,7 +52,7 @@ export default function AdminLoginPage() {
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className="w-full h-14 rounded-2xl border-2 border-border bg-background px-6 focus:border-primary outline-none transition-all font-bold"
-            placeholder="admin@home4stay.com"
+            placeholder="admin@home4stay.homes"
           />
         </div>
         <PasswordInput

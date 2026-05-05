@@ -1,131 +1,62 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import OptimizedImage from "@/components/OptimizedImage";
+import { getAllProperties } from "@/properties-data";
+import { getPropertyUrl } from "@/lib/utils/domains";
+import { SlidersHorizontal } from "lucide-react";
+import FilterPanel, { FilterState } from "@/components/FilterPanel";
 
-const PROPERTIES = [
-  {
-    id: 1,
-    title: "Luxury Himalayan Retreat",
-    location: "Manali, Himachal Pradesh",
-    price: "8,500",
-    rating: "4.9",
-    image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=800",
-    type: "Villa"
-  },
-  {
-    id: 2,
-    title: "Coastal Breeze Villa",
-    location: "Anjuna, Goa",
-    price: "12,000",
-    rating: "4.8",
-    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800",
-    type: "Villa"
-  },
-  {
-    id: 3,
-    title: "Vintage Heritage Home",
-    location: "Jaipur, Rajasthan",
-    price: "5,500",
-    rating: "4.7",
-    image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&q=80&w=800",
-    type: "Homestay"
-  },
-  {
-    id: 4,
-    title: "Serene Lakeside Cottage",
-    location: "Udaipur, Rajasthan",
-    price: "7,200",
-    rating: "4.9",
-    image: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&q=80&w=800",
-    type: "Budget Stay"
-  },
-  {
-    id: 5,
-    title: "Modern Jungle Stay",
-    location: "Wayanad, Kerala",
-    price: "4,800",
-    rating: "4.6",
-    image: "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=800",
-    type: "Homestay"
-  },
-  {
-    id: 6,
-    title: "Royal Palace Suite",
-    location: "Jodhpur, Rajasthan",
-    price: "15,000",
-    rating: "5.0",
-    image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=800",
-    type: "Villa"
-  },
-  {
-    id: 7,
-    title: "Backwater Zen House",
-    location: "Alleppey, Kerala",
-    price: "6,000",
-    rating: "4.8",
-    image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=800",
-    type: "Homestay"
-  },
-  {
-    id: 8,
-    title: "Mountain View Cabin",
-    location: "Shimla, Himachal Pradesh",
-    price: "3,500",
-    rating: "4.5",
-    image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=800",
-    type: "Budget Stay"
-  },
-  {
-    id: 9,
-    title: "Elegant Tea Estate Villa",
-    location: "Munnar, Kerala",
-    price: "9,000",
-    rating: "4.9",
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=800",
-    type: "Villa"
-  },
-  {
-    id: 10,
-    title: "Rustic Desert Camp",
-    location: "Jaisalmer, Rajasthan",
-    price: "2,500",
-    rating: "4.7",
-    image: "https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&q=80&w=800",
-    type: "Budget Stay"
-  },
-  {
-    id: 11,
-    title: "Urban Chic Apartment",
-    location: "Bandra, Mumbai",
-    price: "10,500",
-    rating: "4.6",
-    image: "https://images.unsplash.com/photo-1449156001533-cb3941e246ee?auto=format&fit=crop&q=80&w=800",
-    type: "Homestay"
-  },
-  {
-    id: 12,
-    title: "Quiet Riverbank Home",
-    location: "Rishikesh, Uttarakhand",
-    price: "4,000",
-    rating: "4.8",
-    image: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&q=80&w=800",
-    type: "Homestay"
-  }
-];
+// Replaced hardcoded PROPERTIES with dynamic data from getAllProperties()
 
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>({
+    priceRange: [1000, 10000],
+    propertyType: [],
+    guests: 1,
+    amenities: [],
+    rating: null
+  });
 
-  const filteredProperties = activeCategory === "All" 
-    ? PROPERTIES 
-    : PROPERTIES.filter(p => p.type === activeCategory);
+  const properties = useMemo(() => getAllProperties(), []);
+
+  const filteredProperties = useMemo(() => {
+    return properties.filter(p => {
+      // 1. Tab-based Category Filter
+      if (activeCategory !== "All" && p.type !== activeCategory) return false;
+
+      // 2. Price Filter
+      if (p.price > appliedFilters.priceRange[1]) return false;
+
+      // 3. Property Type Filter (Multi-select)
+      if (appliedFilters.propertyType.length > 0 && !appliedFilters.propertyType.includes(p.type)) return false;
+
+      // 4. Rating Filter
+      if (appliedFilters.rating && p.rating < appliedFilters.rating) return false;
+
+      return true;
+    });
+  }, [properties, activeCategory, appliedFilters]);
+
+  const activeFilterCount = 
+    (appliedFilters.propertyType.length > 0 ? 1 : 0) + 
+    (appliedFilters.guests > 1 ? 1 : 0) + 
+    (appliedFilters.amenities.length > 0 ? 1 : 0) + 
+    (appliedFilters.rating !== null ? 1 : 0);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-[var(--bg)]">
+      <FilterPanel 
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={setAppliedFilters}
+        initialFilters={appliedFilters}
+      />
       {/* SECTION 1: Hero */}
-      <section className="bg-background pt-60 pb-32 px-6 text-center overflow-hidden relative">
+      <section className="bg-[var(--bg)] pt-60 pb-32 px-6 text-center overflow-hidden relative">
         {/* Abstract Background Blur */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-primary/5 rounded-full blur-[120px] -z-10" />
 
@@ -137,25 +68,39 @@ export default function HomePage() {
               onClick={() => setActiveCategory(category)}
               className={`group flex items-center px-5 py-2.5 rounded-full border transition-all duration-500 shadow-sm ${
                 activeCategory === category 
-                  ? "bg-white border-primary shadow-lg scale-105" 
-                  : "border-gray-200 bg-white/40 backdrop-blur-md text-gray-600 hover:bg-white hover:shadow-lg hover:border-primary"
+                  ? "bg-[var(--bg)] border-theme-primary shadow-lg scale-105" 
+                  : "border-[var(--border)] bg-[var(--bg)]/40 backdrop-blur-md text-[var(--text-muted)] hover:bg-[var(--bg)] hover:shadow-lg hover:border-theme-primary"
               }`}
             >
               <span className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 mr-2.5 ${
                 activeCategory === category ? "bg-primary" : "bg-primary/40 group-hover:bg-primary"
               }`} />
-              <span className={`text-sm font-bold ${activeCategory === category ? "text-gray-900" : "text-gray-600"}`}>
+              <span className={`text-sm font-bold ${activeCategory === category ? "text-[var(--text)]" : "text-[var(--text-muted)]"}`}>
                 {category}
               </span>
             </button>
           ))}
+
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className={`group flex items-center px-6 py-2.5 rounded-full border transition-all duration-500 shadow-sm ml-2 ${
+              activeFilterCount > 0
+                ? "bg-theme-primary text-white border-theme-primary shadow-lg scale-105"
+                : "border-[var(--border)] bg-[var(--bg)]/40 backdrop-blur-md text-[var(--text-muted)] hover:bg-[var(--bg)] hover:shadow-lg hover:border-theme-primary"
+            }`}
+          >
+            <SlidersHorizontal size={14} className={`mr-2.5 transition-transform duration-500 group-hover:rotate-180 ${activeFilterCount > 0 ? "text-white" : "text-primary"}`} />
+            <span className="text-sm font-bold">
+              Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}
+            </span>
+          </button>
         </div>
 
         <div className="mx-auto max-w-[800px] animate-in fade-in slide-in-from-bottom-10 duration-1000 ease-out">
-          <h1 className="text-5xl font-black tracking-tighter text-gray-900 sm:text-7xl leading-[1.1]">
+          <h1 className="text-5xl font-black tracking-tighter text-[var(--text)] sm:text-7xl leading-[1.1]">
             Find <span className="text-primary italic">your</span> perfect <span className="text-primary italic">stay.</span>
           </h1>
-          <p className="mt-8 text-xl text-gray-500 font-medium max-w-[600px] mx-auto leading-relaxed">
+          <p className="mt-8 text-xl text-[var(--text-muted)] font-medium max-w-[600px] mx-auto leading-relaxed">
             Discover handpicked homestays, luxury villas, and authentic experiences tailored for your next journey.
           </p>
         </div>
@@ -165,8 +110,12 @@ export default function HomePage() {
       <section className="mx-auto w-full max-w-7xl px-6 py-16">
         <div className="flex items-center justify-between mb-12">
           <div>
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Featured Properties</h2>
-            <p className="text-gray-500 mt-1 font-medium">Handpicked stays for your next adventure</p>
+            <h2 className="text-3xl font-black text-[var(--text)] tracking-tight">
+              {activeFilterCount > 0 || activeCategory !== "All" ? "Matched Results" : "Featured Properties"}
+            </h2>
+            <p className="text-[var(--text-muted)] mt-1 font-medium">
+              {filteredProperties.length} properties found matching your criteria
+            </p>
           </div>
           <Link href="/explore" className="hidden sm:flex items-center gap-2 text-sm font-bold text-primary hover:underline underline-offset-4 transition-all">
             View all properties
@@ -177,11 +126,11 @@ export default function HomePage() {
         <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-h-[400px]">
           {filteredProperties.length > 0 ? (
             filteredProperties.map((property) => (
-              <Link key={property.id} href={`/explore/${property.id}`} className="group cursor-pointer animate-in fade-in slide-in-from-bottom-5 duration-500">
-              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl bg-gray-100 shadow-sm transition-all duration-500 group-hover:shadow-2xl group-hover:-translate-y-2">
-                <Image 
+              <a key={property.slug} href={getPropertyUrl(property.slug)} className="group cursor-pointer animate-in fade-in slide-in-from-bottom-5 duration-500">
+              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl bg-[var(--bg-secondary)] shadow-sm transition-all duration-500 group-hover:shadow-2xl group-hover:-translate-y-2">
+                <OptimizedImage 
                   src={property.image} 
-                  alt={property.title}
+                  alt={property.name}
                   fill
                   className="object-cover transition-transform duration-700 group-hover:scale-110"
                   sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
@@ -193,27 +142,39 @@ export default function HomePage() {
                   {property.type}
                 </div>
               </div>
-              <div className="mt-5">
+                <div className="mt-5">
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-bold text-gray-900 text-lg group-hover:text-primary transition-colors">{property.title}</h3>
+                  <h3 className="font-bold text-[var(--text)] text-lg group-hover:text-theme-primary transition-colors">{property.name}</h3>
                   <div className="flex items-center gap-1">
-                    <span className="text-sm font-black text-gray-900">★</span>
-                    <span className="text-sm font-bold text-gray-700">{property.rating}</span>
+                    <span className="text-sm font-black text-[var(--text)]">★</span>
+                    <span className="text-sm font-bold text-[var(--text-muted)]">{property.rating}</span>
                   </div>
                 </div>
-                <p className="text-sm font-medium text-gray-500 mb-3">{property.location}</p>
+                <p className="text-sm font-medium text-[var(--text-muted)] mb-3">{property.location}</p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-lg font-black text-gray-900">₹{property.price}</span>
-                  <span className="text-sm font-medium text-gray-500">/ night</span>
+                  <span className="text-xl font-black text-[var(--text)]">₹{property.price.toLocaleString("en-IN")}</span>
+                  <span className="text-sm font-bold text-[var(--text-muted)]">/ night</span>
                 </div>
               </div>
-            </Link>
+            </a>
           ))
         ) : (
-          <div className="col-span-full py-20 text-center">
-            <p className="text-xl font-bold text-gray-400">No properties found in this category.</p>
-            <button onClick={() => setActiveCategory("All")} className="mt-4 text-primary font-bold hover:underline">Show all properties</button>
-          </div>
+            <div className="col-span-full flex flex-col items-center justify-center py-24 text-center animate-in fade-in zoom-in duration-500">
+              <div className="w-24 h-24 bg-[var(--bg-secondary)] rounded-full flex items-center justify-center mb-8 text-5xl shadow-inner border border-[var(--border)]">🔍</div>
+              <h3 className="text-2xl font-black text-[var(--text)] mb-3">No matches found</h3>
+              <p className="text-[var(--text-muted)] font-medium max-w-sm mx-auto leading-relaxed">
+                We couldn&apos;t find any properties matching your current filters. Try broadening your search.
+              </p>
+              <button 
+                onClick={() => {
+                  setAppliedFilters({ priceRange: [1000, 10000], propertyType: [], guests: 1, amenities: [], rating: null });
+                  setActiveCategory("All");
+                }}
+                className="mt-10 px-8 py-3 bg-primary/10 text-primary font-black rounded-2xl hover:bg-primary/20 transition-all active:scale-95"
+              >
+                Reset all filters
+              </button>
+            </div>
         )}
         </div>
 

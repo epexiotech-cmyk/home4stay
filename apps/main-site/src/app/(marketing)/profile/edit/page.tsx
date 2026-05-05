@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import OptimizedImage from "@/components/OptimizedImage";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { ArrowLeft, Save, Loader2, Camera, User, MapPin, Mail } from "lucide-react";
@@ -180,13 +180,14 @@ export default function EditProfilePage() {
                   {uploading ? (
                     <Loader2 className="animate-spin text-primary" size={32} />
                   ) : formData.image_url && isValidUrl(formData.image_url) && !imageError ? (
-                    <Image 
+                    <OptimizedImage 
                       src={formData.image_url} 
                       alt="Profile" 
                       width={96} 
                       height={96} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                       onError={() => setImageError(true)}
+                      sizes="96px"
                     />
                   ) : (
                     user.name[0].toUpperCase()

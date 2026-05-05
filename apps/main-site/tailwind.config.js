@@ -9,19 +9,25 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#0E5A75",
+          DEFAULT: "var(--primary, #0E5A75)",
           light: "#0983B0",
           dark: "#0A4459",
         },
+        theme: {
+          primary: "var(--primary)",
+          secondary: "var(--secondary)",
+          accent: "var(--accent)",
+          bg: "var(--theme-bg, #ffffff)",
+        },
         accent: {
-          DEFAULT: "#F24633",
+          DEFAULT: "var(--accent, #F24633)",
           hover: "#D83A2A",
         },
         success: {
           DEFAULT: "#159665",
           light: "#78D145",
         },
-        secondary: "#29655C",
+        secondary: "var(--secondary, #29655C)",
         warning: "#FCBC43",
         background: "#FDF6F1",
         surface: {

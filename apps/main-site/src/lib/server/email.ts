@@ -26,8 +26,8 @@ if (!globalForEmail.__smtp_initialized) {
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const localLink = `http://localhost:3000/auth/reset-password?token=${token}`;
-  const networkLink = `http://172.21.48.1:3000/auth/reset-password?token=${token}`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://home4stay.homes";
+  const resetLink = `${appUrl}/auth/reset-password?token=${token}`;
 
   const mailOptions = {
     from: process.env.SMTP_FROM,
@@ -45,19 +45,17 @@ export async function sendPasswordResetEmail(email: string, token: string) {
             We received a request to reset the password for your account. Please use one of the links below to choose a new password.
           </p>
           
-          <div style="text-align: center; margin: 32px 0; display: flex; flex-direction: column; gap: 16px; align-items: center;">
-            <a href="${localLink}" style="background-color: #000; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; font-size: 14px; width: 200px;">Reset (Localhost)</a>
-            <a href="${networkLink}" style="background-color: #2563eb; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; font-size: 14px; width: 200px;">Reset (Network IP)</a>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${resetLink}" style="background-color: #000; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; font-size: 14px;">Reset Password</a>
           </div>
           
           <p style="font-size: 14px; color: #888; text-align: center; margin-top: 24px;">
-            These links will expire in <strong>15 minutes</strong> for your security.
+            This link will expire in <strong>15 minutes</strong> for your security.
           </p>
           
           <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
-            <p style="font-size: 12px; color: #aaa; margin-bottom: 8px;">If the buttons don't work, copy and paste these links into your browser:</p>
-            <p style="font-size: 11px; color: #000; word-break: break-all; margin-bottom: 8px;"><strong>Local:</strong> ${localLink}</p>
-            <p style="font-size: 11px; color: #000; word-break: break-all;"><strong>Network:</strong> ${networkLink}</p>
+            <p style="font-size: 12px; color: #aaa; margin-bottom: 8px;">If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="font-size: 11px; color: #000; word-break: break-all;">${resetLink}</p>
           </div>
         </div>
         

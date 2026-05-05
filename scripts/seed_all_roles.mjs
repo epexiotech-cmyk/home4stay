@@ -17,11 +17,11 @@ const pool = new Pool({
 });
 
 const users = [
-  { name: 'Admin User', email: 'admin@home4stay.com', role: 'admin' },
-  { name: 'Customer User', email: 'customer@home4stay.com', role: 'customer' },
-  { name: 'Owner User', email: 'owner@home4stay.com', role: 'owner' },
-  { name: 'Manager User', email: 'manager@home4stay.com', role: 'manager' },
-  { name: 'Super Admin User', email: 'super_admin@home4stay.com', role: 'super_admin' },
+  { name: 'Admin User', email: 'admin@home4stay.homes', role: 'admin' },
+  { name: 'Customer User', email: 'customer@home4stay.homes', role: 'customer' },
+  { name: 'Owner User', email: 'owner@home4stay.homes', role: 'owner' },
+  { name: 'Manager User', email: 'manager@home4stay.homes', role: 'manager' },
+  { name: 'Super Admin User', email: 'super_admin@home4stay.homes', role: 'super_admin' },
 ];
 
 async function seed() {
