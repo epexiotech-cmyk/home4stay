@@ -75,7 +75,7 @@ export default function Navbar() {
       className={`fixed left-1/2 -translate-x-1/2 z-50 w-[95vw] transition-all duration-700 cubic-bezier(0.4, 0, 0.2, 1) ${isScrolled ? "top-4 scale-[0.98]" : "top-6 scale-100"
         }`}
     >
-      <div className={`relative px-6 md:px-10 py-4 rounded-[2.5rem] border border-white/20 bg-[var(--card)] backdrop-blur-xl transition-all duration-500 ${isScrolled ? "shadow-[0_20px_50px_rgba(0,0,0,0.12)] bg-[var(--card)]" : "shadow-[0_8px_32px_rgba(0,0,0,0.1)]"
+      <div className={`relative px-6 md:px-10 rounded-[2.5rem] border border-white/20 bg-[var(--card)] backdrop-blur-xl transition-all duration-500 ${isScrolled ? "shadow-[0_20px_50px_rgba(0,0,0,0.12)] bg-[var(--card)] py-2" : "shadow-[0_8px_32px_rgba(0,0,0,0.1)] py-4"
         }`}>
         <div className="flex items-center justify-between">
           {/* Left: Logo */}
@@ -203,8 +203,8 @@ export default function Navbar() {
 
         {/* Search Bar Integration */}
         <div className={`transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] origin-top ${isScrolled
-          ? "opacity-100 -translate-y-[4.25rem] scale-[0.82]"
-          : "opacity-100 translate-y-2 scale-100 mt-4"
+          ? "opacity-100 -translate-y-[3.5rem] scale-[0.82] h-0 overflow-visible"
+          : "opacity-100 translate-y-2 scale-100 mt-4 h-auto"
           }`}>
           <SearchBar isScrolled={isScrolled} />
         </div>
