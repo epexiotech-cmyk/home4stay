@@ -744,7 +744,7 @@ const SearchBar = React.memo(({ isScrolled = false }: SearchBarProps) => {
                       {flexibleStep === 4 && (
                         <div className="flex flex-col items-center gap-6 w-full max-w-md">
                           <button
-                            onClick={() => { setActiveSection(null); setIsExpanded(false); }}
+                            onClick={() => { setActiveSection("who"); }}
                             className="w-full px-12 py-6 rounded-full bg-theme-primary text-white font-bold uppercase tracking-[0.25em] text-[13px] transition-all duration-700 shadow-[0_30px_60px_-15px_var(--theme-primary-alpha)] hover:shadow-[0_35px_70px_-15px_var(--theme-primary-alpha)] hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-5 group overflow-hidden relative"
                           >
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
