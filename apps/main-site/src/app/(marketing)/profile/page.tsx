@@ -5,12 +5,21 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import OptimizedImage from "@/components/OptimizedImage";
-import { User, Mail, Shield, Phone, MapPin, Calendar, Edit3 } from "lucide-react";
+import { User, Mail, Shield, Phone, MapPin, Calendar, Edit3, ShieldCheck, CheckCircle2, ArrowRight } from "lucide-react";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
+import { AadhaarOTPVerification } from "@/components/kyc/AadhaarOTPVerification";
+import { ConciergePortal } from "@/components/portal/ConciergePortal";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [imageError, setImageError] = React.useState(false);
+  const [showKYCModal, setShowKYCModal] = React.useState(false);
+  const [showConcierge, setShowConcierge] = React.useState(false);
+  const [manualKycStatus, setManualKycStatus] = React.useState<"none" | "verified" | "pending">("none");
+  const kycStatus = user?.kycStatus === "VERIFIED" ? "verified" : manualKycStatus;
 
   useEffect(() => {
     if (!loading && !user) {
@@ -51,17 +60,21 @@ export default function ProfilePage() {
     : "Recently joined";
 
   return (
-    <div className="min-h-screen bg-transparent pt-32 pb-20 px-6">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-transparent pt-72 pb-20 px-6 relative overflow-hidden">
+      {/* Atmospheric Background Blobs */}
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-[#159665]/10 rounded-full blur-[140px] pointer-events-none" />
+      
+      <div className="max-w-3xl mx-auto relative z-10">
         {/* Header Section */}
-        <div className="mb-10 flex items-end justify-between">
+        <div className="mb-12 flex items-end justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-primary tracking-tight">Profile</h1>
-            <p className="text-gray-500 mt-2 font-medium">Manage your personal information and security</p>
+            <h1 className="text-5xl font-black text-[#053344] dark:text-white tracking-tighter leading-none">Profile</h1>
+            <p className="text-sm font-bold text-[#0E5A75]/60 dark:text-[#0983B0]/60 mt-3 uppercase tracking-widest italic">Personal Concierge & Security</p>
           </div>
           <Link
             href="/profile/edit"
-            className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-primary-dark hover:scale-105 hover:shadow-xl shadow-primary/20 transition-all duration-300 active:scale-95"
+            className="flex items-center gap-3 bg-[#0E5A75] dark:bg-[#0983B0] text-white px-8 py-4 rounded-[20px] text-xs font-black uppercase tracking-widest hover:scale-105 hover:shadow-2xl transition-all active:scale-95 shadow-xl shadow-[#0E5A75]/20"
           >
             <Edit3 size={18} />
             <span>Edit Profile</span>
@@ -69,11 +82,11 @@ export default function ProfilePage() {
         </div>
 
         {/* Main Profile Card */}
-        <div className="bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden mb-8 transition-all duration-500 hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] hover:-translate-y-1">
-          <div className="p-10 flex flex-col md:flex-row items-center gap-8">
+        <div className="glass-premium dark:bg-white/[0.03] border-white/20 dark:border-white/10 rounded-[48px] shadow-luxury overflow-hidden mb-10 transition-all duration-700 hover:shadow-2xl hover:-translate-y-1">
+          <div className="p-12 flex flex-col md:flex-row items-center gap-10">
             {/* Avatar Section */}
             <div className="relative group">
-              <div className="w-28 h-28 rounded-full bg-white ring-4 ring-white/50 shadow-xl flex items-center justify-center text-4xl font-bold text-primary/30 overflow-hidden transition-transform duration-500 group-hover:scale-105">
+              <div className="w-32 h-32 rounded-[40px] bg-white dark:bg-[#0E5A75]/20 ring-8 ring-white/50 dark:ring-white/5 shadow-2xl flex items-center justify-center text-4xl font-black text-[#0E5A75] dark:text-white/30 overflow-hidden transition-all duration-500 group-hover:scale-105 group-hover:rotate-3">
                 {user.image_url && !imageError ? (
                   <OptimizedImage 
                     src={user.image_url} 
@@ -91,26 +104,29 @@ export default function ProfilePage() {
             </div>
 
             <div className="text-center md:text-left flex-1">
-              <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2">
-                <h2 className="text-3xl font-bold text-primary-dark tracking-tight">{user.name}</h2>
-                <span className="inline-flex items-center px-4 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-widest shadow-sm">
-                  {user.role}
-                </span>
+              <div className="flex flex-col md:flex-row md:items-center gap-4 mb-3">
+                <h2 className="text-4xl font-black text-[#053344] dark:text-white tracking-tighter">{user.name}</h2>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center px-4 py-1.5 rounded-full text-[9px] font-black bg-[#0E5A75]/10 text-[#0E5A75] dark:bg-white/10 dark:text-[#0983B0] border border-[#0E5A75]/20 dark:border-white/10 uppercase tracking-[0.2em] shadow-sm">
+                    {user.role}
+                  </span>
+                  <VerifiedBadge status={kycStatus} size="sm" />
+                </div>
               </div>
-              <p className="text-gray-500 font-medium flex items-center justify-center md:justify-start gap-2 text-lg">
-                <Mail size={18} className="text-primary/40" />
+              <p className="text-sm font-bold text-[#0E5A75]/60 dark:text-white/40 flex items-center justify-center md:justify-start gap-3 uppercase tracking-widest italic">
+                <Mail size={16} className="text-[#0983B0]" />
                 {user.email}
               </p>
             </div>
           </div>
 
-          <div className="px-10 pb-2">
-            <hr className="border-primary/10" />
+          <div className="px-12">
+            <hr className="border-[#0E5A75]/5 dark:border-white/5" />
           </div>
 
           {/* Details Grid */}
-          <div className="p-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10">
+          <div className="p-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-12">
               <ProfileItem 
                 icon={<User size={20} />} 
                 label="Full Name" 
@@ -146,36 +162,121 @@ export default function ProfilePage() {
         </div>
 
         {/* Secondary Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-8 bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-[0_15px_40px_rgba(0,0,0,0.08)] hover:-translate-y-2 hover:shadow-[0_25px_60px_rgba(0,0,0,0.12)] transition-all duration-300 group cursor-pointer">
-            <div className="flex items-start justify-between mb-4">
-              <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary/40 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                <Shield size={24} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="p-10 glass-matte dark:bg-white/[0.02] border-white/20 dark:border-white/5 rounded-[40px] shadow-premium hover:-translate-y-2 hover:shadow-2xl transition-all duration-500 group cursor-pointer relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+            <div className="flex items-start justify-between mb-6 relative z-10">
+              <div className="h-14 w-14 rounded-2xl bg-[#0E5A75]/5 dark:bg-white/5 flex items-center justify-center text-[#0E5A75] dark:text-[#0983B0] group-hover:scale-110 group-hover:bg-[#0E5A75] group-hover:text-white transition-all duration-500">
+                <Shield size={28} />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-primary-dark mb-2">Password & Security</h3>
-            <p className="text-gray-500 font-medium mb-6 text-sm leading-relaxed">Ensure your account stays protected by updating your security credentials.</p>
+            <h3 className="text-2xl font-black text-[#053344] dark:text-white mb-3 relative z-10">Password & Security</h3>
+            <p className="text-xs font-bold text-[#0E5A75]/60 dark:text-white/40 mb-8 leading-relaxed uppercase tracking-widest italic relative z-10">Durable protection for your luxury assets and personal data.</p>
             <Link 
               href="/profile/change-password"
-              className="text-primary text-sm font-bold flex items-center gap-2 group-hover:translate-x-1 transition-all"
+              className="text-[#0E5A75] dark:text-[#FCBC43] text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-3 group-hover:translate-x-2 transition-all relative z-10"
             >
-              Change password <span className="text-xl">→</span>
+              Change Credentials <ArrowRight size={16} />
             </Link>
           </div>
 
-          <div className="p-8 bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl shadow-[0_15px_40px_rgba(0,0,0,0.08)] hover:-translate-y-2 hover:shadow-[0_25px_60px_rgba(0,0,0,0.12)] transition-all duration-300 group cursor-pointer">
-            <div className="flex items-start justify-between mb-4">
-              <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary/40 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                <MapPin size={24} />
+          <div className="p-10 glass-matte dark:bg-white/[0.02] border-white/20 dark:border-white/5 rounded-[40px] shadow-premium hover:-translate-y-2 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+            <div className="flex items-start justify-between mb-6 relative z-10">
+              <div className={cn(
+                "h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500",
+                kycStatus === "verified" ? "bg-[#159665] text-white" : "bg-[#0E5A75]/5 dark:bg-white/5 text-[#0E5A75] dark:text-[#0983B0] group-hover:scale-110 group-hover:bg-[#0E5A75] group-hover:text-white"
+              )}>
+                <ShieldCheck size={28} />
+              </div>
+              {kycStatus === "verified" && <VerifiedBadge status="verified" size="sm" />}
+            </div>
+            <h3 className="text-2xl font-black text-[#053344] dark:text-white mb-3 relative z-10">Identity Verification</h3>
+            <p className="text-xs font-bold text-[#0E5A75]/60 dark:text-white/40 mb-8 leading-relaxed uppercase tracking-widest italic relative z-10">
+              {kycStatus === "verified" 
+                ? "Identity verified. Priority check-in and trusted status active globally."
+                : "Earn your Verified Guest badge for faster future bookings and VIP status."}
+            </p>
+            {kycStatus !== "verified" ? (
+              <button 
+                onClick={() => setShowKYCModal(true)}
+                className="text-[#0E5A75] dark:text-[#FCBC43] text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-3 group-hover:translate-x-2 transition-all relative z-10"
+              >
+                Verify Now <ArrowRight size={16} />
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 text-[#159665] text-[10px] font-black uppercase tracking-widest relative z-10">
+                <CheckCircle2 size={16} /> Verified via Aadhaar
+              </div>
+            )}
+          </div>
+
+          <div className="p-10 glass-matte dark:bg-white/[0.02] border-white/20 dark:border-white/5 rounded-[40px] shadow-premium hover:-translate-y-2 hover:shadow-2xl transition-all duration-500 group cursor-pointer md:col-span-2 relative overflow-hidden">
+             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+            <div className="flex items-start justify-between mb-6 relative z-10">
+              <div className="h-14 w-14 rounded-2xl bg-[#0E5A75]/5 dark:bg-white/5 flex items-center justify-center text-[#0E5A75] dark:text-[#0983B0] group-hover:scale-110 group-hover:bg-[#0E5A75] group-hover:text-white transition-all duration-500">
+                <MapPin size={28} />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-primary-dark mb-2">Need Assistance?</h3>
-            <p className="text-gray-500 font-medium mb-6 text-sm leading-relaxed">Our dedicated support team is here to help you with any issues or queries.</p>
-            <button className="text-primary text-sm font-bold flex items-center gap-2 group-hover:translate-x-1 transition-all">
-              Contact Support <span className="text-xl">→</span>
+            <h3 className="text-2xl font-black text-[#053344] dark:text-white mb-3 relative z-10">Concierge Assistance</h3>
+            <p className="text-xs font-bold text-[#0E5A75]/60 dark:text-white/40 mb-8 leading-relaxed uppercase tracking-widest italic relative z-10">Our dedicated support team is available 24/7 for your bespoke travel needs.</p>
+            <button 
+              onClick={() => setShowConcierge(true)}
+              className="text-[#0E5A75] dark:text-[#FCBC43] text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-3 group-hover:translate-x-2 transition-all relative z-10"
+            >
+              Contact Concierge <ArrowRight size={16} />
             </button>
           </div>
         </div>
+
+        {/* Concierge Portal */}
+        <ConciergePortal 
+          isOpen={showConcierge}
+          onClose={() => setShowConcierge(false)}
+          isVerified={kycStatus === "verified"}
+        />
+
+        {/* KYC Verification Modal */}
+        <AnimatePresence>
+          {showKYCModal && (
+            <div className="fixed inset-0 z-[500] flex items-center justify-center p-6">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-[#053344]/80 backdrop-blur-xl"
+                onClick={() => setShowKYCModal(false)}
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                className="relative w-full max-w-lg bg-[#FDF6F1] dark:bg-[#0A0F1D] shadow-luxury rounded-[48px] border border-white/10 dark:border-white/5 overflow-hidden"
+              >
+                <div className="p-8 border-b border-[#0E5A75]/5 dark:border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-[#0983B0]/10 flex items-center justify-center text-[#0983B0]">
+                      <ShieldCheck size={28} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-[#053344] dark:text-white tracking-tight">Identity Verification</h3>
+                      <p className="text-[10px] font-bold text-[#0E5A75]/60 dark:text-white/60 uppercase tracking-widest italic">Airbnb-style Trust Secure</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowKYCModal(false)} className="p-3 rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 text-[#0E5A75] dark:text-white"><ArrowRight className="rotate-45" size={24} /></button>
+                </div>
+                <div className="p-10">
+                  <AadhaarOTPVerification 
+                    onVerified={() => {
+                      setManualKycStatus("verified");
+                      setTimeout(() => setShowKYCModal(false), 2000);
+                    }}
+                  />
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -183,13 +284,13 @@ export default function ProfilePage() {
 
 function ProfileItem({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
   return (
-    <div className="flex gap-5 group/item">
-      <div className="mt-1 text-primary/30 group-hover/item:text-primary transition-colors duration-300">
+    <div className="flex gap-6 group/item">
+      <div className="mt-1.5 text-[#0983B0] group-hover/item:scale-110 transition-all duration-500">
         {icon}
       </div>
       <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1.5">{label}</p>
-        <p className="text-primary-dark font-bold text-lg tracking-tight">{value}</p>
+        <p className="text-[9px] font-black text-[#0E5A75]/40 dark:text-white/30 uppercase tracking-[0.3em] mb-2">{label}</p>
+        <p className="text-[#053344] dark:text-white font-black text-xl tracking-tighter leading-none">{value}</p>
       </div>
     </div>
   );

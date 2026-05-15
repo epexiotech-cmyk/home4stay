@@ -8,6 +8,7 @@ import OptimizedImage from "./OptimizedImage";
 import { Globe, Menu, UserCircle } from "lucide-react";
 import SearchBar from "./SearchBar";
 import ThemeSwitcher from "./ThemeSwitcher";
+import { getMainDomainUrl } from "@/lib/utils/domains";
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
@@ -187,8 +188,8 @@ export default function Navbar() {
                   </>
                 ) : (
                   <div className="py-2">
-                    <Link href="/auth/login" className="block px-4 py-2.5 text-sm font-bold text-[var(--text)] hover:bg-black/5">Login</Link>
-                    <Link href="/auth/register" className="block px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:bg-black/5">Sign Up</Link>
+                    <a href={getMainDomainUrl("/auth/login")} className="block px-4 py-2.5 text-sm font-bold text-[var(--text)] hover:bg-black/5">Login</a>
+                    <a href={getMainDomainUrl("/auth/register")} className="block px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:bg-black/5">Sign Up</a>
                     <hr className="border-white/10 my-2" />
                     <ThemeSwitcher />
                     <hr className="border-white/10 my-2" />

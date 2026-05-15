@@ -1,10 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useMemo } from "react";
-import OptimizedImage from "@/components/OptimizedImage";
 import { getAllProperties } from "@/properties-data";
-import { getPropertyUrl } from "@/lib/utils/domains";
 
 import FilterPanel, { FilterState } from "@/components/FilterPanel";
 import PropertyCard from "@/components/PropertyCard";

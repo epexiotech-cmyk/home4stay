@@ -22,13 +22,17 @@ export default function FilterPanel({ isOpen, onClose, onApply, initialFilters }
   const [filters, setFilters] = useState<FilterState>(initialFilters);
 
   useEffect(() => {
+    let raf: number;
     if (isOpen) {
-      setFilters(initialFilters);
+      raf = requestAnimationFrame(() => setFilters(initialFilters));
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
     }
-    return () => { document.body.style.overflow = "unset"; };
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      document.body.style.overflow = "unset";
+    };
   }, [isOpen, initialFilters]);
 
   const togglePropertyType = (type: string) => {

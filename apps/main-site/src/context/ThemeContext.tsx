@@ -1,9 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { propertyThemes } from "@/config/propertyThemes";
 import { getSubdomain } from "@/lib/getSubdomain";
-import { adjustColor, hexToRgba } from "@/lib/colorUtils";
+import { adjustColor } from "@/lib/colorUtils";
 
 type Theme = "light" | "dark" | "system";
 
@@ -17,57 +17,61 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
-  const [mounted, setMounted] = useState(false);
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
-
-  // Effect 1: Only handle mounted
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Effect 2: Handle theme initialization
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-
-    if (savedTheme === "light" || savedTheme === "dark") {
-      setThemeState(savedTheme);
-    } else {
-      setThemeState("system");
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      const savedTheme = localStorage.getItem("theme") as Theme;
+      return (savedTheme === "light" || savedTheme === "dark") ? savedTheme : "system";
     }
+    return "system";
+  });
+
+  const [mounted, setMounted] = useState(false);
+
+  // Only handle mounting in the effect to satisfy linter and prevent hydration mismatch
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setMounted(true);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
-  // Effect 3: Apply theme in separate effect
+  // Derive resolvedTheme instead of using state to avoid extra renders
+  const getResolvedTheme = useCallback((): "light" | "dark" => {
+    if (!mounted || typeof window === "undefined") return "light";
+    if (theme !== "system") return theme as "light" | "dark";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }, [theme, mounted]);
+
+  const resolvedTheme = getResolvedTheme();
+
+  // Handle DOM synchronization and system listener
   useEffect(() => {
     if (!mounted) return;
 
+    const applyTheme = (resolved: "light" | "dark") => {
+      document.documentElement.setAttribute("data-theme", resolved);
+      if (resolved === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    };
+
+    // Apply the initial/changed theme
+    applyTheme(resolvedTheme);
+
+    // Setup listener for system theme changes
     const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const systemDark = media.matches;
-
-    const resolved =
-      theme === "system"
-        ? (systemDark ? "dark" : "light")
-        : (theme as "light" | "dark");
-
-    setResolvedTheme(resolved);
-    document.documentElement.setAttribute("data-theme", resolved);
-  }, [theme, mounted]);
-
-  // Effect 4: Keep system listener separate
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-
     const handleChange = () => {
       if (theme === "system") {
-        const resolved = media.matches ? "dark" : "light";
-        setResolvedTheme(resolved);
-        document.documentElement.setAttribute("data-theme", resolved);
+        const newResolved = media.matches ? "dark" : "light";
+        applyTheme(newResolved);
       }
     };
 
     media.addEventListener("change", handleChange);
     return () => media.removeEventListener("change", handleChange);
-  }, [theme]);
+  }, [theme, mounted, resolvedTheme]);
 
   // Effect 5: Apply dynamic property branding
   useEffect(() => {

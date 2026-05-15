@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Grid, X, ChevronLeft, ChevronRight, Maximize2, Share2, Heart } from "lucide-react";
 import { GalleryImage } from "@/properties-data/types";
 import OptimizedImage from "@/components/OptimizedImage";
@@ -153,7 +153,7 @@ export default function Gallery({ images, gallery, name }: GalleryProps) {
                  {/* Auto-playing Background Carousel */}
                  {carouselImages.map((img, idx) => (
                    <OptimizedImage
-                      key={idx}
+                      key={`carousel-img-${idx}`}
                       src={img.url}
                       alt={`Carousel preview ${idx}`}
                       fill
@@ -364,7 +364,7 @@ function EditorialGrid({ images, name, openFullscreen }: { images: GalleryImage[
         
         return (
           <div 
-            key={idx} 
+            key={`edit-${img.category}-${idx}`} 
             onClick={() => openFullscreen(idx)}
             className={`relative rounded-[2rem] overflow-hidden cursor-zoom-in group/edit shadow-[0_10px_40px_-15px_var(--shadow)] hover:shadow-[0_20px_60px_-10px_var(--shadow)] transition-all duration-700 bg-[var(--bg-secondary)] ${spanClass}`}
           >

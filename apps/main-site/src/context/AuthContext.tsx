@@ -12,6 +12,7 @@ interface User {
   city?: string;
   image_url?: string;
   created_at?: string;
+  kycStatus?: string;
 }
 
 interface AuthContextType {

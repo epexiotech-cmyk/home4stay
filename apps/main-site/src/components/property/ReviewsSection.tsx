@@ -67,7 +67,7 @@ export default function ReviewsSection() {
             
             <div className="flex items-center gap-0.5 text-primary">
                {[...Array(5)].map((_, i) => (
-                 <Star key={i} size={12} fill={review.rating > i ? "currentColor" : "transparent"} />
+                 <Star key={`review-${review.id}-star-${i}`} size={12} fill={review.rating > i ? "currentColor" : "transparent"} />
                ))}
             </div>
 

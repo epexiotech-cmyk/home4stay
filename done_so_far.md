@@ -4,51 +4,50 @@ This document provides a comprehensive breakdown of the Home4Stay monorepo archi
 
 ---
 
-## 🚀 Latest Update (2026-04-29)
+## 🚀 Progress Updates
 
-### 🔐 Authentication System
-- Implemented JWT-based dual-token system (Access + Refresh)
-- Added role-based access control (Admin, Partner)
-- Implemented secure cookies (HttpOnly, SameSite, Secure)
-- Added token expiry + refresh flow
+### 🔐 Initial Core Hardening (2026-04-29)
+- **Authentication System**: Implemented JWT-based dual-token system (Access + Refresh) with role-based access control and secure HttpOnly cookies.
+- **Security Hardening**: Added API-level `jwtVerify`, CSRF protection, rate limiting, and strict Zod validation.
+- **Proxy Optimization**: Migrated to dedicated proxy architecture with lightweight JWT validation and role-based route guards.
+- **Audit Logging System**: Async non-blocking architecture using `fs.promises` with a sequential write queue and multi-pivot rotation.
+- **Dev Infrastructure**: PID-based process management and automated "Hardened QA" crawler integration.
+- **Stability Fixes**: Resolved file-watch infinite loops and ensured strict isolation of server-side logic from client-side bundles.
 
-### 🛡️ Security Hardening
-- Added API-level `jwtVerify` (Hard Gate)
-- Implemented CSRF protection (double-submit pattern)
-- Added rate limiting for login, refresh, and contact APIs
-- Enforced strict Zod validation across all mutation endpoints
+### 🏗️ Enterprise Production Transformation (2026-04-30)
+- **Reliability Guards**: Refactored `withTimeout` to prevent memory leaks and implemented **Exponential Backoff with Jitter** for smart retries.
+- **Atomic Idempotency Layer**: Implemented distributed Redis locks (`SETNX`) with atomic Lua script releases for race-condition protection.
+- **Observability**: Standardized global `x-request-id` propagation and created real-time `/api/health` monitoring endpoints.
+- **Database Safety**: Integrated `withTransaction` and Row-Level Locking (`FOR UPDATE`) for critical booking workflows.
 
-### ⚡ Proxy Optimization
-- Migrated middleware → dedicated proxy architecture
-- Implemented lightweight `decodeJwt` validation for high-performance routing
-- Added role-based route guards and redirect logic
-- Added issuer (`iss`) and audience (`aud`) validation
-- Added clock skew tolerance (60s) for robust session handling
-- Implemented refresh-aware routing (allows silent refresh via API)
+### 🔐 Multi-Portal Auth & Database Refactor (2026-04-30)
+- **Architecture**: Implemented `(marketing)` and `(portal)` route groups to separate public pages from administrative dashboards.
+- **PostgreSQL Layer**: Developed a scalable user schema with native support for `customer`, `owner`, `manager`, and `admin` roles.
+- **Edge Compatibility**: Transitioned to `jose` library for JWT operations to ensure compatibility with Next.js Edge Runtime middleware.
+- **AuthContext**: Created a unified global state for session hydration and dynamic UI rendering (Navbar/Logout).
 
-### 📊 Audit Logging System
-- **Async Non-blocking Architecture**: Uses `fs.promises` to prevent event-loop blocking.
-- **Fire-and-Forget Logic**: Optimized APIs to trigger logging without adding request latency.
-- **Sequential Write Queue**: Ensures data integrity by serializing log writes, preventing race conditions.
-- **Multi-Pivot Rotation**: 
-  - Daily rotation (`audit-YYYY-MM-DD.log`).
-  - File size-based rotation (auto-parts if > 10MB).
-- **Structured JSON Logs**: Detailed schemas including `ts`, `userId`, `role`, `action`, and `rid`.
-- **Log Levels**: Support for `info`, `warn`, and `error` tiers.
-- **Request Correlation (RID)**: Unique IDs to track request lifecycles across logs.
-- **Safe Environment**: Logs stored in non-watched `/logs` directory with environment-aware guards (Dev + Prod).
+### 🛡️ Security Infrastructure Refinement (2026-04-30)
+- **Brute-Force Protection**: Hardened lockout strategy using `email:ip` composite keys and fail-secure Redis fallbacks.
+- **Intelligent Resilience**: Implemented selective strictness (blocking auth if Redis is down while allowing content routes to fail-open).
+- **Role Gating**: Standardized server-side authorization using the `requireRole` helper across all protected APIs.
 
-### 🧠 Dev Infrastructure
-- **PID-based Management**: Integrated tracking of development processes.
-- **Safe Automation**: Custom start/stop scripts to handle port conflicts and stale processes.
-- **Status Monitoring**: Real-time health checking of the monorepo environment.
-- **Crawler Integration**: Automated "Hardened QA" crawler for session-aware route testing.
+### 🎨 Premium UI & Experience Evolution (2026-05-04)
+- **Island Architecture**: Finalized the glassmorphism "Floating Island" aesthetic for Navbar and Footer.
+- **Rolling Display**: Implemented root layout transparency gradients for a seamless content-behind-nav scrolling effect.
+- **Editorial Design**: Transitioned to `aspect-[4/5]` portrait ratios for property cards with smooth scaling and lift animations.
+- **Image Optimization**: Migrated all assets to Next.js `<Image />` with WebP/AVIF conversion and intelligent lazy loading.
 
-### 🐛 Stability Fixes
-- **Infinite Loop Resolution**: Fixed file-watch loops caused by log writing.
-- **Architecture Cleanup**: Resolved duplicate export errors and server-side logic in UI components (Footer).
-- **Client/Server Separation**: Strict isolation of `fs` and `path` logic from client-side bundles.
-- **Dev Stabilization**: Zeroed out all TypeScript linting errors and unused variable warnings.
+### 🔍 Premium Search & Discovery Hub (2026-05-05)
+- **Intelligent Search**: Developed a multi-mode date selector supporting Flexible Stays and ± Day flexibility.
+- **Flow Automation**: Implemented "Magical Auto-Progression" (Where → When → Who) to reduce booking friction.
+- **Zero-Jitter Animations**: GPU-accelerated transitions and dimension locking to prevent layout shifts during scroll states.
+
+### 🏨 Multi-Tenant CMS & PMS Calendar (2026-05-15)
+- **Visual CMS Registry**: Built a modular engine for partners to customize Hero, Gallery, and Narrative sections with live previewing.
+- **PMS-Style Calendar**: Engineered a history-aware calendar that filters selectable months based on actual booking activity.
+- **Cinematic Checkout**: Designed a multi-step checkout experience with concierge upsells (meal plans/experiences).
+- **Prisma Proxy**: Hardened the database layer by replacing unsafe `require()` imports with a type-safe Prisma proxy.
+- **Brand Harmonization**: Eliminated slate tones in favor of the signature luxury palette across all partner and guest portals.
 
 ---
 
@@ -67,9 +66,6 @@ A centralized package (`@home4stay/data`) that prevents code duplication and ens
 - **Central Database**: All property information is stored in `packages/data/property.json`.
 - **Data Access Layer (DAL)**: Instead of apps reading files directly, they use safe helper functions like `getProperty(slug)` and `getAllProperties()`.
 - **Type Safety**: TypeScript interfaces (like `Property` and `Room`) are defined once and enforced everywhere, preventing "undefined" errors.
-
-### Why it matters:
-If you add a new room or change a price in the JSON, the marketing site and the property site update **instantly** without needing a single code change.
 
 ---
 
@@ -103,214 +99,9 @@ A secure administrative area for the Home4Stay team to manage the business.
 
 ---
 
-## 📣 4. Marketing & Data Integrity
-### How we protect our data:
-- **Atomic Secure Writes**: When the system writes to our JSON database (for leads or properties), it first writes to a temporary file and *then* renames it. This prevents "partial writes" or file corruption if a server crashes mid-save.
-- **Input Sanitization**: Every piece of data entering the system is trimmed, title-cased, and cleaned of extra spaces to maintain a "Premium" feel across the UI.
-
-### Lead Capture:
-The "Partner with Us" form uses a hardened API endpoint that validates every field and stores inquiries safely, triggering an immediate update on the Admin Dashboard.
-
----
-
-## ✨ 5. Design & Tech Standards
-- **Design System**: Built on a modern "Zinc-900" (Black & White) aesthetic. It uses high-contrast typography and subtle glassmorphism to feel "Premium" and "High-Trust."
-- **Next.js 15+ & React 19**: Utilizing the latest React features like Server Components for speed and Client Components for interactivity.
-- **Indian Market Localization**: Currencies are formatted using the Indian numbering system (`₹3,0,000` instead of `300,000`).
-
----
-
-## 🚀 6. Latest Updates & Enhancements
-### 🏨 Room Management System
-- **Granular Inventory Control**: Admins can now manage specific room types for each property.
-- **Smart Validation**: 
-  - Prevents zero or negative pricing.
-  - **Duplicate Check**: Ensures no two rooms in the same property share a name.
-  - **Whitespace Normalization**: Automatically cleans up messy room names (e.g., `" Deluxe   Suite "` -> `"Deluxe Suite"`).
-
-### 🖼️ Image Management & Optimization
-- **High-Performance Media Pipeline**:
-  - **Sharp Integration**: Every image is now processed locally using the industry-standard `sharp` library.
-  - **Auto-Conversion**: All uploads are converted to **WebP** (80% quality) for maximum speed.
-  - **Cinematic Resizing**: Images are automatically cropped and resized to **1920x1080 (1080p)** to ensure a uniform, premium look in galleries.
-- **Media Security Guards**:
-  - **Payload Limits**: Strictly enforces a **5MB maximum** file size to protect server resources.
-  - **MIME Validation**: Only authentic image files (JPEG, PNG, WebP) are accepted.
-  - **Inventory Cap**: Limits each property to **10 high-quality images** to maintain site performance.
-  - **Fetch Resilience**: Robust error handling for broken or private image URLs.
-
-### 💎 Data Quality & UX Polish
-- **Advanced "Smart Title Case"**: 
-  - Intelligently handles small words (*and, of, the, in*).
-  - **Acronym Support**: Preserves official terms like `HP`, `UK`, `USA`.
-  - **Hyphenation Logic**: Correctly capitalizes terms like `Eco-Friendly`.
-  - **Unit Intelligence**: Recognizes and capitalizes housing units like `3BHK` or `2BHK`.
-- **Admin Workflow Improvements**:
-  - Integrated navigation links for "Rooms" and "Images" directly onto property cards.
-  - Live gallery previews in the admin panel for instant feedback.
-
-### 🔒 Final Hardening & Production Readiness
-- **Room Data Integrity**:
-  - **Normalized room names**: Automatically cleans up whitespace and formatting (trim + remove extra spaces).
-  - **Case-insensitive duplicate prevention**: Ensures unique room names within a single property profile.
-  - **Strict positive pricing validation**: Prevents broken or zero-cost listings.
-- **Image Pipeline Hardening**:
-  - **5MB file size limit**: Protects server memory and storage from payload overload.
-  - **MIME type validation**: Strictly enforces `image/*` formats to prevent malicious or incompatible file uploads.
-  - **Safe fetch handling**: Robust resilience against broken, private, or invalid image URLs.
-  - **Max 10 images per property**: A critical performance guard to keep property sites lean and fast.
-- **Media Reliability**:
-  - **Self-hosted image system**: No longer relies on external URLs; all assets are optimized and hosted locally.
-  - **Atomic write pattern**: Every database update uses a secure write-to-temp-then-rename cycle to prevent data loss.
-  - **Graceful failure handling**: Integrated error wrapping for both network fetch and `sharp` processing stages.
-- **System Stability Upgrade**:
-  - All critical APIs are now professionally guarded against invalid input, duplicate entries, and corrupted payloads.
-  - Ensures production-safe behavior even under high administrative usage.
-
----
-
-### 🚀 Enterprise Production Transformation (2026-04-30)
-
-#### 🛡️ Distributed Reliability Guards
-- **Leak-Free Performance**: Refactored `withTimeout` to ensure all timers are cleared, preventing memory leaks in high-concurrency environments.
-- **Smart Retries**: Implemented **Exponential Backoff with Jitter** in `withRetry` to prevent "thundering herd" issues during service recovery.
-- **Capped Delays**: Strictly enforced a 2-second backoff cap to prevent request starvation and maintain system responsiveness.
-- **Standardized Traceability**: Integrated `AppError` with `requestId` propagation across all reliability utilities.
-
-#### 🔐 Atomic Idempotency Layer (Race-Condition Proof)
-- **Ownership-Safe Locking**: Implemented distributed Redis locks (`SETNX`) with unique request-based UUIDs to prevent accidental cross-request unlocking.
-- **Atomic Release**: Developed **Lua scripts** for Redis lock releasing, ensuring "Check-and-Delete" operations are 100% atomic.
-- **Smart Retry UX**: Added a 3-pass retry loop (100ms intervals) for concurrent requests, allowing "In-Progress" requests to wait for results instead of failing.
-- **Safe JSON Integrity**: Implemented resilient JSON parsing with **auto-purge corruption recovery** to handle malformed cache data without crashing.
-- **Safe Redis Wrapper**: Created a `safeRedis` handler with strict failure policies (Fail-Fast for critical writes, Graceful Degradation for caching).
-
-#### 📊 Advanced Observability & Monitoring
-- **Structured JSON Logging**: Implemented an enterprise logger with cost-control sampling and request-timing metrics.
-- **Distributed Request Tracing**: Enforced global `x-request-id` propagation through middleware and all backend services.
-- **Real-time Health Monitoring**: Created `/api/health` and `/api/ready` endpoints with live Redis and PostgreSQL connectivity checks.
-- **Global Error Boundary**: Replaced all `any` and generic `Function` types in `withErrorHandler` with strict, type-safe guards and standardized response formats.
-
-#### 🧱 Database & Transaction Safety
-- **Atomic Transactions**: Integrated `withTransaction` for all critical booking and inventory workflows.
-- **Row-Level Locking**: Implemented `FOR UPDATE` queries to prevent double-booking and race conditions during high-concurrency operations.
-- **Source of Truth Philosophy**: Reinforced that the database is the final authority, treating the Redis cache as purely advisory.
-
----
-
-### 🚦 Future Hardening (Audit Backlog)
-- **JWT Revocation**: Implementation of a Redis-based blacklist for immediate token invalidation.
-- **Transaction Timeouts**: Adding internal timeouts to `withTransaction` to prevent deadlock hangs.
-- **Circuit Breakers**: Enhancing `safeRedis` to support "Safe Degraded Mode" for read-only operations during infra instability.
-
----
-
-### 🚀 Developer Onboarding Checklist
+## 🚀 Developer Onboarding Checklist
 1.  **Run the project**: `npm run dev` in the root.
 2.  **Infrastructure Check**: Visit `/api/ready` to ensure your local Redis and DB are connected.
 3.  **Add a property**: Go to `/admin/properties` (login with `admin` / `123456`) and add a test property.
 4.  **Manage Assets**: Click on **"Rooms"** or **"Images"** on the property card to build your inventory.
 5.  **View the result**: Check `/explore` on the main site or visit `localhost:3001/[your-slug]` to see your optimized gallery and rooms live.
-
----
-
-### 🔐 Multi-Portal Auth & Database Refactor (2026-04-30)
-
-#### 🏛️ Multi-Portal Architecture
-- **Route Group Strategy**: Implemented `(marketing)` and `(portal)` route groups to cleanly separate public pages from administrative dashboards.
-- **Optimized Folder Structure**: Refactored the authentication routes into a flat, intuitive hierarchy under `/(portal)/(auth)/` while strictly maintaining clean URL paths (`/auth/login`, `/partner/login`, `/admin/login`).
-- **Focused Auth Layout**: Created a centralized, centered-card layout in `/(portal)/(auth)/layout.tsx` for a distraction-free login experience across all portals.
-
-#### 🗄️ PostgreSQL Database Layer
-- **Robust User Schema**: Implemented a scalable `users` table with UUID primary keys, unique email constraints, and role-based validation.
-- **Multi-Role Support**: Native support for `customer`, `owner`, `manager`, `admin`, and `super_admin` roles.
-- **Connection Management**: Configured a high-performance PostgreSQL pool in `src/lib/db.ts` with environment-aware SSL settings.
-- **Type-Safe User Model**: Developed helper functions (`createUser`, `findUserByEmail`, `findUserById`) with integrated password hashing.
-
-#### 🛡️ Secure Authentication System
-- **Next.js Edge Middleware**: Implemented a secure, role-based middleware in `src/middleware.ts` compatible with Next.js Edge Runtime.
-- **Jose JWT Integration**: Transitioned to the `jose` library for JWT signing and verification to ensure 100% compatibility with Edge middleware.
-- **HTTP-Only Cookies**: Secured sessions using HTTP-only, secure, and SameSite=Strict cookies to protect against XSS and CSRF.
-- **Role-Based Access Control (RBAC)**: Strictly enforced portal-specific access (e.g., only owners/managers can access `/partner/*`).
-
-#### 🌐 Frontend Auth Integration
-- **AuthContext & Hook**: Created a global `AuthContext` to manage user sessions, loading states, and unified login/logout logic.
-- **Session Hydration**: Integrated automatic session restoration on app load using the secure `/api/auth/me` endpoint.
-- **Dynamic UI Logic**: Updated the `Navbar` to dynamically reflect authentication status, showing user names and logout options.
-- **UX Polish**: Optimized the initial auth check with mounting protections to prevent "cascading render" warnings and redundant API calls.
-
-### 🛡️ Security Infrastructure Refinement (2026-04-30)
-
-#### 🔐 Advanced Lockout & Brute-Force Protection
-- **Email + IP Binding**: Hardened the lockout strategy to use an `email:ip` composite key, preventing attackers from locking out legitimate users by spoofing their email from different locations.
-- **Fail-Secure Lockout**: If the security infrastructure (Redis) is unavailable, the system defaults to a "Strict Block" for authentication attempts, ensuring no bypasses are possible during instability.
-- **Auto-Reset Logic**: Integrated automatic lockout resets upon successful login to ensure a seamless experience for recovered accounts.
-
-#### 📊 Enterprise Security Observability
-- **Structured Audit Events**: Integrated the unified `logger` across all security-critical paths (Lockout, Rate Limiting, RBAC).
-- **Security Event Triggers**:
-  - `AUTH_LOCKOUT_TRIGGERED` / `AUTH_LOCKOUT_CHECK`
-  - `AUTH_LOGIN_FAILURE` (with reason) / `AUTH_LOGIN_SUCCESS`
-  - `RATE_LIMIT_EXCEEDED`
-  - `REDIS_CONNECTION_FAILURE` (with failure mode context)
-- **Forensic Context**: Every security log now captures `requestId`, `ip`, `userId`, and `method` for rapid incident response and auditing.
-
-#### ⚡ Intelligent Redis Resilience (Selective Strictness)
-- **Critical Strictness**: Enforced **Strict Mode** for all `/api/auth/*` routes—blocking access if Redis is down to guarantee authentication integrity.
-- **Graceful Fail-Open**: Implemented a "Fail-Open" fallback for non-critical content routes (e.g., property listings). If Redis fails, the system allows the request to pass with a warning, maintaining site availability while protecting the auth perimeter.
-- **Smart Adaptive Rate Limiting**: The rate limiter now detects the criticality of the route and adjusts its failure strategy dynamically.
-
-#### 🔑 Hardened Token & RBAC Enforcement
-- **Server-Side Role Gating**: Standardized authorization using the `requireRole` helper, ensuring all `/api/admin/*` and `/api/partner/*` routes enforce strict server-side checks independent of frontend state.
-- **Comprehensive Session Audit**: Verified JWT expiry (15m access / 7d refresh) and audience/issuer validation across all protected backend services.
-
-
----
-
-## 🎨 Premium UI & Experience Evolution (2026-05-04)
-
-### 🏝️ Floating "Island" Architecture
-- **Glassmorphism Design**: Finalized a unified "Island" aesthetic for both the **Navbar** and **Footer**, featuring `backdrop-blur-xl`, `bg-white/70`, and deep `rounded-[3rem]` contours.
-- **Rolling Display Effect**: Implemented a fixed top-to-bottom transparency gradient in the root layout, creating a "rolling" visual where content gracefully disappears as it scrolls behind the floating Navbar.
-- **Dynamic Search UI**: Re-engineered the Navbar to support a minimized search bar that perfectly centers and scales based on scroll position.
-
-### 🏠 High-Fidelity Content & Editorial Design
-- **12 Premium Demo Properties**: Populated the platform with real-world high-resolution stay data across India (Manali, Goa, Kerala, Rajasthan).
-- **Editorial Card Layout**:
-  - Transitioned to a modern **`aspect-[4/5]` portrait ratio** for property cards, providing a magazine-style visual hierarchy.
-  - Added "Magazine Interactions": Hover states now trigger smooth scaling (`scale-105`), container lift (`-translate-y-2`), and deep shadow elevations.
-  - **Metadata Badging**: Integrated vibrant, high-contrast badges for property types and glassmorphism wishlist overlays.
-- **Hero Category Pills**: Redesigned the main category navigation as floating bullet-point buttons with interactive jiggle animations and hover-activated indicators.
-
-### 🔍 Interactive Filtering & Exploration Hub
-- **Dynamic Category Filtering**: Converted static category buttons into a fully functional, real-time filtering engine using React state.
-- **Explore Page Transformation**:
-  - Redesigned the "View All Properties" page from a static grid into a premium exploration hub.
-  - **Unified UX**: Synced the filtering system and design language between the Homepage and Explore page for a seamless transition.
-  - **Layout Hardening**: Adjusted top padding to `pt-80` to ensure hero content is never obstructed by the floating navigation layer.
-
-### ⚡ Performance & Production Hardening
-- **Next.js Image Optimization**: 
-  - Migrated every property image across the site to the `<Image />` component.
-  - Implemented automatic **WebP/AVIF conversion**, lazy loading, and intelligent responsive sizing (`sizes` attribute) to maximize LCP scores and minimize bandwidth.
-- **Code Hygiene**: Standardized the codebase by resolving all linting warnings (unused imports, unoptimized elements) and ensuring 100% type safety in filtering logic.
-
-### 🚀 Premium Search & Discovery Hub (2026-05-05)
-
-#### 🔍 Intelligent Search Intelligence
-- **Sophisticated Date System**: Implemented a multi-mode date selector supporting **Fixed Dates**, **Flexible Stays** (Month/Duration based), and **± Day Flexibility** (Exact, ±1, ±2, ±3, ±7 days).
-- **Magical Flow Automation**: 
-  - **Auto-Progression**: Reduced booking friction by automatically moving users through the funnel (Where → When → Who) upon selection.
-  - **Emotional Microcopy**: Added conversational guide text ("Select check-in," "Almost done 👋") to create a human-centric discovery experience.
-  - **Contextual Guest Labeling**: Integrated intelligent trip classification (e.g., "Solo trip 🎒," "Couple getaway 🥂") based on occupancy.
-- **Hero Summary Badging**: Developed a dynamic summary badge that calculates stay duration and selection meta-info, providing immediate user confidence.
-
-#### 🛡️ Performance & Stability Hardening
-- **Smart Scroll Hysteresis**: Implemented a dual-threshold scroll system (**80px** to compress, **40px** to expand) to create a "dead zone," preventing UI flicker near the transition point.
-- **Zero-Jitter Animations**: 
-  - **Dimension Locking**: Enforced fixed **72px height** and explicit width transitions (**880px** ↔ **420px**) to eliminate layout shifts.
-  - **GPU Acceleration**: Migrated to `translateY` and `scale` transforms for buttery-smooth 60fps animations.
-  - **High-Fidelity Easing**: Integrated a custom `cubic-bezier(0.4, 0, 0.2, 1)` easing for a professional, high-end "settle" effect.
-- **Engine Optimization**:
-  - **Throttled Listeners**: Wrapped all scroll events in `requestAnimationFrame` to minimize CPU usage.
-  - **Re-render Protection**: Integrated `React.memo` across the search architecture to protect performance during high-frequency scroll events.
-  - **Accessibility & Visibility**: Upgraded typography to bold, high-contrast tokens and added `min-w-0` guards to ensure zero content collapse in compact modes.

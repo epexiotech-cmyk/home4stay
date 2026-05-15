@@ -2,7 +2,7 @@
  * Role-Based Access Control (RBAC)
  */
 
-export type Role = 'admin' | 'staff' | 'partner' | 'user'
+export type Role = 'super_admin' | 'admin' | 'manager' | 'owner' | 'partner' | 'user' | 'staff'
 
 export interface UserContext {
   id: string

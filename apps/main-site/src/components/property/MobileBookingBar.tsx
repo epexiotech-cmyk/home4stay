@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Star, ChevronDown, Calendar } from "lucide-react";
+import { Star } from "lucide-react";
 
 interface MobileBookingBarProps {
   price: number;

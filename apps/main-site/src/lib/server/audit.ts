@@ -18,7 +18,7 @@ interface AuditLogOptions {
   eventType: AuditEvent;
   ipAddress?: string;
   userAgent?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   severity?: AuditSeverity;
 }
 
@@ -41,7 +41,7 @@ export async function logAuditEvent(options: AuditLogOptions) {
           isp: data.org
         };
       }
-    } catch (err) {
+    } catch {
       console.warn(`[AUDIT] Failed to fetch geo-data for IP ${ipAddress}`);
     }
   }

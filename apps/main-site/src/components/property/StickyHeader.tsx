@@ -6,6 +6,7 @@ import { Globe, Menu, UserCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import OptimizedImage from "@/components/OptimizedImage";
+import { getMainDomainUrl } from "@/lib/utils/domains";
 
 const getInitials = (name: string) => {
   return name
@@ -176,8 +177,8 @@ export default function StickyHeader({ name }: StickyHeaderProps) {
                   </>
                 ) : (
                   <div className="py-2">
-                    <Link href="/auth/login" className="block px-4 py-2.5 text-sm font-bold text-[var(--text)] hover:bg-[var(--text)]/5">Login</Link>
-                    <Link href="/auth/register" className="block px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:bg-[var(--text)]/5">Sign Up</Link>
+                    <a href={getMainDomainUrl("/auth/login")} className="block px-4 py-2.5 text-sm font-bold text-[var(--text)] hover:bg-[var(--text)]/5">Login</a>
+                    <a href={getMainDomainUrl("/auth/register")} className="block px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:bg-[var(--text)]/5">Sign Up</a>
                     <hr className="border-[var(--border)] my-2" />
                     <ThemeSwitcher />
                   </div>

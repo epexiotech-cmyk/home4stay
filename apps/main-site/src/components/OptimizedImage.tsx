@@ -1,16 +1,20 @@
 import Image, { ImageProps } from "next/image";
 
 interface OptimizedImageProps extends Omit<ImageProps, "placeholder"> {
+  /** Force immediate hydration and un-deferred fetch priority */
   isPriority?: boolean;
+  /** Disable blur placeholder for small avatars or flat SVGs */
+  disableBlur?: boolean;
 }
 
 /**
- * Optimized Image Component
+ * High-Performance Master Image Component
  * 
- * Auto-applies:
- * - sizes fallback if fill is used
- * - placeholder="blur" (base64 fallback)
- * - loading="lazy" for non-priority images
+ * Configures:
+ * - Next.js responsive srcSet chunking
+ * - Non-blocking async multi-threading decoding
+ * - Default size hints to prevent Cumulative Layout Shift (CLS)
+ * - Premium luxury low-resolution shimmer fallback
  */
 const OptimizedImage = ({
   src,
@@ -18,26 +22,37 @@ const OptimizedImage = ({
   fill,
   sizes,
   priority,
+  isPriority,
+  disableBlur = false,
   className,
   ...props
 }: OptimizedImageProps) => {
-  // Default sizes for grid-like layouts if not provided
+  const effectivePriority = priority || isPriority;
+  
+  // Predictable auto-sizes to minimize payload bandwidth based on layout context
   const defaultSizes = fill
-    ? "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+    ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
     : undefined;
+
+  // Premium ambient low-contrast placeholder (avoids jarring bright flashes)
+  const premiumBlurData = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/v17PQAJ+wNqRkE/7gAAAABJRU5ErkJggg==";
+
+  // Auto-disable blur on static icons or SVG files
+  const isSvgOrStatic = typeof src === "string" && (src.endsWith(".svg") || src.startsWith("data:"));
+  const shouldBlur = !disableBlur && !isSvgOrStatic;
 
   return (
     <Image
       src={src}
-      alt={alt}
+      alt={alt || "Hospitality visual representation"}
       fill={fill}
       sizes={sizes || defaultSizes}
-      priority={priority}
-      loading={priority ? undefined : "lazy"}
+      priority={effectivePriority}
+      loading={effectivePriority ? undefined : "lazy"}
+      decoding={effectivePriority ? "auto" : "async"}
+      placeholder={shouldBlur ? "blur" : "empty"}
+      blurDataURL={shouldBlur ? premiumBlurData : undefined}
       className={className}
-      placeholder="blur"
-      // Standard light gray blur placeholder
-      blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/+ZNPQAIXwMwFcyRowAAAABJRU5ErkJggg=="
       {...props}
     />
   );

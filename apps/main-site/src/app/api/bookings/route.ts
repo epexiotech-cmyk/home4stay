@@ -54,7 +54,16 @@ async function bookingHandler(request: NextRequest) {
   authorize(toUserContext(user), ['user', 'admin'])
 
   const body = await request.json()
-  const { propertyId, roomId } = body
+  const { 
+    propertyId, 
+    roomId, 
+    startDate, 
+    endDate, 
+    mealPlanId, 
+    amount,
+    guestData, // { fullName, email, mobile, kycVerified, ... }
+    conciergeServices // Array of { serviceType, amount, configData }
+  } = body
 
   // --- STRICT IDEMPOTENCY FLOW WITH SMART RETRY ---
 
@@ -88,6 +97,7 @@ async function bookingHandler(request: NextRequest) {
   try {
     // STEP 3: Execute Database Transaction
     const result = await withTransaction(async (tx) => {
+      // 1. Inventory Locking & Check
       const inventory = await tx.query(
         'SELECT available_count FROM room_inventory WHERE room_id = $1 FOR UPDATE',
         [roomId]
@@ -97,16 +107,53 @@ async function bookingHandler(request: NextRequest) {
         throw new AppError("Room is no longer available", 409, "OUT_OF_STOCK")
       }
 
+      // 2. Decrement Inventory
       await tx.query(
         'UPDATE room_inventory SET available_count = available_count - 1 WHERE room_id = $1',
         [roomId]
       )
 
+      // 3. Create/Update Guest Profile
+      const guestId = crypto.randomUUID()
+      await tx.query(
+        `INSERT INTO guests (id, full_name, email, mobile, kyc_status, aadhaar_verified) 
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (mobile) DO UPDATE SET full_name = EXCLUDED.full_name, kyc_status = EXCLUDED.kyc_status`,
+        [guestId, guestData.fullName, guestData.email, guestData.mobile, guestData.kycVerified ? 'VERIFIED' : 'PENDING', guestData.kycVerified]
+      )
+
+      // 4. Create Main Booking
       const bookingId = crypto.randomUUID()
       const bookingResult = await tx.query(
-        'INSERT INTO bookings (id, user_id, property_id, room_id, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [bookingId, user.username, propertyId, roomId, 'confirmed']
+        `INSERT INTO bookings (id, property_id, room_id, start_date, end_date, meal_plan, amount, status, source) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+        [bookingId, propertyId, roomId, startDate, endDate, mealPlanId, amount, 'confirmed', 'Home4Stay']
       )
+
+      // 5. Link Guest to Booking
+      await tx.query(
+        'INSERT INTO booking_guests (id, booking_id, guest_id, is_primary_guest) VALUES ($1, $2, $3, $4)',
+        [crypto.randomUUID(), bookingId, guestId, true]
+      )
+
+      // 6. Create Concierge Requests (if any)
+      if (conciergeServices && conciergeServices.length > 0) {
+        for (const svc of conciergeServices) {
+          const svcId = crypto.randomUUID()
+          await tx.query(
+            `INSERT INTO booking_concierge_services (id, booking_id, service_type, amount, config_data, status) 
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [svcId, bookingId, svc.serviceType, svc.amount, JSON.stringify(svc.configData || {}), 'REQUESTED']
+          )
+
+          // Auto-create Operational Concierge Request
+          await tx.query(
+            `INSERT INTO concierge_requests (id, user_id, booking_id, property_id, category, title, description, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [crypto.randomUUID(), user.username, bookingId, propertyId, svc.serviceType, `Guest Service: ${svc.serviceType}`, `Auto-generated concierge request from booking ${bookingId}`, 'SUBMITTED']
+          )
+        }
+      }
 
       return bookingResult.rows[0]
     })
@@ -124,4 +171,69 @@ async function bookingHandler(request: NextRequest) {
   }
 }
 
+async function getBookingsHandler(request: NextRequest) {
+  const token = request.cookies.get('access-token')?.value
+  if (!token) throw new AppError("Unauthorized", 401, "UNAUTHORIZED")
+
+  let user: UserPayload
+  try {
+    const { payload } = await jwtVerify(token, encodedSecret)
+    user = payload as UserPayload
+  } catch {
+    throw new AppError("Invalid session", 401, "AUTH_INVALID")
+  }
+
+  const role = user.role as Role
+  const propertyId = request.nextUrl.searchParams.get('propertyId')
+
+  return await withTransaction(async (tx) => {
+    let query = `
+      SELECT 
+        b.*, 
+        g.full_name as guest_name, 
+        g.email as guest_email, 
+        g.mobile as guest_mobile,
+        p.title as property_name,
+        r.title as room_name
+      FROM bookings b
+      JOIN booking_guests bg ON b.id = bg.booking_id AND bg.is_primary_guest = true
+      JOIN guests g ON bg.guest_id = g.id
+      JOIN properties p ON b.property_id = p.id
+      JOIN room_inventory r ON b.room_id = r.room_id
+    `
+    const params: string[] = []
+
+    if (role !== 'admin' && role !== 'super_admin') {
+      // If not admin, restrict to properties they own
+      query += ` WHERE p.owner_id = $1`
+      params.push(user.username)
+      
+      if (propertyId) {
+        query += ` AND b.property_id = $2`
+        params.push(propertyId)
+      }
+    } else if (propertyId) {
+      query += ` WHERE b.property_id = $1`
+      params.push(propertyId)
+    }
+
+    query += ` ORDER BY b.created_at DESC`
+
+    const result = await tx.query(query, params)
+    
+    // Fetch concierge services for these bookings
+    const bookings = result.rows
+    for (const b of bookings) {
+      const svcResult = await tx.query(
+        'SELECT * FROM booking_concierge_services WHERE booking_id = $1',
+        [b.id]
+      )
+      b.conciergeServices = svcResult.rows
+    }
+
+    return NextResponse.json(bookings)
+  })
+}
+
 export const POST = withErrorHandler(bookingHandler)
+export const GET = withErrorHandler(getBookingsHandler)

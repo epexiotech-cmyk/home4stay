@@ -18,8 +18,8 @@ export function getPropertyOrThrow(slug: string) {
 
 export function getAllProperties() {
   return Object.entries(data).map(([slug, property]) => ({
-    slug,
     ...property,
+    slug,
   }));
 }
 

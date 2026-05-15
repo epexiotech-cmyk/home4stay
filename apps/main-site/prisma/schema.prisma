@@ -1,0 +1,256 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  name      String?
+  role      String     @default("owner") // super_admin, admin, manager, owner, customer
+  password  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  // KYC & Trust System
+  kycStatus            String   @default("NOT_VERIFIED") // NOT_VERIFIED, PENDING, VERIFIED, REJECTED, EXPIRED
+  verifiedBadge        Boolean  @default(false)
+  verificationLevel    Int      @default(0) // 0: None, 1: Basic (Email/Phone), 2: ID Verified (Aadhaar/Passport)
+  trustedGuestScore    Int      @default(0)
+  verificationCompletedAt DateTime?
+
+  properties Property[]
+  guestProfile Guest?   @relation(fields: [guestProfileId], references: [id])
+  guestProfileId String? @unique
+  
+  conciergeRequests ConciergeRequest[]
+  conciergeMessages ConciergeMessage[]
+}
+
+model Property {
+  id        String   @id @default(uuid())
+  ownerId   String
+  slug      String   @unique
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  pageContent PropertyPageContent?
+  mediaAssets MediaAsset[]
+  cmsVersions CmsVersion[]
+  conciergeRequests ConciergeRequest[]
+}
+
+model PropertyPageContent {
+  id                 String   @id @default(uuid())
+  propertyId         String   @unique
+  themeVariant       String   @default("Mountain Luxury")
+  spacingPreset      String   @default("relaxed-luxury")
+  animationPreset    String   @default("cinematic-fade-physics")
+  publishedVersionId String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  property           Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  sections           PropertySection[]
+}
+
+model PropertySection {
+  id                    String   @id @default(uuid())
+  propertyPageContentId String
+  type                  String   // hero, narrative, carousel, gallery, testimonials, faq, amenities, seo
+  enabled               Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  data                  Json     @default("{}")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  pageContent           PropertyPageContent @relation(fields: [propertyPageContentId], references: [id], onDelete: Cascade)
+
+  @@index([propertyPageContentId])
+  @@index([sortOrder])
+}
+
+model MediaAsset {
+  id         String   @id @default(uuid())
+  propertyId String
+  type       String   @default("image") // image, video
+  url        String
+  blurData   String?
+  width      Int?     @default(800)
+  height     Int?     @default(600)
+  tags       String   @default("General") // comma separated tag profiles
+  uploadedBy String   @default("partner_owner")
+  createdAt  DateTime @default(now())
+
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([tags])
+}
+
+model CmsVersion {
+  id          String   @id @default(uuid())
+  propertyId  String
+  versionName String   @default("Initial Snapshot")
+  snapshot    Json     // full JSON archive of document state at publish time
+  published   Boolean  @default(false)
+  createdBy   String   @default("concierge_curator_v2")
+  createdAt   DateTime @default(now())
+
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+}
+
+model Theme {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  typography      String   @default("Outfit, font-sans")
+  spacing         String   @default("relaxed-luxury")
+  animationPreset String   @default("cinematic-fade-physics")
+  colorPalette    String   @default("slate-teal-amber")
+  isPremium       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
+
+model Guest {
+  id                   String   @id @default(uuid())
+  fullName             String
+  mobile               String   @unique
+  email                String?  @unique
+  gender               String?
+  dob                  DateTime?
+  nationality          String   @default("Indian")
+  addressLine1         String?
+  addressLine2         String?
+  city                 String?
+  state                String?
+  pincode              String?
+  country              String   @default("India")
+  identityType         String?  // Aadhaar, Passport, VoterID, etc.
+  identityNumberMasked String?
+  kycStatus            String   @default("PENDING") // PENDING, VERIFIED, FAILED
+  aadhaarVerified      Boolean  @default(false)
+  aadhaarReferenceId   String?
+  policeVerificationReady Boolean @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  kycData              GuestKYC?
+  bookings             BookingGuest[]
+  userAccount          User?
+}
+
+model GuestKYC {
+  id                   String   @id @default(uuid())
+  guestId              String   @unique
+  documentType         String
+  documentFront        String?
+  documentBack         String?
+  selfieImage          String?
+  verificationProvider String?  // UIDAI, Surepass, etc.
+  verificationStatus   String   @default("PENDING")
+  otpVerified          Boolean  @default(false)
+  verificationTimestamp DateTime?
+  rawVerificationMeta  String?  // Should be encrypted
+  auditTrail           Json     @default("[]")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  guest                Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+}
+
+model Booking {
+  id            String   @id @default(uuid())
+  propertyId    String
+  roomId        String
+  startDate     DateTime
+  endDate       DateTime
+  status        String   @default("DRAFT") // DRAFT, PENDING_KYC, CONFIRMED, CHECKED_IN
+  source        String   @default("Direct")
+  mealPlan      String   @default("EP")
+  paymentStatus String   @default("PENDING")
+  amount        Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  guests        BookingGuest[]
+  conciergeRequests ConciergeRequest[]
+  conciergeServices BookingConciergeService[]
+}
+
+model BookingConciergeService {
+  id                String   @id @default(uuid())
+  bookingId         String
+  serviceType       String   // Airport Pickup, Decoration, Dinner, etc.
+  status            String   @default("REQUESTED") // REQUESTED, CONFIRMED, REJECTED, COMPLETED
+  pricingMode       String   @default("PREPAID") // PREPAID, PAY_AT_PROPERTY, UPON_APPROVAL
+  amount            Float    @default(0)
+  configData        Json     @default("{}") // Flight details, decoration theme, etc.
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  booking           Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+}
+
+model BookingGuest {
+  id             String   @id @default(uuid())
+  bookingId      String
+  guestId        String
+  isPrimaryGuest Boolean  @default(false)
+  occupancyRole  String   @default("Adult") // Adult, Child
+
+  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  guest          Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, guestId])
+}
+
+model ConciergeRequest {
+  id                String   @id @default(uuid())
+  userId            String
+  bookingId         String?
+  propertyId        String?
+  category          String   // Airport Pickup, Housekeeping, Local Tour, etc.
+  priority          String   @default("NORMAL") // NORMAL, URGENT, VIP_PRIORITY
+  title             String
+  description       String
+  status            String   @default("SUBMITTED") // SUBMITTED, UNDER_REVIEW, ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED
+  assignedTo        String?  // Staff/Admin User ID
+  preferredDateTime DateTime?
+  metadata          Json     @default("{}") // For category specific details
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booking           Booking?  @relation(fields: [bookingId], references: [id])
+  property          Property? @relation(fields: [propertyId], references: [id])
+  messages          ConciergeMessage[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ConciergeMessage {
+  id          String   @id @default(uuid())
+  requestId   String
+  senderId    String
+  senderType  String   // CUSTOMER, CONCIERGE, SYSTEM
+  message     String
+  attachment  String?  // URL to image/document
+  createdAt   DateTime @default(now())
+
+  request     ConciergeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  sender      User             @relation(fields: [senderId], references: [id])
+
+  @@index([requestId])
+}

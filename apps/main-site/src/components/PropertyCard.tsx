@@ -2,7 +2,7 @@
 
 import React from "react";
 import OptimizedImage from "./OptimizedImage";
-import { Star, Heart } from "lucide-react";
+import { Star, Heart, MapPin } from "lucide-react";
 import { getPropertyUrl } from "@/lib/utils/domains";
 
 interface PropertyCardProps {

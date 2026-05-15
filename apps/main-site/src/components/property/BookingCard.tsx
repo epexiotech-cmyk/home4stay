@@ -1,16 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Star, ChevronDown, Calendar, Info, ShieldCheck } from "lucide-react";
+import { ChevronDown, Calendar, Info, ShieldCheck } from "lucide-react";
 
 interface BookingCardProps {
   price: number;
-  rating: number;
-  slug: string;
 }
 
-export default function BookingCard({ price, rating, slug }: BookingCardProps) {
-  const [guests, setGuests] = useState(1);
+export default function BookingCard({ price }: BookingCardProps) {
+  const [guests] = useState(1);
   const nights = 5;
   const cleaningFee = 1500;
   const serviceFee = 2400;

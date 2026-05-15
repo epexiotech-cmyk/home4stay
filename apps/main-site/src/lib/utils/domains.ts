@@ -65,3 +65,25 @@ export const getPropertyUrl = (slug: string) => {
     return `/property/${slug}`; // Final fallback
   }
 };
+
+/**
+ * Utility to generate an absolute URL for the main domain.
+ * Useful for breaking out of subdomains (e.g., for login).
+ */
+export const getMainDomainUrl = (path: string = "") => {
+  let appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://home4stay.homes";
+  
+  if (process.env.NODE_ENV === "development" && !appUrl.includes("localhost")) {
+    appUrl = "http://localhost:3000";
+  }
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  
+  try {
+    const url = new URL(appUrl);
+    return `${url.origin}${normalizedPath}`;
+  } catch {
+    return normalizedPath;
+  }
+};
+

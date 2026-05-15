@@ -67,7 +67,7 @@ export default function HostSection({ owner, whatsapp }: HostSectionProps) {
                     Verified Identity
                  </div>
                  <p className="text-[var(--text-muted)] leading-relaxed text-lg italic">
-                    "{owner.bio}"
+                    &ldquo;{owner.bio}&rdquo;
                  </p>
 
                  {/* NEW: Response Time & Languages */}

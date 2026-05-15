@@ -85,28 +85,32 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent pt-32 pb-20 px-6">
-      <div className="max-w-md mx-auto">
+    <div className="min-h-screen bg-transparent pt-72 pb-20 px-6 relative overflow-hidden">
+      {/* Atmospheric Background Blobs */}
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-[#159665]/10 rounded-full blur-[140px] pointer-events-none" />
+      
+      <div className="max-w-md mx-auto relative z-10">
         {/* Header */}
         <Link
           href="/profile"
-          className="inline-flex items-center gap-2 text-gray-500 hover:text-primary transition-colors mb-8 group"
+          className="inline-flex items-center gap-3 text-[#0E5A75]/60 dark:text-[#0983B0]/60 hover:text-[#0E5A75] dark:hover:text-white transition-all mb-10 group uppercase text-[10px] font-black tracking-widest"
         >
-          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="font-medium text-sm">Back to Profile</span>
+          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+          <span>Return to Profile</span>
         </Link>
 
-        <div className="mb-10 text-center">
-          <div className="h-16 w-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
-            <ShieldCheck size={32} />
+        <div className="mb-12 text-center">
+          <div className="h-20 w-20 bg-[#0E5A75]/10 dark:bg-[#0983B0]/10 text-[#0E5A75] dark:text-[#0983B0] rounded-[32px] flex items-center justify-center mx-auto mb-6 shadow-luxury ring-8 ring-[#0E5A75]/5 dark:ring-white/5">
+            <ShieldCheck size={40} />
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-primary">Change Password</h1>
-          <p className="text-gray-500 mt-2">Secure your account with a strong password</p>
+          <h1 className="text-4xl font-black tracking-tighter text-[#053344] dark:text-white leading-none mb-4">Change Password</h1>
+          <p className="text-sm font-bold text-[#0E5A75]/60 dark:text-[#0983B0]/60 uppercase tracking-widest italic">Security Vault Management</p>
         </div>
 
         {/* Glass Card */}
-        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/20 p-8 md:p-10 transition-all duration-500 hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)]">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="glass-premium dark:bg-white/[0.03] rounded-[48px] shadow-luxury border border-white/20 dark:border-white/10 p-10 md:p-12 transition-all duration-700 hover:shadow-2xl">
+          <form onSubmit={handleSubmit} className="space-y-8">
             <PasswordInput
               label="Current Password"
               placeholder="••••••••"
@@ -117,7 +121,7 @@ export default function ChangePasswordPage() {
               onToggle={() => setShowPasswords(!showPasswords)}
             />
 
-            <hr className="border-gray-100" />
+            <hr className="border-[#0E5A75]/5 dark:border-white/5" />
 
             <div className="space-y-4">
               <PasswordInput
@@ -147,25 +151,26 @@ export default function ChangePasswordPage() {
             </div>
 
             {error && (
-              <div className="p-4 bg-red-50/50 border border-red-100 text-red-600 rounded-xl text-sm font-bold animate-shake">
+              <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-[20px] text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in shake duration-500">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                 {error}
               </div>
             )}
 
             {success && (
-              <div className="p-4 bg-green-50/50 border border-green-100 text-green-700 rounded-xl text-sm font-bold animate-fade-in flex items-center gap-2">
+              <div className="p-4 bg-[#159665]/10 border border-[#159665]/20 text-[#159665] rounded-[20px] text-[10px] font-black uppercase tracking-widest animate-in fade-in slide-in-from-top-2 flex items-center gap-3">
                 <CheckCircle2 size={18} />
-                <span>Password updated! Redirecting...</span>
+                <span>Security updated. Redirecting...</span>
               </div>
             )}
 
             <button
               type="submit"
               disabled={!canSubmit}
-              className="w-full h-13 bg-primary text-white rounded-xl font-bold shadow-lg hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2 mt-4"
+              className="w-full h-16 bg-[#0E5A75] dark:bg-[#0983B0] text-white rounded-[24px] text-xs font-black uppercase tracking-[0.3em] shadow-luxury hover:scale-[1.02] hover:shadow-2xl active:scale-95 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed transition-all duration-500 flex items-center justify-center gap-4 mt-6"
             >
               {saving ? <Loader2 className="animate-spin" size={20} /> : <KeyRound size={20} />}
-              <span>{saving ? "Updating..." : "Update Password"}</span>
+              <span>{saving ? "Authenticating..." : "Commit Changes"}</span>
             </button>
           </form>
         </div>

@@ -161,8 +161,8 @@ const SearchBar = React.memo(({ isScrolled = false }: SearchBarProps) => {
           }`}
       >
         <div
-          className={`relative h-full flex items-center p-2 rounded-full border border-[var(--border)] bg-[var(--card-solid)] transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded
-            ? "shadow-[0_25px_50px_rgba(0,0,0,0.25)] bg-[var(--card-solid)]"
+          className={`relative h-full flex items-center p-2 rounded-full border border-[var(--border)] bg-[var(--card)] backdrop-blur-xl transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isExpanded
+            ? "shadow-[0_25px_50px_rgba(0,0,0,0.25)] bg-[var(--card)]"
             : "shadow-[0_6px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_10px_25px_rgba(0,0,0,0.1)]"
             }`}
         >
@@ -250,7 +250,7 @@ const SearchBar = React.memo(({ isScrolled = false }: SearchBarProps) => {
 
           {/* WHERE DROPDOWN */}
           {activeSection === "where" && (
-            <div className="w-[480px] bg-[var(--card-solid)] rounded-[2.5rem] border border-[var(--border)] shadow-[0_30px_60px_rgba(0,0,0,0.25)] p-8">
+            <div className="w-[480px] bg-[var(--card-solid)]/95 backdrop-blur-xl rounded-[2.5rem] border border-[var(--border)] shadow-[0_30px_60px_rgba(0,0,0,0.25)] p-8">
               <h4 className="text-[11px] font-semibold text-[var(--text-subtle)] uppercase tracking-[0.15em] mb-6">Popular Destinations</h4>
               <div className="space-y-1.5">
                 {DESTINATIONS.map((dest) => (
@@ -284,7 +284,7 @@ const SearchBar = React.memo(({ isScrolled = false }: SearchBarProps) => {
               flex flex-col
               overflow-hidden
               backdrop-blur-xl
-              bg-[var(--card-solid)]/98
+              bg-[var(--card-solid)]/95
               border border-[var(--border)]
               shadow-[0_60px_120px_-20px_rgba(0,0,0,0.28)]
               rounded-[2.5rem]
@@ -771,9 +771,9 @@ const SearchBar = React.memo(({ isScrolled = false }: SearchBarProps) => {
 
           {/* WHO DROPDOWN */}
           {activeSection === "who" && (
-            <div className="absolute right-0 w-[450px] bg-[var(--card-solid)] rounded-[2.5rem] border border-[var(--border)] shadow-[0_30px_60px_rgba(0,0,0,0.25)] p-10">
+            <div className="absolute right-0 w-[450px] bg-[var(--card-solid)]/95 backdrop-blur-xl rounded-[2.5rem] border border-[var(--border)] shadow-[0_30px_60px_rgba(0,0,0,0.25)] p-10">
               <div className="mb-8 text-center animate-in zoom-in-95 duration-300">
-                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-theme-primary bg-theme-primary/10 px-6 py-2 rounded-full border border-theme-primary/10">
+                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white bg-theme-primary/40 px-6 py-2 rounded-full border border-white/20 shadow-sm">
                   {totalGuests === 0 ? "Add guests" :
                     guests.adults === 2 && totalGuests === 2 ? "Couple getaway 👩‍❤️‍👨" :
                       guests.adults >= 3 && (guests.children === 0 && guests.seniors === 0) ? "Group stay 🏕️" :
