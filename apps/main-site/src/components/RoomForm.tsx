@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Save, Loader2, IndianRupee, Users, Waves, BedDouble } from "lucide-react";
 
 interface RoomFormProps {
   slug: string;
@@ -31,7 +32,6 @@ export default function RoomForm({ slug }: RoomFormProps) {
       const result = await res.json();
 
       if (res.ok) {
-        alert("Room added successfully!");
         setFormData({ name: "", price: "", capacity: "2 Guests", view: "Mountain View" });
         router.refresh();
       } else {
@@ -39,69 +39,92 @@ export default function RoomForm({ slug }: RoomFormProps) {
       }
     } catch (err) {
       console.error(err);
-      alert("An error occurred.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
-      <h2 className="text-xl font-bold text-zinc-900 mb-6">Add New Room</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="glass-premium rounded-[32px] border-white/20 p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="p-2.5 rounded-xl bg-[#0983B0]/10 text-[#0983B0]">
+          <BedDouble size={20} />
+        </div>
         <div>
-          <label className="block text-sm font-semibold text-zinc-900">Room Name</label>
+          <h2 className="text-xl font-black text-[#0E5A75] dark:text-white tracking-tight">Add New Suite Node</h2>
+          <p className="text-[10px] text-[#0E5A75]/60 dark:text-white/50 uppercase tracking-widest font-bold">Configure physical spatial inventory</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60 dark:text-white/60 ml-1 flex items-center gap-1.5">
+             Name of Suite
+          </label>
           <input
             type="text"
             required
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="e.g. Deluxe Mountain Room"
-            className="mt-2 h-11 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none"
+            placeholder="e.g. Royal Heritage Suite"
+            className="w-full bg-white/50 dark:bg-black/20 border border-white/20 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-medium text-[#0E5A75] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0E5A75]/20 focus:border-[#0E5A75] transition-all"
           />
         </div>
-        <div>
-          <label className="block text-sm font-semibold text-zinc-900">Price per night (₹)</label>
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60 dark:text-white/60 ml-1 flex items-center gap-1.5">
+            <IndianRupee size={10} /> Base Inventory Price
+          </label>
           <input
             type="number"
             required
             value={formData.price}
             onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-            placeholder="e.g. 3500"
-            className="mt-2 h-11 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none"
+            placeholder="e.g. 12500"
+            className="w-full bg-white/50 dark:bg-black/20 border border-white/20 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-medium text-[#0E5A75] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0E5A75]/20 focus:border-[#0E5A75] transition-all"
           />
         </div>
-        <div>
-          <label className="block text-sm font-semibold text-zinc-900">Capacity</label>
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60 dark:text-white/60 ml-1 flex items-center gap-1.5">
+            <Users size={10} /> Standard Occupancy
+          </label>
           <select
             value={formData.capacity}
             onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-            className="mt-2 h-11 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none"
+            className="w-full bg-white/50 dark:bg-black/20 border border-white/20 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-medium text-[#0E5A75] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0E5A75]/20 focus:border-[#0E5A75] transition-all appearance-none"
           >
-            <option>1 Guest</option>
-            <option>2 Guests</option>
-            <option>3 Guests</option>
-            <option>4 Guests</option>
+            <option className="bg-white dark:bg-slate-900">1 Guest</option>
+            <option className="bg-white dark:bg-slate-900">2 Guests</option>
+            <option className="bg-white dark:bg-slate-900">3 Guests</option>
+            <option className="bg-white dark:bg-slate-900">4 Guests</option>
           </select>
         </div>
-        <div>
-          <label className="block text-sm font-semibold text-zinc-900">View</label>
+
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60 dark:text-white/60 ml-1 flex items-center gap-1.5">
+            <Waves size={10} /> Spatial View Profile
+          </label>
           <input
             type="text"
             required
             value={formData.view}
             onChange={(e) => setFormData({ ...formData, view: e.target.value })}
-            placeholder="e.g. Sea View"
-            className="mt-2 h-11 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none"
+            placeholder="e.g. Mountain Panorama"
+            className="w-full bg-white/50 dark:bg-black/20 border border-white/20 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-medium text-[#0E5A75] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0E5A75]/20 focus:border-[#0E5A75] transition-all"
           />
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-zinc-900 py-3 font-bold text-white transition hover:bg-zinc-800 disabled:opacity-50"
-        >
-          {loading ? "Adding..." : "Add Room"}
-        </button>
+
+        <div className="md:col-span-2 pt-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#0E5A75] hover:bg-[#0983B0] text-white font-black uppercase tracking-[0.2em] text-xs py-4 rounded-2xl shadow-xl shadow-[#0E5A75]/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {loading ? "Committing to Postgres..." : "Push to Persistent Inventory"}
+          </button>
+        </div>
       </form>
     </div>
   );

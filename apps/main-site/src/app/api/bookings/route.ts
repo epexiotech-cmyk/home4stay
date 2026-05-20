@@ -1,30 +1,14 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { withErrorHandler, AppError } from '@/lib/errors/handler'
-import { authorize, Role } from '@/lib/security/rbac'
 import { withTransaction } from '@/lib/database/transactions'
-import { jwtVerify, JWTPayload } from 'jose'
+import { requireRole } from "@/lib/auth/rbac";
+import { prisma } from "@/lib/database/prisma";
 import { 
   getIdempotencyResponse, 
   setIdempotencyResponse, 
   acquireIdempotencyLock, 
   releaseIdempotencyLock 
 } from '@/lib/security/idempotency'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret'
-const encodedSecret = new TextEncoder().encode(JWT_SECRET)
-
-interface UserPayload extends JWTPayload {
-  username: string;
-  role: string;
-}
-
-function toUserContext(user: UserPayload) {
-  return {
-    id: user.username, // map username → id
-    username: user.username,
-    role: user.role as Role,
-  }
-}
 
 /**
  * ENTERPRISE BOOKING HANDLER (RACE-CONDITION PROOF)
@@ -35,23 +19,14 @@ async function bookingHandler(request: NextRequest) {
   const route = '/api/bookings'
 
   // 1. AUTHENTICATION & CONTEXT
-  const token = request.cookies.get('access-token')?.value
-  if (!token) throw new AppError("Unauthorized", 401, "UNAUTHORIZED")
-
-  let user: UserPayload
-  try {
-    const { payload } = await jwtVerify(token, encodedSecret)
-    user = payload as UserPayload
-  } catch {
-    throw new AppError("Invalid session", 401, "AUTH_INVALID")
-  }
+  const { authorized, userId, response } = await requireRole(request, ["user", "customer", "admin", "super_admin"]);
+  if (!authorized || !userId) return response || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!idempotencyKey) {
     throw new AppError("idempotency-key is required", 400, "MISSING_IDEMPOTENCY_KEY")
   }
 
-  // 2. AUTHORIZATION
-  authorize(toUserContext(user), ['user', 'admin'])
+  // 2. AUTHORIZATION (Checked by requireRole)
 
   const body = await request.json()
   const { 
@@ -62,27 +37,28 @@ async function bookingHandler(request: NextRequest) {
     mealPlanId, 
     amount,
     guestData, // { fullName, email, mobile, kycVerified, ... }
-    conciergeServices // Array of { serviceType, amount, configData }
+    conciergeServices, // Array of { serviceType, amount, configData }
+    paymentMode // smart_upi or other modes
   } = body
 
   // --- STRICT IDEMPOTENCY FLOW WITH SMART RETRY ---
 
   // STEP 1: Check cached response
-  let cached = await getIdempotencyResponse(user.username, idempotencyKey)
+  let cached = await getIdempotencyResponse(userId, idempotencyKey)
   if (cached) return NextResponse.json(cached)
 
   // STEP 2: Acquire Redis Lock (with Ownership Safety)
-  let lock = await acquireIdempotencyLock(user.username, idempotencyKey, route)
+  let lock = await acquireIdempotencyLock(userId, idempotencyKey, route)
   
   // Smart Retry Loop: If lock not acquired, wait and check cache again
   if (!lock.acquired) {
     for (let i = 0; i < 3; i++) {
       await new Promise(res => setTimeout(res, 100)) // 100ms delay
       
-      cached = await getIdempotencyResponse(user.username, idempotencyKey)
+      cached = await getIdempotencyResponse(userId, idempotencyKey)
       if (cached) return NextResponse.json(cached)
 
-      lock = await acquireIdempotencyLock(user.username, idempotencyKey, route)
+      lock = await acquireIdempotencyLock(userId, idempotencyKey, route)
       if (lock.acquired) break
     }
   }
@@ -95,6 +71,14 @@ async function bookingHandler(request: NextRequest) {
   }
 
   try {
+    // Verify that the target property is LIVE and open for bookings!
+    const targetProperty = await prisma.property.findUnique({
+      where: { id: propertyId }
+    });
+    if (!targetProperty || targetProperty.status !== "LIVE") {
+      throw new AppError("Bookings are only allowed for active, live properties.", 403, "PROPERTY_NOT_LIVE");
+    }
+
     // STEP 3: Execute Database Transaction
     const result = await withTransaction(async (tx) => {
       // 1. Inventory Locking & Check
@@ -116,18 +100,21 @@ async function bookingHandler(request: NextRequest) {
       // 3. Create/Update Guest Profile
       const guestId = crypto.randomUUID()
       await tx.query(
-        `INSERT INTO guests (id, full_name, email, mobile, kyc_status, aadhaar_verified) 
-         VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT (mobile) DO UPDATE SET full_name = EXCLUDED.full_name, kyc_status = EXCLUDED.kyc_status`,
+        `INSERT INTO guests (id, full_name, email, mobile, kyc_status, aadhaar_verified, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+         ON CONFLICT (mobile) DO UPDATE SET full_name = EXCLUDED.full_name, kyc_status = EXCLUDED.kyc_status, updated_at = NOW()`,
         [guestId, guestData.fullName, guestData.email, guestData.mobile, guestData.kycVerified ? 'VERIFIED' : 'PENDING', guestData.kycVerified]
       )
 
       // 4. Create Main Booking
       const bookingId = crypto.randomUUID()
+      const initialStatus = paymentMode === "SMART_UPI" ? "pending" : "confirmed"
+      const initialPaymentStatus = paymentMode === "SMART_UPI" ? "PENDING_PAYMENT" : "PENDING"
+
       const bookingResult = await tx.query(
-        `INSERT INTO bookings (id, property_id, room_id, start_date, end_date, meal_plan, amount, status, source) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-        [bookingId, propertyId, roomId, startDate, endDate, mealPlanId, amount, 'confirmed', 'Home4Stay']
+        `INSERT INTO bookings (id, property_id, room_id, start_date, end_date, meal_plan, amount, status, payment_status, payment_mode, source, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW()) RETURNING *`,
+        [bookingId, propertyId, roomId, startDate, endDate, mealPlanId, amount, initialStatus, initialPaymentStatus, paymentMode || null, 'Home4Stay']
       )
 
       // 5. Link Guest to Booking
@@ -141,16 +128,16 @@ async function bookingHandler(request: NextRequest) {
         for (const svc of conciergeServices) {
           const svcId = crypto.randomUUID()
           await tx.query(
-            `INSERT INTO booking_concierge_services (id, booking_id, service_type, amount, config_data, status) 
-             VALUES ($1, $2, $3, $4, $5, $6)`,
+            `INSERT INTO booking_concierge_services (id, booking_id, service_type, amount, config_data, status, created_at, updated_at) 
+             VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
             [svcId, bookingId, svc.serviceType, svc.amount, JSON.stringify(svc.configData || {}), 'REQUESTED']
           )
 
           // Auto-create Operational Concierge Request
           await tx.query(
-            `INSERT INTO concierge_requests (id, user_id, booking_id, property_id, category, title, description, status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-            [crypto.randomUUID(), user.username, bookingId, propertyId, svc.serviceType, `Guest Service: ${svc.serviceType}`, `Auto-generated concierge request from booking ${bookingId}`, 'SUBMITTED']
+            `INSERT INTO concierge_requests (id, user_id, booking_id, property_id, category, title, description, status, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
+            [crypto.randomUUID(), userId, bookingId, propertyId, svc.serviceType, `Guest Service: ${svc.serviceType}`, `Auto-generated concierge request from booking ${bookingId}`, 'SUBMITTED']
           )
         }
       }
@@ -158,81 +145,137 @@ async function bookingHandler(request: NextRequest) {
       return bookingResult.rows[0]
     })
 
+    let finalResult = { ...result }
+
+    // STEP 3.5: Initialize Smart UPI Payment Intent (if requested)
+    if (paymentMode === "SMART_UPI") {
+      const { SmartUpiProvider } = await import("@/modules/payments/providers/smartUpi")
+      const config = await prisma.propertyPaymentConfig.findFirst({
+        where: { propertyId, isActive: true }
+      })
+      
+      const provider = new SmartUpiProvider()
+      const intent = await provider.createPaymentIntent(result.id, amount, {
+        upiId: config?.upiId,
+        merchantName: config?.merchantName
+      })
+
+      if (intent.success) {
+        finalResult = {
+          ...finalResult,
+          amount: intent.reconciliationAmount,
+          paymentReference: intent.paymentReference,
+          paymentExpiresAt: intent.expiresAt,
+          qrPayload: intent.qrPayload,
+          deepLink: intent.deepLink
+        }
+      }
+    }
+
     // STEP 4: Store Response in Cache
-    await setIdempotencyResponse(user.username, idempotencyKey, result)
+    await setIdempotencyResponse(userId, idempotencyKey, finalResult)
 
-    return NextResponse.json(result, { status: 201 })
+    return NextResponse.json(finalResult, { status: 201 })
 
+  } catch (error) {
+    throw error;
   } finally {
     // STEP 5: Release Redis Lock (Only if we own it)
     if (lock.lockValue) {
-      await releaseIdempotencyLock(user.username, idempotencyKey, lock.lockValue)
+      await releaseIdempotencyLock(userId, idempotencyKey, lock.lockValue)
     }
   }
 }
 
 async function getBookingsHandler(request: NextRequest) {
-  const token = request.cookies.get('access-token')?.value
-  if (!token) throw new AppError("Unauthorized", 401, "UNAUTHORIZED")
-
-  let user: UserPayload
   try {
-    const { payload } = await jwtVerify(token, encodedSecret)
-    user = payload as UserPayload
-  } catch {
-    throw new AppError("Invalid session", 401, "AUTH_INVALID")
-  }
+    const { authorized, role, userId, response } = await requireRole(request, [
+      "admin", "super_admin", "owner", "partner", "manager", "receptionist", "billing", "housekeeping"
+    ]);
+    if (!authorized || !userId) return response || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = user.role as Role
-  const propertyId = request.nextUrl.searchParams.get('propertyId')
+    const propertyId = request.nextUrl.searchParams.get('propertyId');
 
-  return await withTransaction(async (tx) => {
-    let query = `
-      SELECT 
-        b.*, 
-        g.full_name as guest_name, 
-        g.email as guest_email, 
-        g.mobile as guest_mobile,
-        p.title as property_name,
-        r.title as room_name
-      FROM bookings b
-      JOIN booking_guests bg ON b.id = bg.booking_id AND bg.is_primary_guest = true
-      JOIN guests g ON bg.guest_id = g.id
-      JOIN properties p ON b.property_id = p.id
-      JOIN room_inventory r ON b.room_id = r.room_id
-    `
-    const params: string[] = []
+    // Tenant Isolation Check: If a specific propertyId is requested, verify PropertyUserAccess
+    if (propertyId && !["admin", "super_admin"].includes(role || "")) {
+      const { requirePropertyAccess } = await import("@/lib/auth/rbac");
+      const propAuth = await requirePropertyAccess(request, propertyId);
+      if (!propAuth.authorized) return propAuth.response!;
+    }
 
-    if (role !== 'admin' && role !== 'super_admin') {
-      // If not admin, restrict to properties they own
-      query += ` WHERE p.owner_id = $1`
-      params.push(user.username)
-      
-      if (propertyId) {
-        query += ` AND b.property_id = $2`
-        params.push(propertyId)
+    // 1. Enforce strict, unbounded query pagination controls
+    const limitParam = request.nextUrl.searchParams.get('limit');
+    const offsetParam = request.nextUrl.searchParams.get('offset');
+    const limit = Math.min(limitParam ? parseInt(limitParam, 10) : 50, 100); // Enforce max 100 rows per request
+    const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
+
+    return await withTransaction(async (tx) => {
+      let query = `
+        SELECT 
+          b.*, 
+          g.full_name as guest_name, 
+          g.email as guest_email, 
+          g.mobile as guest_mobile,
+          p.title as property_name,
+          r.name as room_name
+        FROM bookings b
+        JOIN booking_guests bg ON b.id = bg.booking_id AND bg.is_primary_guest = true
+        JOIN guests g ON bg.guest_id = g.id
+        JOIN properties p ON b.property_id = p.id
+        JOIN rooms r ON b.room_id = r.id
+      `;
+      const params: unknown[] = [];
+
+      if (role !== 'admin' && role !== 'super_admin') {
+        // Enforce PropertyUserAccess filter for non-administrative accounts
+        query += ` WHERE b.property_id IN (SELECT property_id FROM property_user_access WHERE user_id = $1)`;
+        params.push(userId);
+        
+        if (propertyId) {
+          query += ` AND b.property_id = $2`;
+          params.push(propertyId);
+        }
+      } else if (propertyId) {
+        query += ` WHERE b.property_id = $1`;
+        params.push(propertyId);
       }
-    } else if (propertyId) {
-      query += ` WHERE b.property_id = $1`
-      params.push(propertyId)
-    }
 
-    query += ` ORDER BY b.created_at DESC`
+      query += ` ORDER BY b.created_at DESC`;
 
-    const result = await tx.query(query, params)
-    
-    // Fetch concierge services for these bookings
-    const bookings = result.rows
-    for (const b of bookings) {
-      const svcResult = await tx.query(
-        'SELECT * FROM booking_concierge_services WHERE booking_id = $1',
-        [b.id]
-      )
-      b.conciergeServices = svcResult.rows
-    }
+      // 2. Append SQL Limit and Offset controls
+      query += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+      params.push(limit, offset);
 
-    return NextResponse.json(bookings)
-  })
+      const result = await tx.query(query, params);
+      const bookings = result.rows;
+
+      // 3. Resolve N+1 Queries: Batch query concierge services in exactly ONE efficient SQL roundtrip
+      if (bookings.length > 0) {
+        const bookingIds = bookings.map(b => b.id);
+        const svcResult = await tx.query(
+          `SELECT * FROM booking_concierge_services WHERE booking_id = ANY($1)`,
+          [bookingIds]
+        );
+
+        // Map list items locally
+        const servicesByBooking = new Map<string, Record<string, unknown>[]>();
+        for (const svc of svcResult.rows) {
+          const list = servicesByBooking.get(svc.booking_id) || [];
+          list.push(svc);
+          servicesByBooking.set(svc.booking_id, list);
+        }
+
+        for (const b of bookings) {
+          b.conciergeServices = servicesByBooking.get(b.id) || [];
+        }
+      }
+
+      return NextResponse.json(bookings);
+    });
+  } catch (err) {
+    console.error("Critical Bookings API Error:", err);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 export const POST = withErrorHandler(bookingHandler)

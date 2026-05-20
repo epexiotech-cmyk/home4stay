@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/database/prisma";
-import { requireRole } from "@/lib/auth/rbac";
+import { requirePropertyAccess } from "@/lib/auth/rbac";
 
 interface ContextProps {
   params: Promise<{ mediaId: string }>;
@@ -11,17 +11,22 @@ export async function DELETE(request: NextRequest, { params }: ContextProps) {
     const resolvedParams = await params;
     const { mediaId } = resolvedParams;
 
-    const auth = await requireRole(request, ["owner", "manager", "admin", "super_admin"]);
-    const activeUserId = auth.authorized ? auth.userId : "partner_admin_owner";
-
-    // Lookup asset to confirm owner access boundary
+    // 1. Fetch asset first to resolve property context
     const asset = await prisma.mediaAsset.findUnique({
-      where: { id: mediaId },
-      include: { property: true },
+      where: { id: mediaId }
     });
 
-    if (asset && asset.property?.ownerId !== activeUserId && !["admin", "super_admin"].includes(auth.role || "")) {
-      return NextResponse.json({ error: "Forbidden deletion mapping intercepted." }, { status: 403 });
+    if (!asset) {
+      return NextResponse.json({ error: "Media asset not found" }, { status: 404 });
+    }
+
+    // 2. STRICT TENANT ISOLATION CHECK against PostgreSQL junction table
+    const auth = await requirePropertyAccess(request, asset.propertyId);
+    if (!auth.authorized) return auth.response!;
+
+    // 3. Role check: Only partners/owners, managers, or admins can delete media assets
+    if (!["admin", "super_admin", "owner", "partner", "manager"].includes(auth.role || "")) {
+      return NextResponse.json({ error: "Forbidden: Insufficient privileges" }, { status: 403 });
     }
 
     // Purge target record
@@ -30,7 +35,8 @@ export async function DELETE(request: NextRequest, { params }: ContextProps) {
     });
 
     return NextResponse.json({ success: true, deletedId: mediaId }, { status: 200 });
-  } catch {
+  } catch (error) {
+    console.error("Purging media asset failed:", error);
     return NextResponse.json({ error: "Storage file purging instruction sequence failed." }, { status: 500 });
   }
 }

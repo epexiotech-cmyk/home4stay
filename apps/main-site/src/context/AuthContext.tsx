@@ -13,6 +13,7 @@ interface User {
   image_url?: string;
   created_at?: string;
   kycStatus?: string;
+  propertyId?: string;
 }
 
 interface AuthContextType {

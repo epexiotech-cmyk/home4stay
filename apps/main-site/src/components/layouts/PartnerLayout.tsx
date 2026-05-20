@@ -14,6 +14,7 @@ import {
   Utensils, 
   Tag, 
   Clock, 
+  Sparkles,
   DollarSign, 
   FileText, 
   BarChart3, 
@@ -34,11 +35,14 @@ import {
   Shield,
   CreditCard as BillingIcon,
   Layers,
-  LucideIcon
+  LucideIcon,
+  Gift
 } from "lucide-react";
 import Logo from "../ui/Logo";
 import { cn } from "@/lib/utils";
 import ThemeSwitcher from "../ThemeSwitcher";
+import { useAuth } from "@/context/AuthContext";
+import { LegalWall } from "../portal/LegalWall";
 
 interface NavItem {
   title: string;
@@ -68,6 +72,7 @@ const sidebarSections: NavSection[] = [
       { title: "Properties", href: "/partner/properties", icon: Home },
       { title: "Rooms", href: "/partner/rooms", icon: Bed },
       { title: "Meal Plans", href: "/partner/meal-plans", icon: Utensils },
+      { title: "Hospitality Experiences", href: "/partner/experiences", icon: Sparkles },
       { title: "Pricing", href: "/partner/pricing", icon: Tag },
       { title: "Availability", href: "/partner/availability", icon: Clock },
     ]
@@ -78,6 +83,7 @@ const sidebarSections: NavSection[] = [
       { title: "Revenue", href: "/partner/revenue", icon: DollarSign },
       { title: "Invoices", href: "/partner/invoices", icon: FileText },
       { title: "Reports", href: "/partner/reports", icon: BarChart3 },
+      { title: "Referrals & Rewards", href: "/partner/dashboard/referrals", icon: Gift },
     ]
   },
   {
@@ -132,14 +138,18 @@ export default function PartnerLayout({
     setIsMobileMenuOpen(false);
   }
 
+  const { user, logout: authLogout } = useAuth();
+
   const handleLogout = () => {
-    document.cookie = "access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-    document.cookie = "refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-    router.push("/auth/login");
+    authLogout();
   };
+
+  // Profile initial
+  const userInitials = user?.name ? user.name.split(" ").map(n => n[0]).join("").toUpperCase() : "??";
 
   return (
     <div className="flex min-h-screen luxury-gradient text-[#0E5A75] dark:text-[#FDF6F1] font-sans selection:bg-[#0983B0]/10 selection:text-[#0983B0] transition-colors duration-500">
+      <LegalWall />
       {/* Sidebar - Desktop */}
       <aside 
         className={cn(
@@ -211,12 +221,12 @@ export default function PartnerLayout({
               isSidebarCollapsed ? "justify-center" : "bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 border border-[#0E5A75]/10 dark:border-white/5 cursor-pointer"
             )}>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#0E5A75] to-[#0983B0] flex items-center justify-center text-white font-bold shadow-lg ring-2 ring-[#0E5A75]/10">
-                JD
+                {userInitials}
               </div>
               {!isSidebarCollapsed && (
                 <div className="flex-1 min-w-0 animate-in fade-in duration-500">
-                  <p className="text-[13px] font-black truncate text-[#0E5A75] dark:text-white">John Doe</p>
-                  <p className="text-[10px] text-[#0E5A75] dark:text-[#0983B0] truncate uppercase tracking-widest font-bold">Partner Owner</p>
+                  <p className="text-[13px] font-black truncate text-[#0E5A75] dark:text-white">{user?.name || "Guest"}</p>
+                  <p className="text-[10px] text-[#0E5A75] dark:text-[#0983B0] truncate uppercase tracking-widest font-bold">{user?.role === 'owner' ? 'Property Owner' : 'Partner Manager'}</p>
                 </div>
               )}
             </div>
@@ -276,8 +286,8 @@ export default function PartnerLayout({
                   <Home size={16} className="text-[#0E5A75] group-hover:text-white transition-colors" />
                 </div>
                 <div className="flex flex-col">
-                  <p className="text-[12px] font-bold truncate max-w-[150px] text-[#0E5A75] dark:text-white">Grand Heritage Resort</p>
-                  <p className="text-[9px] font-bold text-[#29655C] dark:text-[#0983B0] uppercase tracking-tighter">Premium Partner</p>
+                  <p className="text-[12px] font-bold truncate max-w-[150px] text-[#0E5A75] dark:text-white">{user?.role === 'owner' ? 'Your Property' : 'Property Portal'}</p>
+                  <p className="text-[9px] font-bold text-[#29655C] dark:text-[#0983B0] uppercase tracking-tighter">{user?.role === 'owner' ? 'Managed Property' : 'Admin View'}</p>
                 </div>
                 <ChevronDown size={14} className="text-[#0983B0] group-hover:text-[#0E5A75] transition-colors" />
               </div>
@@ -313,11 +323,11 @@ export default function PartnerLayout({
                   <div className="absolute right-0 mt-4 w-72 glass-premium rounded-[32px] shadow-2xl border border-white/60 dark:border-white/10 p-4 animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-300 origin-top-right z-50">
                     <div className="flex items-center gap-4 p-3 mb-2 rounded-2xl bg-[#0E5A75]/5 dark:bg-white/5">
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-[#0E5A75] to-[#0983B0] flex items-center justify-center text-white font-black text-lg shadow-lg">
-                        JD
+                        {userInitials}
                       </div>
                       <div>
-                        <p className="text-sm font-black text-[#0E5A75] dark:text-white leading-tight">John Doe</p>
-                        <p className="text-[10px] font-bold text-[#29655C] dark:text-[#0983B0] uppercase tracking-widest leading-tight mt-1">owner@grandheritage.com</p>
+                        <p className="text-sm font-black text-[#0E5A75] dark:text-white leading-tight">{user?.name || "Guest"}</p>
+                        <p className="text-[10px] font-bold text-[#29655C] dark:text-[#0983B0] uppercase tracking-widest leading-tight mt-1">{user?.email}</p>
                       </div>
                     </div>
                     <div className="h-px bg-[#0E5A75]/5 dark:bg-white/5 my-3 mx-2" />
@@ -332,7 +342,13 @@ export default function PartnerLayout({
                         <Shield size={18} className="text-[#0983B0] group-hover:text-[#0E5A75] transition-colors" />
                         <span>Security & Access</span>
                       </button>
-                      <button className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-[13px] font-bold text-[#0E5A75] dark:text-[#FDF6F1] hover:bg-[#0E5A75]/5 dark:hover:bg-white/5 transition-all group text-left">
+                      <button 
+                        onClick={() => {
+                          setIsProfileOpen(false);
+                          router.push("/partner/dashboard/billing");
+                        }}
+                        className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-[13px] font-bold text-[#0E5A75] dark:text-[#FDF6F1] hover:bg-[#0E5A75]/5 dark:hover:bg-white/5 transition-all group text-left"
+                      >
                         <BillingIcon size={18} className="text-[#0983B0] group-hover:text-[#0E5A75] transition-colors" />
                         <span>Billing & Plan</span>
                       </button>

@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/auth/rbac";
 export async function GET(request: NextRequest) {
   try {
     // 1. Authenticate (any role allowed)
-    const { authorized, userId } = await requireRole(request, ["admin", "super_admin", "partner", "owner", "manager", "customer"]);
+    const { authorized, userId, propertyId } = await requireRole(request, ["admin", "super_admin", "partner", "owner", "manager", "customer"]);
     
     if (!authorized) {
       return NextResponse.json({ user: null });
@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
         phone: user.phone,
         city: user.city,
         image_url: user.image_url,
-        created_at: user.created_at
+        created_at: user.created_at,
+        propertyId: propertyId // Pass this through to the frontend
       }
     });
 

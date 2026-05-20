@@ -1,87 +1,129 @@
 "use client";
 
-import React from "react";
-import { Star, ThumbsUp } from "lucide-react";
-import OptimizedImage from "@/components/OptimizedImage";
+import React, { useState, useEffect } from "react";
+import { Star, ShieldCheck, Reply, RefreshCcw, User } from "lucide-react";
+import { format } from "date-fns";
 
-interface Review {
+export interface Review {
   id: string;
-  user: {
-    name: string;
-    avatar: string;
-    location: string;
-  };
+  guestName: string;
+  guestAvatar?: string;
+  isVerified: boolean;
+  createdAt: string | Date;
+  stayType: string;
   rating: number;
-  date: string;
-  comment: string;
+  title: string;
+  message: string;
+  responseMessage?: string;
 }
 
-const reviews: Review[] = [
-  {
-    id: "1",
-    user: {
-      name: "Ananya Sharma",
-      avatar: "https://i.pravatar.cc/150?u=ananya",
-      location: "Mumbai, India"
-    },
-    rating: 5,
-    date: "March 2026",
-    comment: "Absolutely breathtaking! The view from the balcony is even better than the photos. The staff was incredibly helpful and made our stay very special."
-  },
-  {
-    id: "2",
-    user: {
-      name: "James Wilson",
-      avatar: "https://i.pravatar.cc/150?u=james",
-      location: "London, UK"
-    },
-    rating: 5,
-    date: "February 2026",
-    comment: "One of the best villas I've ever stayed in. The attention to detail is remarkable. Highly recommend for anyone looking for a premium experience."
-  }
-];
+export interface ReviewStats {
+  averageRating: string | number;
+  totalReviews: number;
+}
 
-export default function ReviewsSection() {
+interface ReviewsSectionProps {
+  propertyId: string;
+}
+
+export default function ReviewsSection({ propertyId }: ReviewsSectionProps) {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [stats, setStats] = useState<ReviewStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchReviews() {
+      try {
+        const res = await fetch(`/api/property/reviews?propertyId=${propertyId}&isPublished=true`);
+        if (res.ok) {
+          const data = await res.json();
+          setReviews(data.reviews);
+          setStats(data.stats);
+        }
+      } catch (err) {
+        console.error("Failed to fetch public reviews:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchReviews();
+  }, [propertyId]);
+
+  if (isLoading) {
+    return (
+      <div className="py-20 flex justify-center">
+        <RefreshCcw className="animate-spin text-[#0E5A75]" size={32} />
+      </div>
+    );
+  }
+
   return (
-    <section id="reviews" className="py-24 border-b border-[var(--border)]">
-      <div className="flex items-center justify-between mb-12">
-        <h2 className="text-2xl font-bold text-[var(--text)] flex items-center gap-3">
-          <Star size={24} fill="currentColor" className="text-theme-primary" />
-          4.8 · 12 reviews
-        </h2>
-        <button className="text-sm font-bold underline text-[var(--text)] hover:text-theme-primary transition-colors">Show all reviews</button>
+    <div className="space-y-16">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 text-[#FCBC43]">
+             <Star size={28} fill="currentColor" />
+             <span className="text-3xl font-black text-[#053344] dark:text-white tracking-tighter">{stats?.averageRating || "0.0"}</span>
+          </div>
+          <div className="w-1 h-1 rounded-full bg-black/10" />
+          <span className="text-xl font-black text-[#053344] dark:text-white uppercase tracking-tight">{stats?.totalReviews || 0} Guest Reviews</span>
+        </div>
+        <button className="text-xs font-black uppercase tracking-widest text-[#0E5A75] underline decoration-[#0E5A75]/20 hover:decoration-[#0E5A75] transition-all">
+          Write a Review
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-12">
-        {reviews.map((review) => (
-          <div key={review.id} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-16">
+        {reviews.length > 0 ? reviews.map((review) => (
+          <div key={review.id} className="space-y-6 group">
             <div className="flex items-center gap-4">
-              <div className="relative w-12 h-12 rounded-full overflow-hidden border border-[var(--border)]">
-                <OptimizedImage src={review.user.avatar} alt={review.user.name} fill className="object-cover" sizes="48px" />
+              <div className="w-14 h-14 rounded-2xl bg-[#0E5A75]/5 flex items-center justify-center text-[#0E5A75] shadow-inner relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {review.guestAvatar ? <img src={review.guestAvatar} alt={`${review.guestName} Avatar`} className="w-full h-full object-cover rounded-2xl" /> : <User size={24} />}
+                {review.isVerified && (
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#159665] flex items-center justify-center text-white border-2 border-white dark:border-[#0b1220]">
+                    <ShieldCheck size={10} />
+                  </div>
+                )}
               </div>
               <div>
-                <h4 className="font-bold text-[var(--text)]">{review.user.name}</h4>
-                <p className="text-[var(--text-muted)] text-xs font-medium">{review.user.location} · {review.date}</p>
+                <h4 className="text-base font-black text-[#053344] dark:text-white uppercase tracking-tight">{review.guestName}</h4>
+                <p className="text-[10px] font-bold text-[#0E5A75]/40 uppercase tracking-[0.2em]">
+                  {format(new Date(review.createdAt), "MMMM yyyy")} • {review.stayType} Trip
+                </p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-0.5 text-primary">
-               {[...Array(5)].map((_, i) => (
-                 <Star key={`review-${review.id}-star-${i}`} size={12} fill={review.rating > i ? "currentColor" : "transparent"} />
-               ))}
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-1 text-[#FCBC43]">
+                 {[...Array(5)].map((_, i) => (
+                   <Star key={`star-${i}`} size={12} fill={i < review.rating ? "currentColor" : "none"} />
+                 ))}
+              </div>
+              <h5 className="text-sm font-black text-[#053344] dark:text-white uppercase tracking-tight italic">&quot;{review.title}&quot;</h5>
+              <p className="text-sm font-medium text-[#0E5A75]/60 dark:text-white/60 leading-relaxed italic">
+                {review.message}
+              </p>
             </div>
 
-            <p className="text-[var(--text-muted)] leading-relaxed text-sm md:text-base">
-              {review.comment}
-            </p>
-
-            <button className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
-               <ThumbsUp size={14} />
-               Helpful
-            </button>
+            {review.responseMessage && (
+              <div className="pl-6 border-l-2 border-[#159665]/20 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Reply size={12} className="text-[#159665]" />
+                  <span className="text-[10px] font-black text-[#159665] uppercase tracking-widest">Management Response</span>
+                </div>
+                <p className="text-xs font-medium text-[#0E5A75]/50 dark:text-white/40 italic leading-relaxed">
+                  {review.responseMessage}
+                </p>
+              </div>
+            )}
           </div>
-        ))}
+        )) : (
+          <div className="col-span-2 py-20 text-center bg-[#0E5A75]/5 rounded-[40px] border border-dashed border-[#0E5A75]/10">
+            <p className="text-sm font-black text-[#0E5A75]/40 uppercase tracking-widest">No reviews yet. Be the first to share your experience!</p>
+          </div>
+        )}
       </div>
-    </section>
+    </div>
   );
 }

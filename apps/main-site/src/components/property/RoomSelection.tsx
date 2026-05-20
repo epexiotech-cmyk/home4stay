@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Users, Maximize2, Waves, CheckCircle2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBooking } from "@/context/BookingContext";
+import { Room } from "@/properties-data/types";
 
 interface RoomType {
   id: string;
@@ -49,9 +50,30 @@ const ROOMS: RoomType[] = [
   }
 ];
 
-export default function RoomSelection() {
+const ROOM_IMAGES = [
+  "https://images.unsplash.com/photo-1582719478250-c89cae4df85b?auto=format&fit=crop&q=80&w=1200",
+  "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=1200",
+  "https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?auto=format&fit=crop&q=80&w=1200",
+  "https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&q=80&w=1200"
+];
+
+export default function RoomSelection({ rooms }: { rooms?: Room[] }) {
   const { state, setRoom } = useBooking();
   const selectedRoomId = state.selectedRoomId;
+
+  const displayRooms = (rooms && rooms.length > 0) ? rooms.map((room: Room, idx: number) => ({
+    id: room.id || `room-${idx}-${room.name.toLowerCase().replace(/\s+/g, '-')}`,
+    name: room.name,
+    image: room.image || ROOM_IMAGES[idx % ROOM_IMAGES.length],
+    description: room.description || "Experience the pinnacle of mountain luxury in our signature accommodation.",
+    price: room.price,
+    size: room.size || "450 sq ft",
+    occupancy: room.capacity || room.occupancy || "2 Adults",
+    bedType: room.bedType || "King Sized",
+    view: room.view || "Mountain View",
+    tags: room.tags || ["Premium", "Featured"],
+    amenities: room.amenities || ["Wi-Fi", "Room Service", "Coffee Maker", "Mountain View"]
+  })) : ROOMS;
 
   return (
     <section className="py-32" id="rooms">
@@ -72,7 +94,7 @@ export default function RoomSelection() {
       </div>
 
       <div className="grid grid-cols-1 gap-12">
-        {ROOMS.map((room) => (
+        {displayRooms.map((room) => (
           <div 
             key={room.id}
             className={cn(
@@ -92,7 +114,7 @@ export default function RoomSelection() {
                 className="object-cover transition-transform duration-1000 group-hover:scale-110"
               />
               <div className="absolute top-6 left-6 flex flex-wrap gap-2">
-                {room.tags.map(tag => (
+                {room.tags.map((tag: string) => (
                   <span key={tag} className="px-4 py-2 rounded-full glass-premium border-white/40 text-[9px] font-black uppercase tracking-widest text-white shadow-lg">
                     {tag}
                   </span>
@@ -134,7 +156,7 @@ export default function RoomSelection() {
                 </p>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                  {room.amenities.map(amenity => (
+                  {room.amenities.map((amenity: string) => (
                     <div key={amenity} className="flex items-center gap-2 text-[#0E5A75]">
                       <CheckCircle2 size={14} className="text-[#159665]" />
                       <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">{amenity}</span>

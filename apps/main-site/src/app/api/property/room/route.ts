@@ -1,83 +1,113 @@
-import fs from "fs";
-import { NextResponse, NextRequest } from "next/server";
-import path from "path";
-import { PropertyMap } from "@home4stay/data";
-import { jwtVerify } from "jose";
+import { NextRequest, NextResponse } from "next/server";
+import { requireRole } from "@/lib/auth/rbac";
+import { prisma as db } from "@/lib/database/prisma";
+import { z } from "zod";
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
-const encodedSecret = new TextEncoder().encode(JWT_SECRET);
-const filePath = path.join(process.cwd(), "../../packages/data/property.json");
+const RoomSchema = z.object({
+  propertyId: z.string().min(1),
+  name: z.string().min(1),
+  price: z.number().positive(),
+  capacity: z.string().min(1),
+  view: z.string().min(1),
+  isActive: z.boolean().default(true),
+});
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const propertyId = searchParams.get("propertyId");
+
+    if (!propertyId) {
+      return NextResponse.json({ error: "propertyId is required" }, { status: 400 });
+    }
+
+    const { role, propertyId: sessionPropertyId } = await requireRole(request, ["admin", "super_admin", "owner", "partner", "manager", "customer"]);
+    
+    if (role !== "admin" && role !== "super_admin" && role !== "customer") {
+      if (propertyId !== sessionPropertyId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+
+    const rooms = await db.room.findMany({
+      where: { propertyId }
+    });
+
+    return NextResponse.json(rooms);
+  } catch {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // 0. AUTHENTICATION & SECURITY BOUNDARY (Hard Gate)
-    const token = request.cookies.get('access-token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    try {
-      const { payload } = await jwtVerify(token, encodedSecret, {
-        issuer: "home4stay",
-        audience: "web",
-      });
-
-      // Role Check (Only admins can manage rooms)
-      if (payload.role !== "admin") {
-        return NextResponse.json({ message: "Forbidden: Admin access required" }, { status: 403 });
-      }
-    } catch {
-      return NextResponse.json({ message: "Invalid or expired token" }, { status: 401 });
-    }
+    const { authorized, role, propertyId: sessionPropertyId, response } = await requireRole(request, ["admin", "super_admin", "owner", "partner"]);
+    if (!authorized) return response || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const { slug, name, price, capacity, view } = body;
+    const validation = RoomSchema.safeParse(body);
 
-    // 1. BASIC VALIDATION
-    if (!slug || !name || !price) {
-      return NextResponse.json({ message: "Missing fields" }, { status: 400 });
+    if (!validation.success) {
+      return NextResponse.json({ error: "Invalid data", details: validation.error.format() }, { status: 400 });
     }
 
-    // 2. NAME NORMALIZATION
-    const cleanName = name.trim().replace(/\s+/g, " ");
+    const data = validation.data;
 
-    if (isNaN(Number(price)) || Number(price) <= 0) {
-      return NextResponse.json({ message: "Invalid price. Must be positive." }, { status: 400 });
+    if (role !== "admin" && role !== "super_admin" && data.propertyId !== sessionPropertyId) {
+      return NextResponse.json({ error: "Forbidden: Cross-tenant room creation" }, { status: 403 });
     }
 
-    // 3. READ DATA
-    let data: PropertyMap = {};
-    const raw = fs.readFileSync(filePath, "utf-8");
-    data = JSON.parse(raw);
+    const room = await db.room.create({ data });
+    return NextResponse.json(room, { status: 201 });
+  } catch {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}
 
-    // 4. FIND PROPERTY
-    if (!data[slug]) {
-      return NextResponse.json({ message: "Property not found" }, { status: 404 });
+export async function PATCH(request: NextRequest) {
+  try {
+    const { authorized, role, propertyId: sessionPropertyId, response } = await requireRole(request, ["admin", "super_admin", "owner", "partner"]);
+    if (!authorized) return response || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await request.json();
+    const { id, ...updateData } = body;
+
+    if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+
+    const room = await db.room.findUnique({ where: { id } });
+    if (!room) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    if (role !== "admin" && role !== "super_admin" && room.propertyId !== sessionPropertyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 5. DUPLICATE ROOM CHECK (With normalized name)
-    const exists = data[slug].rooms.some(r => r.name.toLowerCase() === cleanName.toLowerCase());
-    if (exists) {
-      return NextResponse.json({ message: "A room with this name already exists in this property" }, { status: 409 });
+    const updated = await db.room.update({ where: { id }, data: updateData });
+    return NextResponse.json(updated);
+  } catch {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { authorized, role, propertyId: sessionPropertyId, response } = await requireRole(request, ["admin", "super_admin", "owner", "partner"]);
+    if (!authorized) return response || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+
+    const room = await db.room.findUnique({ where: { id } });
+    if (!room) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    if (role !== "admin" && role !== "super_admin" && room.propertyId !== sessionPropertyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 6. PUSH ROOM
-    data[slug].rooms.push({
-      name: cleanName,
-      price: Number(price),
-      capacity,
-      view: view.trim(),
-    });
-
-    // 7. ATOMIC SECURE WRITE
-    const tempPath = filePath + ".tmp";
-    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2));
-    fs.renameSync(tempPath, filePath);
-
-    return NextResponse.json({ message: "Room added successfully" }, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ message: "Server error" }, { status: 500 });
+    await db.room.delete({ where: { id } });
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

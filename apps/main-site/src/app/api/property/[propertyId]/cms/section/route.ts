@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/database/prisma";
-import { requireRole } from "@/lib/auth/rbac";
+import { requirePropertyAccess } from "@/lib/auth/rbac";
 
 interface ContextProps {
   params: Promise<{ propertyId: string }>;
@@ -11,21 +11,27 @@ export async function POST(request: NextRequest, { params }: ContextProps) {
     const resolvedParams = await params;
     const { propertyId } = resolvedParams;
 
-    const auth = await requireRole(request, ["owner", "manager", "admin", "super_admin"]);
-    const activeUserId = auth.authorized ? auth.userId : "partner_admin_owner";
+    // 1. STRICT TENANT ISOLATION CHECK against PostgreSQL junction table
+    const auth = await requirePropertyAccess(request, propertyId);
+    if (!auth.authorized) return auth.response!;
 
-    // Verify ownership parameters
+    // 2. Role permission check (Only partners/owners, managers, or admins can create CMS sections)
+    if (!["admin", "super_admin", "owner", "partner", "manager"].includes(auth.role || "")) {
+      return NextResponse.json({ error: "Forbidden: Insufficient privileges" }, { status: 403 });
+    }
+
+    // 3. Verify property exists
     const targetProperty = await prisma.property.findUnique({
       where: { id: propertyId },
       include: { pageContent: true },
     });
 
-    if (targetProperty && targetProperty.ownerId !== activeUserId && !["admin", "super_admin"].includes(auth.role || "")) {
-      return NextResponse.json({ error: "Unauthorized operation blocked." }, { status: 403 });
+    if (!targetProperty) {
+      return NextResponse.json({ error: "Property not found" }, { status: 404 });
     }
 
     // Ensure root container document persists
-    let contentId = targetProperty?.pageContent?.id;
+    let contentId = targetProperty.pageContent?.id;
     if (!contentId) {
       const newContent = await prisma.propertyPageContent.upsert({
         where: { propertyId },

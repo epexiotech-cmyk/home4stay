@@ -109,6 +109,7 @@ export default function Gallery({ images, gallery, name }: GalleryProps) {
          {/* Right: Vertical Stack (40%) */}
          <div className="w-full md:w-[40%] flex flex-col gap-4 md:gap-6 h-[450px] md:h-full">
             {/* Image 2 (Taller) */}
+            {processedGallery[1] && (
             <div 
                className="flex-[3] relative rounded-3xl overflow-hidden shadow-lg group/stack cursor-zoom-in"
                onClick={() => setShowFullGallery(true)}
@@ -125,9 +126,11 @@ export default function Gallery({ images, gallery, name }: GalleryProps) {
                  {processedGallery[1].category}
                </div>
             </div>
+            )}
 
             {/* Image 3 (Shorter) & Explore Button */}
             <div className="flex-[2] flex gap-4 md:gap-6">
+               {processedGallery[2] && (
                <div 
                  className="flex-1 relative rounded-3xl overflow-hidden shadow-lg group/stack cursor-zoom-in hidden sm:block"
                  onClick={() => setShowFullGallery(true)}
@@ -144,6 +147,7 @@ export default function Gallery({ images, gallery, name }: GalleryProps) {
                    {processedGallery[2].category}
                  </div>
                </div>
+               )}
 
                {/* Inline CTA Button block with Carousel */}
                <div 

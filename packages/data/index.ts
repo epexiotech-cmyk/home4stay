@@ -5,7 +5,8 @@ const data = propertyData as PropertyMap;
 
 export function getProperty(slug: string) {
   if (!slug) return null;
-  return data[slug] ?? null;
+  // Try exact match, then try removing hyphens (e.g. royal-villa -> royalvilla)
+  return data[slug] || data[slug.replace(/-/g, "")] || null;
 }
 
 export function getPropertyOrThrow(slug: string) {

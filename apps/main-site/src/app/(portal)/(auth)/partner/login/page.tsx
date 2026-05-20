@@ -84,7 +84,7 @@ export default function PartnerLoginPage() {
 
       <div className="mt-10 text-center text-[11px] font-black uppercase tracking-[0.15em] text-[#29655C] dark:text-[#0983B0]">
         Don&apos;t have a partner account?{" "}
-        <Link href="/partner/contact" className="text-[#0E5A75] dark:text-white hover:underline ml-1 decoration-2 underline-offset-4 transition-all">
+        <Link href="/partner/register" className="text-[#0E5A75] dark:text-white hover:underline ml-1 decoration-2 underline-offset-4 transition-all">
           Get Started
         </Link>
       </div>

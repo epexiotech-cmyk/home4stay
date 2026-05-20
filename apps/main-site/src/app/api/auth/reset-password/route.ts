@@ -129,7 +129,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Context Validation (Adaptive Check)
-    if (user.reset_password_ip !== ip || user.reset_password_user_agent !== userAgent) {
+    const userAny = user as typeof user & { reset_password_ip?: string; reset_password_user_agent?: string };
+    if (userAny.reset_password_ip && (userAny.reset_password_ip !== ip || userAny.reset_password_user_agent !== userAgent)) {
       await redis.incr(suspiciousKey); // Track as suspicious
       await logAuditEvent({
         userId: user.id,
@@ -137,8 +138,8 @@ export async function POST(request: NextRequest) {
         ipAddress: ip,
         userAgent,
         metadata: {
-          original_ip: user.reset_password_ip,
-          original_ua: user.reset_password_user_agent,
+          original_ip: userAny.reset_password_ip,
+          original_ua: userAny.reset_password_user_agent,
           current_ip: ip,
           current_ua: userAgent
         },

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { 
   ChevronRight, 
   Calendar as CalendarIcon,
@@ -25,8 +25,7 @@ import { CustomDatePicker } from "@/components/calendar/CustomDatePicker";
 import { CustomDropdown } from "@/components/calendar/CustomDropdown";
 import { AadhaarOTPVerification } from "@/components/kyc/AadhaarOTPVerification";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
-import { ROOM_GROUPS, RESERVATIONS } from "@/components/calendar/mock-data";
-import { Reservation, Guest, Address, MealPlan } from "@/components/calendar/types";
+import { Reservation, Guest, Address, MealPlan, RoomGroup } from "@/components/calendar/types";
 
 // --- UI Components ---
 
@@ -56,13 +55,15 @@ const Badge = ({ children, variant = "default", className }: { children: React.R
 export default function CalendarPage() {
   const [selectedBooking, setSelectedBooking] = useState<Reservation | null>(null);
   const [isQuickBookingOpen, setIsQuickBookingOpen] = useState(false);
-  const [reservations, setReservations] = useState<Reservation[]>(RESERVATIONS);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [roomGroups, setRoomGroups] = useState<RoomGroup[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [guestName, setGuestName] = useState("");
   const [guestMobile, setGuestMobile] = useState("");
   const [checkIn, setCheckIn] = useState<Date | null>(null);
   const [checkOut, setCheckOut] = useState<Date | null>(null);
-  const [selectedRoomId, setSelectedRoomId] = useState(ROOM_GROUPS[0].rooms[0].id);
+  const [selectedRoomId, setSelectedRoomId] = useState("");
   const [mealPlan, setMealPlan] = useState("Room Only (EP)");
 
   const [isKYCVerified, setIsKYCVerified] = useState(false);
@@ -77,15 +78,15 @@ export default function CalendarPage() {
   });
 
   // Helper to calculate available rooms based on dates and reservations
-  const getAvailableRooms = (inDate: Date | null, outDate: Date | null, resList: Reservation[]) => {
-    const allRooms = ROOM_GROUPS.flatMap(g => g.rooms);
+  const getAvailableRooms = useCallback((inDate: Date | null, outDate: Date | null, resList: Reservation[]) => {
+    const allRooms = roomGroups.flatMap(g => g.rooms);
     if (!inDate || !outDate) return allRooms;
     const selectedInterval = { start: inDate, end: outDate };
     const unavailableRoomIds = resList
       .filter(r => areIntervalsOverlapping(selectedInterval, { start: r.startDate, end: r.endDate }))
       .map(r => r.roomId);
     return allRooms.filter(room => !unavailableRoomIds.includes(room.id));
-  };
+  }, [roomGroups]);
 
   // Optimized date selection handlers to avoid cascading renders in effects
   const handleCheckInChange = (date: Date | null) => {
@@ -115,6 +116,33 @@ export default function CalendarPage() {
     const handleOpen = () => setIsQuickBookingOpen(true);
     window.addEventListener("open-quick-booking", handleOpen);
     return () => window.removeEventListener("open-quick-booking", handleOpen);
+  }, []);
+
+  useEffect(() => {
+    const fetchCalendar = async () => {
+      try {
+        const res = await fetch('/api/partner/calendar');
+        if (res.ok) {
+          const data = await res.json();
+          setRoomGroups(data.roomGroups || []);
+          setReservations(
+            (data.reservations || []).map((r: Omit<Reservation, "startDate" | "endDate"> & { startDate: string | Date; endDate: string | Date }) => ({
+              ...r,
+              startDate: new Date(r.startDate),
+              endDate: new Date(r.endDate),
+            }))
+          );
+          if (data.roomGroups?.[0]?.rooms?.[0]?.id) {
+            setSelectedRoomId(data.roomGroups[0].rooms[0].id);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch calendar", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCalendar();
   }, []);
 
   const { 
@@ -172,9 +200,9 @@ export default function CalendarPage() {
     setIsQuickBookingOpen(false);
   };
 
-  const availableRoomsList = useMemo(() => getAvailableRooms(checkIn, checkOut, reservations), [checkIn, checkOut, reservations]);
+  const availableRoomsList = useMemo(() => getAvailableRooms(checkIn, checkOut, reservations), [checkIn, checkOut, reservations, getAvailableRooms]);
 
-  const totalRoomsCount = ROOM_GROUPS.reduce((acc, g) => acc + g.rooms.length, 0);
+  const totalRoomsCount = roomGroups.reduce((acc, g) => acc + g.rooms.length, 0);
   const now = new Date();
   
   const occupiedCount = reservations.filter(r => 
@@ -195,11 +223,11 @@ export default function CalendarPage() {
   const renderView = () => {
     switch (view) {
       case "day":
-        return <DayView selectedDate={selectedDate} roomGroups={ROOM_GROUPS} reservations={reservations} onBookingClick={setSelectedBooking} />;
+        return <DayView selectedDate={selectedDate} roomGroups={roomGroups} reservations={reservations} onBookingClick={setSelectedBooking} />;
       case "week":
-        return <WeekView dates={dates} roomGroups={ROOM_GROUPS} reservations={reservations} onBookingClick={setSelectedBooking} />;
+        return <WeekView dates={dates} roomGroups={roomGroups} reservations={reservations} onBookingClick={setSelectedBooking} />;
       case "month":
-        return <MonthView dates={dates} roomGroups={ROOM_GROUPS} reservations={reservations} onBookingClick={setSelectedBooking} />;
+        return <MonthView dates={dates} roomGroups={roomGroups} reservations={reservations} onBookingClick={setSelectedBooking} />;
       default:
         return null;
     }
@@ -221,7 +249,13 @@ export default function CalendarPage() {
       />
 
       <div className="flex-1 flex flex-col min-h-0 bg-white/40 dark:bg-black/20 rounded-[32px] border border-white/10 dark:border-white/5 shadow-premium overflow-hidden backdrop-blur-md">
-        {renderView()}
+        {isLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-[#0E5A75] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          renderView()
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 shrink-0">

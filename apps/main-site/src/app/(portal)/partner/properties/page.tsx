@@ -51,37 +51,48 @@ interface RoomType {
 
 const PROPERTIES: Property[] = [
   {
-    id: "P-001",
-    name: "Grand Heritage Resort",
+    id: "shivay-resort-101",
+    name: "Shivay Resort",
     type: "Resort",
-    location: "Udaipur, Rajasthan",
-    rooms: 24,
+    location: "Manali, Himachal Pradesh",
+    rooms: 12,
     occupancy: "84%",
-    rating: 4.9,
-    status: "active",
-    image: "/luxury_resort_hero_1778219085681.png"
-  },
-  {
-    id: "P-002",
-    name: "Sunset Private Villa",
-    type: "Villa",
-    location: "Alibaug, Maharashtra",
-    rooms: 1,
-    occupancy: "100%",
     rating: 4.8,
     status: "active",
-    image: "/luxury_villa_hero_1778219105745.png"
+    image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=800"
   },
   {
-    id: "P-003",
-    name: "The Pine Ridge",
-    type: "Homestay",
-    location: "Manali, Himachal",
+    id: "royal-villa-202",
+    name: "Royal Villa",
+    type: "Villa",
+    location: "Goa",
+    rooms: 4,
+    occupancy: "90%",
+    rating: 4.6,
+    status: "active",
+    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800"
+  },
+  {
+    id: "taj-villa-303",
+    name: "Taj Villa",
+    type: "Villa",
+    location: "Agra, Uttar Pradesh",
     rooms: 6,
-    occupancy: "45%",
+    occupancy: "75%",
+    rating: 4.9,
+    status: "active",
+    image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=800"
+  },
+  {
+    id: "ocean-view-404",
+    name: "Ocean View Resort",
+    type: "Resort",
+    location: "Varkala, Kerala",
+    rooms: 15,
+    occupancy: "88%",
     rating: 4.7,
-    status: "draft",
-    image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=1000"
+    status: "active",
+    image: "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=800"
   }
 ];
 

@@ -7,9 +7,10 @@ import { Room } from "../types/property";
 interface RoomsListProps {
   rooms: Room[];
   slug: string;
+  isLocked?: boolean;
 }
 
-export default function RoomsList({ rooms, slug }: RoomsListProps) {
+export default function RoomsList({ rooms, slug, isLocked = false }: RoomsListProps) {
   const [selectedRoom, setSelectedRoom] = useState(rooms[0]);
 
   return (
@@ -50,7 +51,7 @@ export default function RoomsList({ rooms, slug }: RoomsListProps) {
                     )}
                   </div>
                   <span className="rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-widest text-zinc-600 shadow-sm border border-zinc-100">
-                    Available
+                    {isLocked ? "Unavailable" : "Available"}
                   </span>
                 </div>
                 <p className="mt-2 text-zinc-500">
@@ -79,16 +80,22 @@ export default function RoomsList({ rooms, slug }: RoomsListProps) {
                     <span className="text-sm font-normal text-zinc-500"> / night</span>
                   </p>
                 </div>
-                <Link
-                  href={`/${slug}/booking?room=${encodeURIComponent(room.name)}`}
-                  className={`rounded-full px-8 py-4 font-bold transition-all duration-200 ${
-                    isSelected
-                      ? "bg-zinc-900 text-white shadow-lg hover:bg-zinc-800 scale-105"
-                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                  }`}
-                >
-                  Book {room.name}
-                </Link>
+                {isLocked ? (
+                  <div className="rounded-full bg-zinc-200 border border-zinc-300 px-8 py-4 font-bold text-zinc-400 cursor-not-allowed text-sm">
+                    Bookings Locked
+                  </div>
+                ) : (
+                  <Link
+                    href={`/${slug}/booking?room=${encodeURIComponent(room.name)}`}
+                    className={`rounded-full px-8 py-4 font-bold transition-all duration-200 ${
+                      isSelected
+                        ? "bg-zinc-900 text-white shadow-lg hover:bg-zinc-800 scale-105"
+                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                    }`}
+                  >
+                    Book {room.name}
+                  </Link>
+                )}
               </div>
             </div>
           </div>

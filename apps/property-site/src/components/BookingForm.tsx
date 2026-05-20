@@ -6,9 +6,10 @@ import { Property } from "../types/property";
 
 interface BookingFormProps {
   property: Property;
+  isLocked?: boolean;
 }
 
-export default function BookingForm({ property }: BookingFormProps) {
+export default function BookingForm({ property, isLocked = false }: BookingFormProps) {
   const searchParams = useSearchParams();
   const roomParam = searchParams.get("room");
 
@@ -65,6 +66,7 @@ Guests: ${guests || "2 Guests"}`;
 
   const handleCheck = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLocked) return;
     alert(`Availability request for ${selectedRoomName} from ${formatDate(checkIn)} to ${formatDate(checkOut)} sent!`);
   };
 
@@ -79,9 +81,10 @@ Guests: ${guests || "2 Guests"}`;
               type="date"
               min={today}
               required
+              disabled={isLocked}
               value={checkIn}
               onChange={(e) => setCheckIn(e.target.value)}
-              className="mt-2 h-12 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none"
+              className="mt-2 h-12 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none disabled:opacity-50 disabled:bg-zinc-50"
             />
           </div>
           {/* Check-out */}
@@ -91,9 +94,10 @@ Guests: ${guests || "2 Guests"}`;
               type="date"
               min={checkIn || today}
               required
+              disabled={isLocked}
               value={checkOut}
               onChange={(e) => setCheckOut(e.target.value)}
-              className="mt-2 h-12 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none"
+              className="mt-2 h-12 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none disabled:opacity-50 disabled:bg-zinc-50"
             />
           </div>
         </div>
@@ -104,8 +108,9 @@ Guests: ${guests || "2 Guests"}`;
             <label className="block text-sm font-semibold text-zinc-900">Guests</label>
             <select 
               value={guests}
+              disabled={isLocked}
               onChange={(e) => setGuests(e.target.value)}
-              className="mt-2 h-12 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none"
+              className="mt-2 h-12 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none disabled:opacity-50 disabled:bg-zinc-50"
             >
               <option>1 Guest</option>
               <option>2 Guests</option>
@@ -118,8 +123,9 @@ Guests: ${guests || "2 Guests"}`;
             <label className="block text-sm font-semibold text-zinc-900">Room Type</label>
             <select 
               value={selectedRoomName}
+              disabled={isLocked}
               onChange={(e) => setSelectedRoomName(e.target.value)}
-              className="mt-2 h-12 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none"
+              className="mt-2 h-12 w-full rounded-lg border border-zinc-300 px-4 text-sm focus:border-zinc-900 focus:outline-none disabled:opacity-50 disabled:bg-zinc-50"
             >
               {property.rooms.map((room) => (
                 <option key={room.name} value={room.name}>
@@ -147,12 +153,18 @@ Guests: ${guests || "2 Guests"}`;
 
         {/* Submit Button */}
         <div className="flex flex-col items-center gap-4">
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-zinc-900 py-4 font-bold text-white transition hover:bg-zinc-800"
-          >
-            Check Availability
-          </button>
+          {isLocked ? (
+            <div className="w-full rounded-lg bg-zinc-200/80 py-4 font-bold text-zinc-500 text-center cursor-not-allowed border border-zinc-300">
+              Bookings Temporarily Offline
+            </div>
+          ) : (
+            <button
+              type="submit"
+              className="w-full rounded-lg bg-zinc-900 py-4 font-bold text-white transition hover:bg-zinc-800"
+            >
+              Check Availability
+            </button>
+          )}
           <p className="text-xs font-medium text-zinc-400">
             🔒 Secure booking • ⚡ Instant confirmation via WhatsApp
           </p>
@@ -161,15 +173,25 @@ Guests: ${guests || "2 Guests"}`;
 
       {/* WhatsApp Alternative */}
       <div className="mt-10 border-t border-zinc-100 pt-10 text-center">
-        <p className="text-sm text-zinc-500">Or confirm instantly on WhatsApp</p>
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-8 py-3 font-bold text-zinc-900 transition hover:bg-zinc-50 shadow-sm"
-        >
-          <span className="text-green-500 font-bold">●</span> Chat on WhatsApp
-        </a>
+        {isLocked ? (
+          <div>
+            <p className="text-sm font-semibold text-amber-600 bg-amber-50 rounded-xl p-4 border border-amber-100">
+              ⚠️ Inquiries and bookings are temporarily locked for this property due to pending subscription renewal.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-zinc-500">Or confirm instantly on WhatsApp</p>
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-8 py-3 font-bold text-zinc-900 transition hover:bg-zinc-50 shadow-sm"
+            >
+              <span className="text-green-500 font-bold">●</span> Chat on WhatsApp
+            </a>
+          </>
+        )}
       </div>
     </div>
   );

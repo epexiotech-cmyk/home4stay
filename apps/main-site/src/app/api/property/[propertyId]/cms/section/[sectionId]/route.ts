@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/database/prisma";
-import { requireRole } from "@/lib/auth/rbac";
+import { requirePropertyAccess } from "@/lib/auth/rbac";
 
 interface ContextProps {
   params: Promise<{ propertyId: string; sectionId: string }>;
@@ -11,16 +11,16 @@ export async function DELETE(request: NextRequest, { params }: ContextProps) {
     const resolvedParams = await params;
     const { propertyId, sectionId } = resolvedParams;
 
-    const auth = await requireRole(request, ["owner", "manager", "admin", "super_admin"]);
-    const activeUserId = auth.authorized ? auth.userId : "partner_admin_owner";
+    // 1. STRICT AUTH & TENANT ISOLATION CHECK against PostgreSQL junction table
+    const auth = await requirePropertyAccess(request, propertyId);
+    if (!auth.authorized) return auth.response!;
 
-    // Enforce tenant authorization checks
-    const targetProperty = await prisma.property.findUnique({ where: { id: propertyId } });
-    if (targetProperty && targetProperty.ownerId !== activeUserId && !["admin", "super_admin"].includes(auth.role || "")) {
-      return NextResponse.json({ error: "Forbidden deletion attempt restricted." }, { status: 403 });
+    // 2. Role permission check (Only partners/owners, managers, or admins can delete CMS sections)
+    if (!["admin", "super_admin", "owner", "partner", "manager"].includes(auth.role || "")) {
+      return NextResponse.json({ error: "Forbidden: Insufficient privileges" }, { status: 403 });
     }
 
-    // Eliminate target block array entry
+    // 3. Eliminate target block array entry
     await prisma.propertySection.delete({
       where: { id: sectionId },
     });

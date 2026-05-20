@@ -13,6 +13,11 @@ const LOCKOUT_DURATION = 15 * 60; // 15 minutes
  */
 
 export async function checkLockout(email: string, ip: string, requestId: string): Promise<{ locked: boolean; remainingSeconds: number }> {
+  // BYPASS LOCKOUT IN DEVELOPMENT
+  if (process.env.NODE_ENV === "development") {
+    return { locked: false, remainingSeconds: 0 };
+  }
+  
   try {
     const key = `@home4stay:lockout:${email}:${ip}`;
     const attempts = await redis.get(key);

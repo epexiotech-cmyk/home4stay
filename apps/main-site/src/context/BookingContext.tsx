@@ -1,11 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from "react";
 
 export type BookingState = {
+  propertyId: string | null;
   selectedRoomId: string | null;
   selectedMealPlanId: string | null;
-  selectedExperiences: Record<string, unknown>;
+  selectedExperiences: Record<string, { title: string, price: number }>;
   guestCount: { adults: number; children: number };
   dates: { from: Date | null; to: Date | null };
   pricing: {
@@ -14,79 +15,140 @@ export type BookingState = {
     experiences: number;
     tax: number;
     total: number;
+    discount: number;
   };
+  appliedCoupon: {
+    code: string;
+    value: number;
+    type: "percentage" | "flat";
+  } | null;
 };
 
 type BookingContextType = {
   state: BookingState;
+  setPropertyId: (id: string) => void;
   setRoom: (id: string, price: number) => void;
   setMealPlan: (id: string, price: number) => void;
-  toggleExperience: (id: string, price: number, config?: unknown) => void;
+  toggleExperience: (exp: { id: string, title: string, price: number }) => void;
   updateGuests: (adults: number, children: number) => void;
   updateDates: (from: Date | null, to: Date | null) => void;
+  setCoupon: (coupon: BookingState["appliedCoupon"]) => void;
 };
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
-export function BookingProvider({ children }: { children: ReactNode }) {
+export function BookingProvider({ children, initialPropertyId = null }: { children: ReactNode, initialPropertyId?: string | null }) {
   const [state, setState] = useState<BookingState>({
+    propertyId: initialPropertyId,
     selectedRoomId: null,
     selectedMealPlanId: null,
     selectedExperiences: {},
     guestCount: { adults: 2, children: 0 },
     dates: { from: null, to: null },
-    pricing: { base: 0, mealPlan: 0, experiences: 0, tax: 0, total: 0 },
+    pricing: { base: 0, mealPlan: 0, experiences: 0, tax: 0, discount: 0, total: 0 },
+    appliedCoupon: null
   });
 
-  const calculateTotal = (updates: Partial<BookingState>) => {
-    const s = { ...state, ...updates };
-    const subtotal = s.pricing.base + s.pricing.mealPlan + s.pricing.experiences;
-    const tax = subtotal * 0.12;
-    return { ...s.pricing, tax, total: subtotal + tax };
-  };
+  const calculateTotal = useCallback((s: BookingState, updates: Partial<BookingState> = {}) => {
+    const currentState = { ...s, ...updates };
+    const subtotal = currentState.pricing.base + currentState.pricing.mealPlan + currentState.pricing.experiences;
+    const tax = Math.round(subtotal * 0.12);
+    
+    let discount = 0;
+    if (currentState.appliedCoupon) {
+      if (currentState.appliedCoupon.type === "percentage") {
+        discount = Math.round(subtotal * (currentState.appliedCoupon.value / 100));
+      } else {
+        discount = currentState.appliedCoupon.value;
+      }
+    }
 
-  const setRoom = (id: string, price: number) => {
+    return { ...currentState.pricing, tax, discount, total: subtotal + tax - discount };
+  }, []);
+
+  const setPropertyId = useCallback((id: string) => {
     setState(prev => {
-      const pricing = calculateTotal({ pricing: { ...prev.pricing, base: price } });
+      if (prev.propertyId && prev.propertyId !== id) {
+        console.warn("[BookingContext] Property context changed. Resetting state.");
+        return {
+          propertyId: id,
+          selectedRoomId: null,
+          selectedMealPlanId: null,
+          selectedExperiences: {},
+          guestCount: { adults: 2, children: 0 },
+          dates: { from: null, to: null },
+          pricing: { base: 0, mealPlan: 0, experiences: 0, tax: 0, discount: 0, total: 0 },
+          appliedCoupon: null
+        };
+      }
+      if (prev.propertyId === id) return prev;
+      return { ...prev, propertyId: id };
+    });
+  }, []);
+
+  const setRoom = useCallback((id: string, price: number) => {
+    setState(prev => {
+      const newPricing = { ...prev.pricing, base: price };
+      const pricing = calculateTotal({ ...prev, pricing: newPricing });
       return { ...prev, selectedRoomId: id, pricing };
     });
-  };
+  }, [calculateTotal]);
 
-  const setMealPlan = (id: string, price: number) => {
+  const setMealPlan = useCallback((id: string, price: number) => {
     setState(prev => {
-      const pricing = calculateTotal({ pricing: { ...prev.pricing, mealPlan: price } });
+      const newPricing = { ...prev.pricing, mealPlan: price };
+      const pricing = calculateTotal({ ...prev, pricing: newPricing });
       return { ...prev, selectedMealPlanId: id, pricing };
     });
-  };
+  }, [calculateTotal]);
 
-  const toggleExperience = (id: string, price: number, config?: unknown) => {
+  const toggleExperience = useCallback((exp: { id: string, title: string, price: number }) => {
     setState(prev => {
       const newExperiences = { ...prev.selectedExperiences };
       let newExpPrice = prev.pricing.experiences;
 
-      if (newExperiences[id]) {
-        delete newExperiences[id];
-        newExpPrice -= price;
+      if (newExperiences[exp.id]) {
+        delete newExperiences[exp.id];
+        newExpPrice -= exp.price;
       } else {
-        newExperiences[id] = config || true;
-        newExpPrice += price;
+        newExperiences[exp.id] = { title: exp.title, price: exp.price };
+        newExpPrice += exp.price;
       }
 
-      const pricing = calculateTotal({ pricing: { ...prev.pricing, experiences: newExpPrice } });
+      const newPricing = { ...prev.pricing, experiences: newExpPrice };
+      const pricing = calculateTotal({ ...prev, selectedExperiences: newExperiences, pricing: newPricing });
       return { ...prev, selectedExperiences: newExperiences, pricing };
     });
-  };
+  }, [calculateTotal]);
 
-  const updateGuests = (adults: number, children: number) => {
+  const updateGuests = useCallback((adults: number, children: number) => {
     setState(prev => ({ ...prev, guestCount: { adults, children } }));
-  };
+  }, []);
 
-  const updateDates = (from: Date | null, to: Date | null) => {
+  const updateDates = useCallback((from: Date | null, to: Date | null) => {
     setState(prev => ({ ...prev, dates: { from, to } }));
-  };
+  }, []);
+
+  const setCoupon = useCallback((coupon: BookingState["appliedCoupon"]) => {
+    setState(prev => {
+      const pricing = calculateTotal({ ...prev, appliedCoupon: coupon });
+      return { ...prev, appliedCoupon: coupon, pricing };
+    });
+  }, [calculateTotal]);
+
+  const contextValue = useMemo(() => ({ 
+    state, 
+    setPropertyId, 
+    setRoom, 
+    setMealPlan, 
+    toggleExperience, 
+    updateGuests, 
+    updateDates,
+    setCoupon
+  }), [state, setPropertyId, setRoom, setMealPlan, toggleExperience, updateGuests, updateDates, setCoupon]);
 
   return (
-    <BookingContext.Provider value={{ state, setRoom, setMealPlan, toggleExperience, updateGuests, updateDates }}>
+    <BookingContext.Provider value={contextValue}>
       {children}
     </BookingContext.Provider>
   );

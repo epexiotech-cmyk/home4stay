@@ -46,18 +46,14 @@ interface Invoice {
 
 // --- Mock Data ---
 
-const TRANSACTIONS: Transaction[] = [
-  { id: "TXN-7721", bookingId: "B-1001", guestName: "Ananya Sharma", amount: 45200, gst: 5424, method: "UPI", status: "paid", date: "Today, 10:24 AM" },
-  { id: "TXN-7718", bookingId: "B-1002", guestName: "Rohan Malhotra", amount: 68000, gst: 8160, method: "Credit Card", status: "partial", date: "Yesterday" },
-  { id: "TXN-7715", bookingId: "B-1004", guestName: "Sahil Khan", amount: 28500, gst: 3420, method: "Cash", status: "pending", date: "2 days ago" },
-  { id: "TXN-7702", bookingId: "B-0995", guestName: "Vikram Sethi", amount: 12400, gst: 1488, method: "Net Banking", status: "refunded", date: "5 days ago" },
-];
+// Removed static TRANSACTIONS and INVOICES
 
-const INVOICES: Invoice[] = [
-  { id: "INV-2026-001", bookingId: "B-1001", guestName: "Ananya Sharma", amount: 45200, status: "paid", dueDate: "May 08, 2026" },
-  { id: "INV-2026-002", bookingId: "B-1002", guestName: "Rohan Malhotra", amount: 68000, status: "sent", dueDate: "May 12, 2026" },
-  { id: "INV-2026-003", bookingId: "B-1004", guestName: "Sahil Khan", amount: 28500, status: "overdue", dueDate: "May 05, 2026" },
-];
+interface FinancialStats {
+  totalRevenue?: number;
+  pendingPayments?: number;
+  gstCollected?: number;
+  avgBookingValue?: number;
+}
 
 // --- Components ---
 
@@ -89,10 +85,30 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 export default function FinancialsPage() {
   const [mounted, setMounted] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [stats, setStats] = useState<FinancialStats | null>(null);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(raf);
+  }, []);
+
+  useEffect(() => {
+    const fetchFinancials = async () => {
+      try {
+        const res = await fetch('/api/partner/financials');
+        if (res.ok) {
+          const data = await res.json();
+          setTransactions(data.transactions || []);
+          setInvoices(data.invoices || []);
+          setStats(data.stats || null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch financials", err);
+      }
+    };
+    fetchFinancials();
   }, []);
 
   if (!mounted) return null;
@@ -140,10 +156,10 @@ export default function FinancialsPage() {
 
       {/* 3. Financial Overview Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatWidget label="Total Revenue" value="₹8,42,500" icon={TrendingUp} color="text-[#159665]" trend="+12.5%" trendUp />
-        <StatWidget label="Pending Payments" value="₹45,200" icon={Clock} color="text-[#FCBC43]" trend="-2.4%" />
-        <StatWidget label="GST Collected" value="₹1,08,540" icon={ShieldCheck} color="text-[#0983B0]" />
-        <StatWidget label="Avg Booking Value" value="₹18,450" icon={Layers} color="text-[#0E5A75]" trend="+5.2%" trendUp />
+        <StatWidget label="Total Revenue" value={`₹${stats?.totalRevenue?.toLocaleString() || 0}`} icon={TrendingUp} color="text-[#159665]" trend="+12.5%" trendUp />
+        <StatWidget label="Pending Payments" value={`₹${stats?.pendingPayments?.toLocaleString() || 0}`} icon={Clock} color="text-[#FCBC43]" trend="-2.4%" />
+        <StatWidget label="GST Collected" value={`₹${stats?.gstCollected?.toLocaleString() || 0}`} icon={ShieldCheck} color="text-[#0983B0]" />
+        <StatWidget label="Avg Booking Value" value={`₹${stats?.avgBookingValue?.toLocaleString() || 0}`} icon={Layers} color="text-[#0E5A75]" trend="+5.2%" trendUp />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -194,7 +210,7 @@ export default function FinancialsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                  {TRANSACTIONS.map((txn) => (
+                  {transactions.map((txn) => (
                     <tr key={txn.id} className="hover:bg-[#0E5A75]/5 transition-colors group">
                       <td className="px-8 py-5">
                         <p className="text-xs font-black text-[#053344] dark:text-white">{txn.id}</p>
@@ -231,7 +247,7 @@ export default function FinancialsPage() {
               <FileText size={18} className="text-[#0983B0]" /> Invoice Center
             </h3>
             <div className="space-y-4">
-              {INVOICES.map((inv) => (
+              {invoices.map((inv) => (
                 <div key={inv.id} className="p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 hover:border-[#0E5A75]/20 transition-all cursor-pointer group">
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -261,16 +277,16 @@ export default function FinancialsPage() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60">GST Collected (Output)</span>
-                <span className="text-sm font-black text-[#053344] dark:text-white">₹1,08,540</span>
+                <span className="text-sm font-black text-[#053344] dark:text-white">₹{stats?.gstCollected?.toLocaleString() || 0}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60">GST Payable (Net)</span>
-                <span className="text-sm font-black text-[#F24633]">₹18,240</span>
+                <span className="text-sm font-black text-[#F24633]">₹{((stats?.gstCollected || 0) * 0.18).toLocaleString()}</span>
               </div>
               <div className="h-px bg-[#0E5A75]/10 my-2" />
               <div className="flex justify-between items-center">
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60">Taxable Revenue</span>
-                <span className="text-sm font-black text-[#159665]">₹7,33,960</span>
+                <span className="text-sm font-black text-[#159665]">₹{stats?.totalRevenue?.toLocaleString() || 0}</span>
               </div>
             </div>
             <button className="w-full mt-6 py-3 rounded-xl bg-white text-[#0E5A75] text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-white/90 transition-all">

@@ -1,8 +1,16 @@
 export interface Room {
+  id?: string;
   name: string;
   price: number;
   capacity: string;
   view: string;
+  image?: string;
+  description?: string;
+  size?: string;
+  bedType?: string;
+  tags?: string[];
+  amenities?: string[];
+  occupancy?: string; // Legacy/Mapping field
 }
 
 export interface SleepingArrangement {

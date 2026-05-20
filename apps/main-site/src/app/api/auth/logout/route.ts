@@ -1,26 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth/jwt";
-import { revokeJti } from "@/lib/auth/blacklist";
+import { AuthService } from "@/lib/auth/auth.service";
+
+const authService = new AuthService();
 
 export async function POST(request: NextRequest) {
-  const response = NextResponse.json({ message: "Logged out successfully" });
-  
-  // 1. EXTRACT AND REVOKE JTIs
-  const cookies = request.cookies;
-  const tokenNames = ["token", "access-token", "refresh-token"];
-  
-  for (const name of tokenNames) {
-    const token = cookies.get(name)?.value;
-    if (token) {
-      const payload = await verifyToken(token);
-      if (payload && payload.jti) {
-        // Calculate remaining TTL or just use a safe default (e.g., 7 days for refresh tokens)
-        // For simplicity and safety, we revoke with a 7-day TTL if it's a refresh token or large expiry
-        const expiry = payload.exp ? (payload.exp as number) - Math.floor(Date.now() / 1000) : 3600;
-        await revokeJti(payload.jti as string, Math.max(expiry, 60));
-      }
-      
-      // Clear cookie
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
+  const userAgent = request.headers.get("user-agent") || "unknown";
+
+  try {
+    const cookies = request.cookies;
+    const accessToken = cookies.get("access-token")?.value || cookies.get("token")?.value;
+    const refreshToken = cookies.get("refresh-token")?.value;
+
+    // Call centralized AuthService to perform complete session & blacklist deactivation
+    await authService.logout(accessToken, refreshToken, ip, userAgent);
+
+    const response = NextResponse.json({ message: "Logged out successfully" });
+    const tokenNames = ["token", "access-token", "refresh-token"];
+    
+    // Clear cookies in browser client
+    for (const name of tokenNames) {
       response.cookies.set(name, "", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -29,7 +28,13 @@ export async function POST(request: NextRequest) {
         path: "/"
       });
     }
-  }
 
-  return response;
+    return response;
+  } catch (error) {
+    console.error("[Logout API Route] Error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }

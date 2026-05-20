@@ -1,592 +1,494 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect, startTransition } from "react";
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
-  DynamicPropertyPagePayload, 
-  ThemePresetOption, 
-  SectionType, 
-  RenderSectionBlock,
-  CmsHeroState,
-  CmsNarrativeState,
-  CmsCarouselCard,
-  CmsGalleryImage,
-  CmsSeoState
-} from "@/components/admin/cms/types";
-import PageStructureEditor from "@/components/admin/cms/PageStructureEditor";
-import LivePreview from "@/components/admin/cms/LivePreview";
-import MediaLibraryModal from "@/components/admin/cms/MediaLibraryModal";
-import { EDITOR_REGISTRY } from "@/lib/cms/sectionRegistry";
-import { SECTION_MANIFESTS } from "@/lib/cms/sectionManifests";
-import { useCmsQuery } from "@/lib/cms/hooks/useCmsQuery";
-import { useCmsMutations } from "@/lib/cms/hooks/useCmsMutations";
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  Save, 
-  Check, 
-  Globe, 
-  Layers, 
-  FileText, 
+  Layout, 
   Image as ImageIcon, 
-  Sliders, 
-  Sparkles,
-  Loader2,
-  Undo2,
-  Paintbrush,
-  Clock,
-  UserCheck,
-  Quote,
-  HelpCircle,
-  Coffee,
+  Sparkles, 
+  HelpCircle, 
+  Search, 
+  Save, 
+  Eye, 
+  Globe,
+  ChevronRight,
   Plus,
-  FolderOpen,
-  Trash2
+  Trash2,
+  AlertCircle,
+  CheckCircle2,
+  RefreshCcw,
+  Type,
+  Palette
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { ICON_MAP } from "@/lib/experiences-config";
 
-export default function PropertyPageCmsPage() {
-  const propertyId = "shivay-resort-101";
+type TabType = "identity" | "hero" | "gallery" | "amenities" | "faqs" | "seo";
 
-  // Connect optimized TanStack Query custom data streaming adapters
-  const { data: serverPayload, isLoading: isQueryLoading, refetch } = useCmsQuery(propertyId);
+export default function PartnerCmsPage() {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<TabType>("identity");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublished, setIsPublished] = useState(false);
+  const [cmsData, setCmsData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Local active canvas replica facilitating instantaneous preview response
-  const [cmsState, setCmsState] = useState<DynamicPropertyPagePayload | null>(null);
-  
-  // Interactive UI parameters
-  const [openSection, setOpenSection] = useState<string>("structure");
-  const [saveStatus, setSaveStatus] = useState<"Saved just now" | "Saving..." | "Failed to save">("Saved just now");
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [toastNotice, setToastNotice] = useState<string | null>(null);
-  
-  // Multi-Tenant Asset Media modal variables
-  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
-  const [activeMediaTargetCallback, setActiveMediaTargetCallback] = useState<((url: string) => void) | null>(null);
+  const propertyId = user?.propertyId || "shivay";
 
-  // Initialize client replica when persistent database stream lands
   useEffect(() => {
-    if (serverPayload) {
-      // Re-hydrate local replica mappings matching legacy signatures for broad component cross-compatibility
-      const resolvedSections = serverPayload.sections || [];
-      
-      // Compute inline parameter fallbacks
-      const heroSec = (resolvedSections.find((s) => s.type === "hero")?.data as CmsHeroState) || {};
-      const narrativeSec = (resolvedSections.find((s) => s.type === "narrative")?.data as CmsNarrativeState) || {};
-      const carouselSec = (resolvedSections.find((s) => s.type === "carousel")?.data as { cards: CmsCarouselCard[] })?.cards || [];
-      const gallerySec = (resolvedSections.find((s) => s.type === "gallery")?.data as { images: CmsGalleryImage[] })?.images || [];
-      const seoSec = (resolvedSections.find((s) => s.type === "seo")?.data as CmsSeoState) || {};
+    async function fetchCmsData() {
+      try {
+        const res = await fetch(`/api/property/cms?propertyId=${propertyId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCmsData(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch CMS data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchCmsData();
+  }, [propertyId]);
 
-      startTransition(() => {
-        setCmsState({
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/property/cms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           propertyId,
-          status: serverPayload.publishedVersionId ? "published" : "draft",
-          updatedAt: new Date().toISOString(),
-          publishedAt: serverPayload.publishedVersionId ? new Date().toISOString() : undefined,
-          createdBy: "partner_admin_owner",
-          lastEditedBy: "concierge_curator_v2",
-          themePreset: (serverPayload.themeVariant as ThemePresetOption) || "Mountain Luxury",
-          themeCustomizations: {
-            typography: "Outfit, font-sans",
-            spacing: serverPayload.spacingPreset || "relaxed-luxury",
-            colorPalette: "slate-teal-amber",
-            animationPreset: serverPayload.animationPreset || "cinematic-fade-physics",
-          },
-          sections: (resolvedSections.length > 0 ? resolvedSections : getFallbackSectionSequence()) as RenderSectionBlock[],
-          hero: {
-            title: heroSec.title || "Shivay Resort",
-            subtitle: heroSec.subtitle || "Your Mountain Sanctuary Above the Clouds",
-            ctaText: heroSec.ctaText || "Discover Stays",
-            ctaLink: heroSec.ctaLink || "#booking",
-            backgroundImage: heroSec.backgroundImage || "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80",
-            mobileImage: heroSec.mobileImage || "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80",
-            overlayOpacity: heroSec.overlayOpacity ?? 0.4,
-            textAlign: heroSec.textAlign || "center",
-          },
-          narrative: {
-            smallLabel: narrativeSec.smallLabel || "CINEMATIC HOSPITALITY",
-            mainHeading: narrativeSec.mainHeading || "A sanctuary of",
-            highlightText: narrativeSec.highlightText || "timeless luxury.",
-            description: narrativeSec.description || "Located in the serene environment of Manali, Himachal Pradesh, our Villa provides a perfect blend of modern luxury and traditional hospitality.",
-            stats: narrativeSec.stats || [
-              { id: "1", value: "12+", label: "Luxury Experiences" },
-              { id: "2", value: "100%", label: "Privacy Guaranteed" },
-            ],
-          },
-          carousel: Array.isArray(carouselSec) && carouselSec.length > 0 ? carouselSec : [
-            { id: "c1", image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80", badge: "ARCHITECTURE", title: "Designed to merge seamlessly", description: "with the mountain horizon.", isActive: true, sortOrder: 0 },
-            { id: "c2", image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80", badge: "INTERIORS", title: "Raw structural wood elements", description: "crafted by local generational hands.", isActive: true, sortOrder: 1 },
-          ],
-          gallery: Array.isArray(gallerySec) && gallerySec.length > 0 ? gallerySec : [
-            { id: "g1", url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80", category: "Exterior", caption: "Frontal view" },
-          ],
-          seo: {
-            metaTitle: seoSec.metaTitle || "Shivay Resort — Premium Mountain Sanctuary",
-            metaDescription: seoSec.metaDescription || "Experience an elegant, tailored luxury stay in Manali wrapped in timeless atmosphere.",
-            ogImage: seoSec.ogImage || "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80",
-            keywords: seoSec.keywords || "luxury, resort, manali, mountain",
-          },
-        });
+          ...cmsData
+        })
       });
-    }
-  }, [serverPayload]);
-
-  // Connect mutation handlers
-  const { mutateDocumentSync, mutateAppendSection, mutateDeleteSection, mutatePublishRelease } = useCmsMutations({
-    propertyId,
-    onMutateOptimistic: () => setSaveStatus("Saving..."),
-    onSuccess: () => setSaveStatus("Saved just now"),
-    onErrorRollback: (err) => {
-      setSaveStatus("Failed to save");
-      setToastNotice(`Sync issue: ${err}`);
-      setTimeout(() => setToastNotice(null), 4000);
-    },
-  });
-
-  // Re-order root array or patch core sections schema
-  const handleUpdateSectionRoot = <K extends keyof DynamicPropertyPagePayload>(key: K, value: DynamicPropertyPagePayload[K]) => {
-    if (!cmsState) return;
-    const nextState = { ...cmsState, [key]: value, status: "draft" as const };
-    setCmsState(nextState);
-
-    // Prepare payload update mapping back to backend DB formats
-    mutateDocumentSync({
-      themePreset: nextState.themePreset,
-      sections: nextState.sections,
-    });
-  };
-
-  // Modify specific individual sub-block payload properties inline
-  const handleUpdateBlockData = (sectionId: string, updatedData: Record<string, unknown>) => {
-    if (!cmsState) return;
-
-    const mappedSections = cmsState.sections.map((s) => (s.id === sectionId ? { ...s, data: updatedData } : s));
-    const targetSec = mappedSections.find((s) => s.id === sectionId);
-
-    const patchRoot: Partial<DynamicPropertyPagePayload> = {};
-    if (targetSec) {
-      if (targetSec.type === "hero") patchRoot.hero = { ...cmsState.hero, ...(updatedData as unknown as DynamicPropertyPagePayload["hero"]) };
-      if (targetSec.type === "narrative") patchRoot.narrative = { ...cmsState.narrative, ...(updatedData as unknown as DynamicPropertyPagePayload["narrative"]) };
-      if (targetSec.type === "carousel" && updatedData.cards) patchRoot.carousel = updatedData.cards as unknown as DynamicPropertyPagePayload["carousel"];
-      if (targetSec.type === "gallery" && updatedData.images) patchRoot.gallery = updatedData.images as unknown as DynamicPropertyPagePayload["gallery"];
-      if (targetSec.type === "seo") patchRoot.seo = { ...cmsState.seo, ...(updatedData as unknown as DynamicPropertyPagePayload["seo"]) };
-    }
-
-    const nextState = {
-      ...cmsState,
-      ...patchRoot,
-      sections: mappedSections,
-      status: "draft" as const,
-    };
-
-    setCmsState(nextState);
-
-    // Sync straight to PostgreSQL backend DB table stream
-    mutateDocumentSync({
-      themePreset: nextState.themePreset,
-      sections: mappedSections,
-    });
-  };
-
-  const handleThemeChange = (preset: ThemePresetOption) => {
-    if (!cmsState) return;
-    const nextState = { ...cmsState, themePreset: preset, status: "draft" as const };
-    setCmsState(nextState);
-    mutateDocumentSync({ themePreset: preset, sections: nextState.sections });
-  };
-
-  const handleAppendNewSection = async (type: SectionType) => {
-    if (!cmsState) return;
-    try {
-      const persistedNode = await mutateAppendSection(type, {});
-      const appendedList = [...cmsState.sections, {
-        id: persistedNode?.id || `sec-${crypto.randomUUID()}`,
-        type,
-        enabled: true,
-        sortOrder: cmsState.sections.length,
-        data: {},
-      }];
-      setCmsState({ ...cmsState, sections: appendedList });
-      setOpenSection(persistedNode?.id || "");
-    } catch {
-      // Error handled silently via mutateAppendSection rollback hook
+      if (res.ok) {
+        setIsPublished(true);
+        setTimeout(() => setIsPublished(false), 3000);
+      }
+    } catch (err) {
+      console.error("Failed to save CMS data:", err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handlePurgeSection = async (sectionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!cmsState) return;
-    const success = await mutateDeleteSection(sectionId);
-    if (success) {
-      const filtered = cmsState.sections.filter((s) => s.id !== sectionId);
-      setCmsState({ ...cmsState, sections: filtered });
-      if (openSection === sectionId) setOpenSection("structure");
-    }
-  };
-
-  const handlePublish = async () => {
-    if (!cmsState) return;
-    setIsPublishing(true);
-    try {
-      await mutatePublishRelease("Production Build v2", cmsState as unknown as Record<string, unknown>);
-      setCmsState({ ...cmsState, status: "published" });
-      setToastNotice("Success! Full CMS version snapshot committed to primary PostgreSQL tables.");
-      setTimeout(() => setToastNotice(null), 4000);
-    } catch {
-      // Error handled silently via mutatePublishRelease rollback hook
-    }
-    setIsPublishing(false);
-  };
-
-  const triggerOpenMediaManager = (onAssignCallback: (url: string) => void) => {
-    setActiveMediaTargetCallback(() => onAssignCallback);
-    setIsMediaModalOpen(true);
-  };
-
-  const getSectionIcon = (type: SectionType) => {
-    switch (type) {
-      case "hero": return Sliders;
-      case "narrative": return FileText;
-      case "carousel": return Layers;
-      case "gallery": return ImageIcon;
-      case "testimonials": return Quote;
-      case "faq": return HelpCircle;
-      case "amenities": return Coffee;
-      case "seo": return Globe;
-    }
-  };
-
-  if (isQueryLoading || !cmsState) {
+  if (isLoading) {
     return (
-      <div className="h-96 flex flex-col items-center justify-center space-y-3 select-none">
-        <Loader2 size={32} className="text-[#0983B0] animate-spin" />
-        <p className="text-xs font-black uppercase tracking-widest text-[#0E5A75] dark:text-white/70">
-          Querying SaaS PostgreSQL Cluster...
-        </p>
-        <p className="text-[11px] text-[#0E5A75]/60 dark:text-white/50 max-w-xs text-center">
-          Establishing strict multi-tenant ownership boundaries and validating localized media caching links.
-        </p>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <RefreshCcw className="animate-spin text-[#0E5A75]" size={32} />
       </div>
     );
   }
 
+  const tabs: { id: TabType; label: string; icon: React.ElementType }[] = [
+    { id: "identity", label: "Identity", icon: Palette },
+    { id: "hero", label: "Hero & Narrative", icon: Layout },
+    { id: "gallery", label: "Visual Gallery", icon: ImageIcon },
+    { id: "amenities", label: "Amenities", icon: Sparkles },
+    { id: "faqs", label: "FAQs & Rules", icon: HelpCircle },
+    { id: "seo", label: "SEO & Google", icon: Search },
+  ];
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20 select-none">
-      {toastNotice && (
-        <div className="fixed top-24 right-8 z-50 animate-in slide-in-from-top duration-300">
-          <div className="glass-premium px-6 py-4 rounded-2xl border-white/20 text-[#0E5A75] dark:text-white flex items-center gap-3 shadow-2xl">
-            <div className="p-1.5 rounded-full bg-[#159665] text-white">
-              <Check size={14} />
-            </div>
-            <div>
-              <p className="text-xs font-black uppercase tracking-wider">Storage State Archive</p>
-              <p className="text-xs opacity-90">{toastNotice}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Shared Asset Selector Overlay Modal */}
-      <MediaLibraryModal
-        propertyId={propertyId}
-        isOpen={isMediaModalOpen}
-        onClose={() => setIsMediaModalOpen(false)}
-        onSelectAsset={(url) => {
-          activeMediaTargetCallback?.(url);
-          setIsMediaModalOpen(false);
-        }}
-      />
-
-      {/* HEADER CONTROLLER BANNER */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 glass-premium rounded-[32px] border-white/20 shadow-xl">
+    <div className="space-y-8 pb-20">
+      {/* Header Area */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full flex items-center gap-1 transition-colors ${
-              saveStatus === "Saving..." ? "bg-amber-500/10 text-amber-500 animate-pulse" : saveStatus === "Failed to save" ? "bg-red-500/10 text-red-500" : "bg-[#0983B0]/10 text-[#0983B0]"
-            }`}>
-              <Clock size={10} /> {saveStatus}
-            </span>
-            <span className="text-xs text-gray-300">|</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-              cmsState.status === "published" ? "bg-green-500/10 text-green-500" : "bg-purple-500/10 text-purple-400"
-            }`}>
-              Postgres Release: {cmsState.status.toUpperCase()}
-            </span>
-            <span className="text-[10px] text-gray-400 flex items-center gap-1">
-              <UserCheck size={10} /> Tenant: Owner Isolated
-            </span>
-          </div>
-
-          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-[#0E5A75] dark:text-white">
-            Universal Section Registry CMS
-          </h1>
-          <p className="text-xs text-[#0E5A75]/70 dark:text-white/70 mt-1 max-w-xl leading-relaxed">
-            Production PostgreSQL backend infrastructure utilizing continuous database record streaming, isolated TanStack query adapters, versioned JSON serialization, and high-fidelity media CDN catalogs.
+          <h1 className="text-4xl font-black text-[#053344] dark:text-white tracking-tighter leading-none mb-3">Property CMS</h1>
+          <p className="text-sm font-bold text-[#0E5A75]/60 uppercase tracking-widest flex items-center gap-2">
+            <Globe size={14} className="text-[#0983B0]" />
+            Live Preview Site: <span className="text-[#0E5A75] underline">{cmsData?.name}.home4stay.com</span>
           </p>
         </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => triggerOpenMediaManager(() => {})}
-            className="px-4 py-2.5 rounded-xl bg-[#159665]/10 hover:bg-[#159665]/20 text-[#159665] text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5"
-          >
-            <FolderOpen size={14} /> Shared Media CDN
+        
+        <div className="flex items-center gap-3">
+          <button className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#0E5A75]/5 text-[#0E5A75] font-black text-xs uppercase tracking-widest hover:bg-[#0E5A75]/10 transition-all border border-[#0E5A75]/10">
+            <Eye size={16} />
+            Preview Live
           </button>
-
-          {cmsState.status === "draft" && (
-            <button
-              type="button"
-              disabled={isPublishing}
-              onClick={refetch}
-              className="px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-bold transition-all flex items-center gap-1"
-            >
-              <Undo2 size={13} /> Revert Database
-            </button>
-          )}
-
-          <button
-            type="button"
-            disabled={isPublishing}
-            onClick={handlePublish}
-            className="px-5 py-2.5 rounded-xl bg-[#0E5A75] text-white text-xs font-black uppercase tracking-widest shadow-xl hover:bg-[#0983B0] transition-all flex items-center gap-1.5"
+          <button 
+            onClick={handleSave}
+            disabled={isSaving}
+            className={cn(
+              "flex items-center gap-2 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl",
+              isPublished ? "bg-[#159665] text-white" : "bg-[#0E5A75] hover:bg-[#0A4459] text-white"
+            )}
           >
-            {isPublishing ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            <span>{cmsState.status === "draft" ? "Commit Production" : "Verified Build"}</span>
+            {isSaving ? <RefreshCcw size={16} className="animate-spin" /> : (isPublished ? <CheckCircle2 size={16} /> : <Save size={16} />)}
+            {isSaving ? "Publishing..." : (isPublished ? "Site Updated" : "Commit Changes")}
           </button>
         </div>
       </div>
 
-      {/* THEME PRESET CONFIGURATOR */}
-      <div className="p-4 rounded-2xl glass-matte border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#053344]/10">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-[#0983B0] text-white">
-            <Paintbrush size={16} />
-          </div>
-          <div>
-            <p className="text-xs font-black uppercase tracking-wider text-[#053344] dark:text-white">
-              Persistent Database Palette Token Override
-            </p>
-            <p className="text-[11px] text-[#053344]/70 dark:text-white/60">
-              Immediately sync CSS property tokens directly to active database entry instances.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-2 items-center flex-wrap">
-          {(["Mountain Luxury", "Heritage Royal", "Scandinavian Minimal", "Jungle Retreat"] as const).map((themeName) => (
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        {/* Navigation Sidebar */}
+        <div className="xl:col-span-1 space-y-2">
+          {tabs.map((tab) => (
             <button
-              key={themeName}
-              type="button"
-              onClick={() => handleThemeChange(themeName)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                cmsState.themePreset === themeName
-                  ? "bg-[#0983B0] text-white shadow-md scale-105"
-                  : "bg-white/40 dark:bg-black/30 text-[#053344] dark:text-white/70 hover:bg-white/60"
-              }`}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "w-full flex items-center justify-between p-5 rounded-3xl transition-all duration-300 group relative overflow-hidden",
+                activeTab === tab.id 
+                  ? "bg-[#0E5A75] text-white shadow-xl translate-x-2" 
+                  : "bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 text-[#0E5A75] dark:text-[#0983B0] hover:bg-[#0E5A75]/5"
+              )}
             >
-              {themeName}
+              <div className="flex items-center gap-4 relative z-10">
+                <div className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                  activeTab === tab.id ? "bg-white/20" : "bg-[#0E5A75]/5"
+                )}>
+                  <tab.icon size={20} />
+                </div>
+                <span className="text-sm font-black uppercase tracking-widest">{tab.label}</span>
+              </div>
+              <ChevronRight size={18} className={cn("transition-transform", activeTab === tab.id ? "rotate-90" : "group-hover:translate-x-1")} />
+              
+              {activeTab === tab.id && (
+                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
+              )}
             </button>
           ))}
-        </div>
-      </div>
-
-      {/* SPLIT ENGINE VIEWPORT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* LEFT PANE: Master Registry Controls */}
-        <div className="lg:col-span-7 space-y-4">
-          {/* 0th Element: Page Structure Global Engine */}
-          <div className="glass-premium rounded-2xl border-white/20 overflow-hidden shadow-lg border-l-4 border-l-[#0983B0]">
-            <button
-              type="button"
-              onClick={() => setOpenSection(openSection === "structure" ? "" : "structure")}
-              className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/10 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl ${openSection === "structure" ? "bg-[#0983B0] text-white" : "bg-black/5 dark:bg-white/5 text-[#0E5A75] dark:text-white/60"}`}>
-                  <Layers size={16} />
-                </div>
-                <div>
-                  <span className="text-xs font-black uppercase tracking-wider text-[#0E5A75] dark:text-white block">
-                    0. Postgres Section Sequencer
-                  </span>
-                  <span className="text-[9px] text-[#0983B0] font-bold">✨ Live backend atomic sort sequence buffer</span>
-                </div>
-              </div>
-              <div className="text-[#0E5A75]/40 dark:text-white/40">
-                {openSection === "structure" ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </div>
-            </button>
-
-            {openSection === "structure" && (
-              <div className="p-6 pt-2 border-t border-black/5 dark:border-white/5 bg-white/20 dark:bg-black/10">
-                <PageStructureEditor
-                  sections={cmsState.sections}
-                  onChange={(val) => handleUpdateSectionRoot("sections", val)}
-                />
-
-                {/* Section Appending Row */}
-                <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-[#0E5A75]/70 dark:text-white/60">
-                    Mount new decoupled registry chunk:
-                  </span>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {(["narrative", "carousel", "gallery", "testimonials", "faq", "amenities"] as const).map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => handleAppendNewSection(t)}
-                        className="px-2 py-1 rounded bg-[#0983B0]/10 hover:bg-[#0983B0]/20 text-[#0983B0] text-[10px] font-black uppercase tracking-wider transition-colors flex items-center gap-0.5"
-                      >
-                        <Plus size={10} /> {t}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Iterate over active individual render section blocks dynamically using EDITOR_REGISTRY */}
-          {cmsState.sections.map((sectionNode, idx) => {
-            const manifest = SECTION_MANIFESTS[sectionNode.type];
-            if (!manifest) return null;
-
-            const IconComp = getSectionIcon(sectionNode.type);
-            const DynamicEditorComponent = EDITOR_REGISTRY[sectionNode.type];
-            const isOpen = openSection === sectionNode.id;
-
-            // Merge fallback payload dictionary logic
-            let editorState = sectionNode.data || {};
-            if (sectionNode.type === "hero" && Object.keys(editorState).length === 0) editorState = cmsState.hero;
-            if (sectionNode.type === "narrative" && Object.keys(editorState).length === 0) editorState = cmsState.narrative;
-            if (sectionNode.type === "carousel" && Object.keys(editorState).length === 0) editorState = { cards: cmsState.carousel };
-            if (sectionNode.type === "gallery" && Object.keys(editorState).length === 0) editorState = { images: cmsState.gallery };
-            if (sectionNode.type === "seo" && Object.keys(editorState).length === 0) editorState = cmsState.seo;
-
-            return (
-              <div
-                key={sectionNode.id}
-                className={`glass-premium rounded-2xl border-white/20 overflow-hidden shadow-lg transition-all duration-300 relative group ${
-                  !sectionNode.enabled ? "opacity-60 border-dashed" : ""
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenSection(isOpen ? "" : sectionNode.id)}
-                  className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/10 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl ${isOpen ? "bg-[#0983B0] text-white" : "bg-black/5 dark:bg-white/5 text-[#0E5A75] dark:text-white/60"}`}>
-                      <IconComp size={16} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black uppercase tracking-wider text-[#0E5A75] dark:text-white">
-                          {idx + 1}. {manifest.label}
-                        </span>
-                        {!sectionNode.enabled && (
-                          <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-gray-500/20 text-gray-400">
-                            HIDDEN
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[9px] text-[#0E5A75]/60 dark:text-white/50 block">
-                        Category: {manifest.category} | Persistent ID: <code className="text-[#0983B0]">{sectionNode.id}</code>
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {/* Direct block purging action trigger */}
-                    {idx > 0 && (
-                      <div
-                        onClick={(e) => handlePurgeSection(sectionNode.id, e)}
-                        className="p-1.5 rounded hover:bg-red-500/20 text-red-500 transition-colors opacity-0 group-hover:opacity-100 z-10"
-                        title="Purge section node from database"
-                      >
-                        <Trash2 size={13} />
-                      </div>
-                    )}
-                    <div className="text-[#0E5A75]/40 dark:text-white/40">
-                      {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </div>
-                  </div>
-                </button>
-
-                {isOpen && DynamicEditorComponent && (
-                  <div className="p-6 pt-2 border-t border-black/5 dark:border-white/5 bg-white/20 dark:bg-black/10 relative">
-                    {/* Media Assignment Integration Shortcut Bar */}
-                    {["hero", "carousel", "gallery"].includes(sectionNode.type) && (
-                      <div className="mb-4 pb-3 border-b border-white/5 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-[#0983B0] flex items-center gap-1">
-                          <Sparkles size={12} /> Inject optimized database CDN binary links directly:
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => triggerOpenMediaManager((selectedUrl) => {
-                            // Smart injection mapping logic
-                            if (sectionNode.type === "hero") {
-                              handleUpdateBlockData(sectionNode.id, { ...(editorState as CmsHeroState), backgroundImage: selectedUrl });
-                            } else if (sectionNode.type === "gallery") {
-                              const existingImgs = Array.isArray((editorState as { images: CmsGalleryImage[] }).images) ? (editorState as { images: CmsGalleryImage[] }).images : [];
-                              handleUpdateBlockData(sectionNode.id, {
-                                images: [...existingImgs, { id: "gal-" + crypto.randomUUID(), url: selectedUrl, category: "Exterior", caption: "Imported asset" }],
-                              });
-                            } else if (sectionNode.type === "carousel") {
-                              const existingCards = Array.isArray((editorState as { cards: CmsCarouselCard[] }).cards) ? (editorState as { cards: CmsCarouselCard[] }).cards : [];
-                              handleUpdateBlockData(sectionNode.id, {
-                                cards: [...existingCards, { id: "card-" + crypto.randomUUID(), image: selectedUrl, badge: "FEATURED", title: "Imported module", isActive: true }],
-                              });
-                            }
-                          })}
-                          className="px-2.5 py-1 rounded bg-[#0983B0] text-white text-[10px] font-black uppercase tracking-wider hover:bg-[#0E5A75] transition-all flex items-center gap-1 shadow-md"
-                        >
-                          <FolderOpen size={10} /> Browse Asset Library
-                        </button>
-                      </div>
-                    )}
-
-                    <DynamicEditorComponent
-                      data={editorState}
-                      onChange={(updatedFields: unknown) => handleUpdateBlockData(sectionNode.id, updatedDataResolver(sectionNode.type, updatedFields) as Record<string, unknown>)}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* RIGHT PANE: Side-by-Side Registry Stream */}
-        <div className="lg:col-span-5 lg:sticky lg:top-24">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between px-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60 dark:text-white/50 flex items-center gap-1">
-                <Sparkles size={12} className="text-[#159665]" /> Realtime Persistent Cache Feed
-              </span>
-              <span className="text-[10px] text-[#159665] font-mono">DB Mode: Active Sync</span>
+          
+          <div className="p-8 rounded-[40px] bg-[#FCBC43]/10 border border-[#FCBC43]/20 mt-8">
+            <div className="flex items-center gap-3 text-[#B8860B] mb-3">
+              <AlertCircle size={20} />
+              <span className="text-xs font-black uppercase tracking-widest">CMS Integrity</span>
             </div>
-
-            <LivePreview data={cmsState} />
+            <p className="text-[10px] font-bold text-[#B8860B]/70 leading-relaxed uppercase tracking-tighter">
+              All changes are published instantly to your public property page. Ensure high-quality imagery and consistent hospitality messaging.
+            </p>
           </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="xl:col-span-3">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="bg-white dark:bg-[#0b1220] rounded-[48px] border border-black/5 dark:border-white/5 shadow-luxury-sm overflow-hidden min-h-[600px]"
+            >
+              {activeTab === "identity" && <IdentitySection data={cmsData} setData={setCmsData} />}
+              {activeTab === "hero" && <HeroSection data={cmsData} setData={setCmsData} />}
+              {activeTab === "amenities" && <AmenitiesSection data={cmsData} setData={setCmsData} />}
+              {activeTab === "faqs" && <FaqSection data={cmsData} setData={setCmsData} />}
+              {activeTab === "seo" && <SeoSection data={cmsData} setData={setCmsData} />}
+              {activeTab === "gallery" && <GallerySection data={cmsData} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>
   );
 }
 
-// Normalizer mapping custom nested array string structures gracefully
-function updatedDataResolver(type: SectionType, fields: unknown) {
-  if (type === "carousel" && Array.isArray(fields)) return { cards: fields };
-  if (type === "gallery" && Array.isArray(fields)) return { images: fields };
-  return fields;
+// Sub-components for CMS sections
+
+function IdentitySection({ data, setData }: { data: any; setData: (data: any) => void }) {
+  return (
+    <div className="p-10 space-y-10">
+      <SectionHeader title="Property Identity" desc="Manage your brand's core presence and visual identifiers." />
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <CmsInput 
+          label="Property Name" 
+          value={data?.name} 
+          onChange={(v) => setData({...data, name: v})} 
+        />
+        <CmsInput 
+          label="Primary Theme Color" 
+          type="color"
+          value={data?.branding?.theme?.primary || "#0E5A75"} 
+          onChange={(v) => setData({...data, branding: {...data.branding, theme: {...data.branding.theme, primary: v}}})} 
+        />
+      </div>
+
+      <div className="space-y-4">
+        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0E5A75]/60 ml-4">Property Logo (Dark & Light compatible)</label>
+        <div className="p-10 rounded-[40px] border-2 border-dashed border-[#0E5A75]/10 flex flex-col items-center justify-center gap-4 bg-[#0E5A75]/5 hover:bg-[#0E5A75]/10 transition-all cursor-pointer">
+          <Plus size={32} className="text-[#0E5A75]/40" />
+          <p className="text-xs font-black text-[#0E5A75] uppercase tracking-widest">Upload Luxury Logo</p>
+          <p className="text-[10px] text-[#0E5A75]/40 uppercase tracking-widest font-bold">SVG or PNG Preferred (Transparent Background)</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function getFallbackSectionSequence() {
-  return [
-    { id: "sec-hero-1", type: "hero", enabled: true, sortOrder: 0, data: {} },
-    { id: "sec-narrative-1", type: "narrative", enabled: true, sortOrder: 1, data: {} },
-    { id: "sec-carousel-1", type: "carousel", enabled: true, sortOrder: 2, data: {} },
-    { id: "sec-gallery-1", type: "gallery", enabled: true, sortOrder: 3, data: {} },
-    { id: "sec-seo-1", type: "seo", enabled: true, sortOrder: 4, data: {} },
-  ];
+function HeroSection({ data, setData }: { data: any; setData: (data: any) => void }) {
+  return (
+    <div className="p-10 space-y-10">
+      <SectionHeader title="Hero & Narrative" desc="The first thing guests see. Craft a cinematic entrance." />
+      
+      <div className="space-y-8">
+        <CmsInput 
+          label="Hero Title" 
+          placeholder="e.g. A Sanctuary Above The Clouds"
+          value={data?.branding?.heroTitle} 
+          onChange={(v) => setData({...data, branding: {...data.branding, heroTitle: v}})} 
+        />
+        <CmsInput 
+          label="Hero Tagline" 
+          placeholder="e.g. Experience timeless mountain luxury."
+          value={data?.branding?.heroTagline} 
+          onChange={(v) => setData({...data, branding: {...data.branding, heroTagline: v}})} 
+        />
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <CmsInput 
+            label="Narrative Label" 
+            value={data?.branding?.narrativeLabel} 
+            onChange={(v) => setData({...data, branding: {...data.branding, narrativeLabel: v}})} 
+          />
+          <CmsInput 
+            label="Narrative Heading" 
+            value={data?.branding?.narrativeHeading} 
+            onChange={(v) => setData({...data, branding: {...data.branding, narrativeHeading: v}})} 
+          />
+          <CmsInput 
+            label="Narrative Highlight" 
+            value={data?.branding?.narrativeHighlight} 
+            onChange={(v) => setData({...data, branding: {...data.branding, narrativeHighlight: v}})} 
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AmenitiesSection({ data, setData }: { data: any; setData: (data: any) => void }) {
+  const currentAmenities = data?.amenities || [];
+  
+  const addAmenity = () => {
+    const newList = [...currentAmenities, { icon: "Sparkles", label: "New Amenity", detail: "Included feature" }];
+    setData({...data, amenities: newList});
+  };
+
+  const removeAmenity = (idx: number) => {
+    const newList = currentAmenities.filter((_: unknown, i: number) => i !== idx);
+    setData({...data, amenities: newList});
+  };
+
+  const updateAmenity = (idx: number, field: string, value: string) => {
+    const newList = [...currentAmenities];
+    newList[idx][field] = value;
+    setData({...data, amenities: newList});
+  };
+
+  return (
+    <div className="p-10 space-y-10">
+      <div className="flex items-center justify-between">
+        <SectionHeader title="Hospitality Essentials" desc="Curate the amenities that define your stay." />
+        <button 
+          onClick={addAmenity}
+          className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#0E5A75] text-white font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
+        >
+          <Plus size={16} /> Add Amenity
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {currentAmenities.map((amenity: any, idx: number) => (
+          <div key={idx} className="p-6 rounded-[32px] border border-[#0E5A75]/10 bg-[#0E5A75]/5 flex items-start gap-4 group">
+            <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-[#0E5A75] shadow-sm relative overflow-hidden">
+               <select 
+                value={amenity.icon}
+                onChange={(e) => updateAmenity(idx, 'icon', e.target.value)}
+                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+               >
+                 {Object.keys(ICON_MAP).map(icon => <option key={icon} value={icon}>{icon}</option>)}
+               </select>
+               {React.createElement((ICON_MAP as any)[amenity.icon] || Sparkles, { size: 20 })}
+            </div>
+            <div className="flex-1 space-y-2">
+              <input 
+                className="w-full bg-transparent text-sm font-black text-[#053344] uppercase tracking-tight focus:outline-none"
+                value={amenity.label}
+                onChange={(e) => updateAmenity(idx, 'label', e.target.value)}
+              />
+              <input 
+                className="w-full bg-transparent text-[10px] font-bold text-[#0E5A75]/60 uppercase tracking-widest focus:outline-none"
+                value={amenity.detail}
+                placeholder="Brief description..."
+                onChange={(e) => updateAmenity(idx, 'detail', e.target.value)}
+              />
+            </div>
+            <button 
+              onClick={() => removeAmenity(idx)}
+              className="p-2 rounded-xl text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FaqSection({ data, setData }: { data: any; setData: (data: any) => void }) {
+  const currentFaqs = data?.faqs || [];
+  
+  const addFaq = () => {
+    const newList = [...currentFaqs, { question: "New Question", answer: "Property response..." }];
+    setData({...data, faqs: newList});
+  };
+
+  const removeFaq = (idx: number) => {
+    const newList = currentFaqs.filter((_: unknown, i: number) => i !== idx);
+    setData({...data, faqs: newList});
+  };
+
+  const updateFaq = (idx: number, field: string, value: string) => {
+    const newList = [...currentFaqs];
+    newList[idx][field] = value;
+    setData({...data, faqs: newList});
+  };
+
+  return (
+    <div className="p-10 space-y-10">
+      <div className="flex items-center justify-between">
+        <SectionHeader title="FAQs & Policies" desc="Manage guest expectations and house rules." />
+        <button 
+          onClick={addFaq}
+          className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#0983B0] text-white font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
+        >
+          <Plus size={16} /> Add Question
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+        <CmsInput label="Check-in Time" value={data?.policies?.checkIn} onChange={(v) => setData({...data, policies: {...data.policies, checkIn: v}})} />
+        <CmsInput label="Check-out Time" value={data?.policies?.checkOut} onChange={(v) => setData({...data, policies: {...data.policies, checkOut: v}})} />
+        <CmsInput label="Pet Policy" value={data?.policies?.petPolicy} onChange={(v) => setData({...data, policies: {...data.policies, petPolicy: v}})} />
+        <CmsInput label="Cancellation Policy" value={data?.policies?.cancellation} onChange={(v) => setData({...data, policies: {...data.policies, cancellation: v}})} />
+      </div>
+
+      <div className="space-y-4">
+        {currentFaqs.map((faq: any, idx: number) => (
+          <div key={idx} className="p-8 rounded-[40px] border border-black/5 bg-black/[0.01] space-y-4 relative group">
+            <div className="flex items-center gap-4">
+              <Type size={16} className="text-[#0E5A75]/30" />
+              <input 
+                className="w-full bg-transparent text-sm font-black text-[#053344] uppercase tracking-tight focus:outline-none"
+                value={faq.question}
+                onChange={(e) => updateFaq(idx, 'question', e.target.value)}
+              />
+            </div>
+            <textarea 
+              className="w-full bg-transparent text-xs font-bold text-[#0E5A75]/60 uppercase tracking-widest leading-relaxed focus:outline-none resize-none min-h-[60px]"
+              value={faq.answer}
+              onChange={(e) => updateFaq(idx, 'answer', e.target.value)}
+            />
+            <button 
+              onClick={() => removeFaq(idx)}
+              className="absolute top-8 right-8 p-3 rounded-2xl text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SeoSection({ data, setData }: { data: any; setData: (data: any) => void }) {
+  return (
+    <div className="p-10 space-y-10">
+      <SectionHeader title="SEO & Search Visibility" desc="Optimize how your property appears on Google and Social Media." />
+      
+      <div className="space-y-8">
+        <CmsInput 
+          label="Meta Title" 
+          value={data?.seo?.title} 
+          onChange={(v) => setData({...data, seo: {...data.seo, title: v}})} 
+        />
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0E5A75]/60 ml-4">Meta Description</label>
+          <textarea 
+            className="w-full p-6 rounded-[32px] bg-[#0E5A75]/5 border border-black/5 text-sm font-medium text-[#053344] focus:outline-none focus:ring-2 focus:ring-[#0E5A75]/20 min-h-[120px] resize-none"
+            value={data?.seo?.description}
+            onChange={(e) => setData({...data, seo: {...data.seo, description: e.target.value}})}
+          />
+        </div>
+        <CmsInput 
+          label="Focus Keywords (comma separated)" 
+          value={data?.seo?.keywords?.join(", ")} 
+          onChange={(v) => setData({...data, seo: {...data.seo, keywords: v.split(",").map((s: string) => s.trim())}})} 
+        />
+      </div>
+
+      <div className="p-10 rounded-[48px] bg-[#053344] text-white">
+        <div className="flex items-center gap-3 mb-6">
+          <Search size={20} className="text-[#0983B0]" />
+          <span className="text-xs font-black uppercase tracking-widest">Google Preview</span>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs text-[#0983B0]">https://{data?.name?.toLowerCase().replace(/\s+/g, '')}.home4stay.com</p>
+          <h3 className="text-xl text-[#8AB4F8] hover:underline cursor-pointer">{data?.seo?.title || data?.name}</h3>
+          <p className="text-sm text-white/60 line-clamp-2">{data?.seo?.description || data?.branding?.heroTagline}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GallerySection({ data }: { data: any }) {
+  return (
+    <div className="p-10 space-y-10">
+      <SectionHeader title="Visual Gallery" desc="Showcase your property's soul through curated photography." />
+      
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {data?.images?.map((url: string, idx: number) => (
+          <div key={idx} className="relative aspect-square rounded-[32px] overflow-hidden group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Gallery" />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center gap-2">
+              <button className="p-3 rounded-2xl bg-white/20 text-white hover:bg-white/40 transition-all"><Plus size={18} /></button>
+              <button className="p-3 rounded-2xl bg-red-500/20 text-white hover:bg-red-500/40 transition-all"><Trash2 size={18} /></button>
+            </div>
+          </div>
+        ))}
+        <div className="aspect-square rounded-[32px] border-2 border-dashed border-[#0E5A75]/20 flex flex-col items-center justify-center gap-2 bg-[#0E5A75]/5 hover:bg-[#0E5A75]/10 transition-all cursor-pointer">
+          <Plus size={24} className="text-[#0E5A75]/40" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]">Add Visual</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Utility Components
+function SectionHeader({ title, desc }: { title: string, desc: string }) {
+  return (
+    <div>
+      <h2 className="text-2xl font-black text-[#053344] dark:text-white tracking-tight leading-none mb-2">{title}</h2>
+      <p className="text-xs font-bold text-[#0E5A75]/40 uppercase tracking-widest">{desc}</p>
+    </div>
+  );
+}
+
+function CmsInput({ label, value, onChange, placeholder, type = "text" }: { label: string, value: string, onChange: (v: string) => void, placeholder?: string, type?: string }) {
+  return (
+    <div className="space-y-4">
+      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0E5A75]/60 ml-4">{label}</label>
+      <input 
+        type={type}
+        className="w-full px-8 py-4.5 rounded-[32px] bg-[#0E5A75]/5 border border-black/5 text-sm font-black text-[#053344] focus:outline-none focus:ring-2 focus:ring-[#0E5A75]/20 placeholder:text-[#0E5A75]/20"
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    </div>
+  );
 }

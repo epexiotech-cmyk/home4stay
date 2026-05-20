@@ -1,221 +1,193 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import { 
   Star, 
   MessageSquare, 
-  Clock, 
-  Flag, 
-  ThumbsUp, 
+  CheckCircle2, 
+  Reply, 
+  Eye, 
+  EyeOff, 
   TrendingUp, 
-  Smile, 
-  Frown, 
-  Meh, 
-  LucideIcon
+  User,
+  ShieldCheck,
+  Search,
+  RefreshCcw,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import EmptyState from "@/components/ui/EmptyState";
+import { useAuth } from "@/context/AuthContext";
+import { format } from "date-fns";
 
-// --- Types ---
-
-type ReviewStatus = "pending" | "awaiting_response" | "scheduled" | "published" | "flagged";
-
-interface Review {
+export interface Review {
   id: string;
   guestName: string;
+  guestAvatar?: string;
+  isVerified: boolean;
+  createdAt: string | Date;
+  stayType: string;
+  roomType: string;
   rating: number;
-  text: string;
-  date: string;
-  property: string;
-  room: string;
-  mealPlan: string;
-  status: ReviewStatus;
-  autoPublishDays: number;
-  tags: string[];
-  ratings: {
-    cleanliness: number;
-    food: number;
-    service: number;
-    comfort: number;
-  };
+  title: string;
+  message: string;
+  responseMessage?: string;
+  responseAt?: string | Date;
+  isPublished: boolean;
+  isFeatured: boolean;
 }
 
-// --- Mock Data ---
+export interface ReviewStats {
+  averageRating: string | number;
+  totalReviews: number;
+  responseRate?: number;
+}
 
-const REVIEWS: Review[] = [
-  {
-    id: "R-88201",
-    guestName: "Ananya Sharma",
-    rating: 5,
-    text: "The Royal Heritage Suite exceeded all expectations. The sunset views from the balcony were breathtaking, and the staff's attention to detail was impeccable. Special thanks to the housekeeping team!",
-    date: "2 days ago",
-    property: "Grand Heritage Resort",
-    room: "Royal Heritage Suite",
-    mealPlan: "MAP",
-    status: "published",
-    autoPublishDays: 0,
-    tags: ["Excellent Service", "Cleanliness", "Breathtaking Views"],
-    ratings: { cleanliness: 5, food: 5, service: 5, comfort: 5 }
-  },
-  {
-    id: "R-88205",
-    guestName: "Rohan Malhotra",
-    rating: 4,
-    text: "Beautiful property and very polite staff. However, the private pool temperature was a bit lower than expected. The food at the rooftop restaurant was delicious.",
-    date: "5 days ago",
-    property: "Sunset Private Villa",
-    room: "Private Pool Villa",
-    mealPlan: "CP",
-    status: "awaiting_response",
-    autoPublishDays: 10,
-    tags: ["Polite Staff", "Great Food"],
-    ratings: { cleanliness: 5, food: 5, service: 4, comfort: 4 }
-  },
-  {
-    id: "R-88198",
-    guestName: "Siddharth Verma",
-    rating: 3,
-    text: "The room was spotless, but there was significant noise from the nearby construction throughout the day. It made it difficult to relax in the garden.",
-    date: "12 days ago",
-    property: "Grand Heritage Resort",
-    room: "Premium Garden Room",
-    mealPlan: "EP",
-    status: "pending",
-    autoPublishDays: 3,
-    tags: ["Noisy", "Clean Room"],
-    ratings: { cleanliness: 5, food: 4, service: 3, comfort: 2 }
-  }
-];
+export default function PartnerReviewsPage() {
+  const { user } = useAuth();
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [stats, setStats] = useState<ReviewStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
-// --- Components ---
+  const propertyId = user?.propertyId || "shivay-resort-101";
 
-const GlassCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <div className={cn("glass-matte rounded-[32px] p-6 hover-lift border border-white/5 dark:border-white/5 shadow-premium", className)}>
-    {children}
-  </div>
-);
+  const fetchReviews = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/property/reviews?propertyId=${propertyId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setReviews(data.reviews);
+        setStats(data.stats);
+      }
+    } catch (err) {
+      console.error("Failed to fetch reviews:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [propertyId]);
 
-const Badge = ({ children, variant = "default" }: { children: React.ReactNode, variant?: ReviewStatus | "default" }) => {
-  const variants: Record<string, string> = {
-    published: "bg-[#159665]/10 text-[#159665]",
-    awaiting_response: "bg-[#FCBC43]/10 text-[#FCBC43]",
-    pending: "bg-gray-500/10 text-gray-500",
-    flagged: "bg-[#F24633]/10 text-[#F24633]",
-    scheduled: "bg-[#0983B0]/10 text-[#0983B0]",
+  useEffect(() => {
+    const timer = setTimeout(() => fetchReviews(), 0);
+    return () => clearTimeout(timer);
+  }, [fetchReviews]);
+
+  const handleToggleStatus = async (reviewId: string, currentStatus: boolean, field: 'isPublished' | 'isFeatured') => {
+    setIsUpdating(reviewId);
+    try {
+      const res = await fetch("/api/property/reviews", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reviewId,
+          [field]: !currentStatus
+        })
+      });
+      if (res.ok) {
+        fetchReviews();
+      }
+    } catch (err) {
+      console.error("Failed to update review:", err);
+    } finally {
+      setIsUpdating(null);
+    }
   };
+
+  const handleReply = async (reviewId: string) => {
+    if (!replyText.trim()) return;
+    setIsUpdating(reviewId);
+    try {
+      const res = await fetch("/api/property/reviews", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reviewId,
+          responseMessage: replyText
+        })
+      });
+      if (res.ok) {
+        setReplyingTo(null);
+        setReplyText("");
+        fetchReviews();
+      }
+    } catch (err) {
+      console.error("Failed to reply to review:", err);
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <RefreshCcw className="animate-spin text-[#0E5A75]" size={32} />
+      </div>
+    );
+  }
+
   return (
-    <span className={cn("px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest", variants[variant] || "bg-[#0E5A75]/10 text-[#0E5A75]")}>
-      {children ? children.toString().replace('_', ' ') : ''}
-    </span>
-  );
-};
-
-// --- Main Page ---
-
-export default function ReviewsPage() {
-  const [activeTab, setActiveTab] = useState<ReviewStatus | "all">("all");
-
-  const filteredReviews = activeTab === "all" 
-    ? REVIEWS 
-    : REVIEWS.filter(r => r.status === activeTab);
-
-  return (
-    <div className="space-y-10 pb-20">
-      
-      {/* 1. Header Section */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+    <div className="space-y-8 pb-20">
+      {/* Header Area */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-px bg-[#0E5A75] opacity-30" />
-            <span className="text-[10px] font-bold text-[#053344] dark:text-[#0983B0] uppercase tracking-[0.3em]">Reputation Management</span>
-          </div>
-          <h1 className="text-4xl font-black text-[#053344] dark:text-white tracking-tighter leading-none">Guest Reviews</h1>
-        </div>
-
-        <div className="flex items-center gap-4 bg-white/50 dark:bg-white/5 p-2 rounded-[24px] border border-black/5 dark:border-white/5 backdrop-blur-xl">
-          <StatMini label="Avg Rating" value="4.8" icon={Star} color="text-[#FCBC43]" />
-          <div className="w-px h-10 bg-black/5 dark:bg-white/5" />
-          <StatMini label="Response Rate" value="96%" icon={MessageSquare} color="text-[#159665]" />
-          <div className="w-px h-10 bg-black/5 dark:bg-white/5" />
-          <StatMini label="Pending" value="08" icon={Clock} color="text-[#0983B0]" />
+          <h1 className="text-4xl font-black text-[#053344] dark:text-white tracking-tighter leading-none mb-3 italic underline decoration-[#159665]/20">Reputation Center</h1>
+          <p className="text-sm font-bold text-[#0E5A75]/60 uppercase tracking-widest flex items-center gap-2">
+            <TrendingUp size={14} className="text-[#159665]" />
+            Your Guest Sentiments: <span className="text-[#0E5A75]">{stats?.averageRating} / 5.0 Average</span>
+          </p>
         </div>
       </div>
 
-      {/* 2. Rating Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <GlassCard className="lg:col-span-3 p-8">
-          <div className="flex items-center justify-between mb-10">
-            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#053344] dark:text-white flex items-center gap-2">
-              <TrendingUp size={18} className="text-[#159665]" /> Rating Trends
-            </h3>
-            <select className="bg-transparent text-xs font-bold uppercase tracking-widest text-[#0E5A75] outline-none">
-              <option>Last 30 Days</option>
-              <option>Last 6 Months</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <MetricBar label="Cleanliness" value={4.9} />
-            <MetricBar label="Staff Service" value={4.8} />
-            <MetricBar label="Food Quality" value={4.6} />
-            <MetricBar label="Value for Money" value={4.7} />
-          </div>
-        </GlassCard>
-
-        <GlassCard className="flex flex-col justify-center items-center text-center p-8 bg-[#0E5A75] text-white">
-          <div className="relative mb-4">
-            <Star size={48} className="fill-white/20 text-white" />
-            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xl font-black">4.8</span>
-          </div>
-          <h4 className="text-lg font-black tracking-tight leading-tight mb-2">Hospitality Score</h4>
-          <p className="text-xs font-bold opacity-60 uppercase tracking-widest leading-relaxed">Top 5% of properties in Udaipur</p>
-          <div className="mt-6 flex gap-1">
-            {[1,2,3,4,5].map(i => <Star key={i} size={12} className={cn("fill-current", i <= 4 ? "text-white" : "text-white/20")} />)}
-          </div>
-        </GlassCard>
+      {/* Analytics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <StatCard label="Total Reviews" value={stats?.totalReviews} icon={MessageSquare} color="#0E5A75" />
+        <StatCard label="Average Rating" value={stats?.averageRating} icon={Star} color="#FCBC43" suffix="/ 5.0" />
+        <StatCard label="Response Rate" value={`${stats?.responseRate}%`} icon={Reply} color="#159665" />
+        <StatCard label="Verified Stays" value="100%" icon={ShieldCheck} color="#0983B0" />
       </div>
 
-      {/* 3. Review List Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        
-        {/* Left: Filter Tabs */}
-        <aside className="lg:col-span-1 space-y-2">
-          <FilterTab label="All Reviews" count={124} active={activeTab === "all"} onClick={() => setActiveTab("all")} />
-          <FilterTab label="Pending Response" count={8} active={activeTab === "awaiting_response"} onClick={() => setActiveTab("awaiting_response")} />
-          <FilterTab label="Scheduled" count={3} active={activeTab === "scheduled"} onClick={() => setActiveTab("scheduled")} />
-          <FilterTab label="Published" count={112} active={activeTab === "published"} onClick={() => setActiveTab("published")} />
-          <FilterTab label="Flagged" count={1} active={activeTab === "flagged"} onClick={() => setActiveTab("flagged")} />
-          
-          <div className="pt-6">
-            <GlassCard className="p-5 border-dashed bg-transparent">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/40 mb-3">Sentiment Analysis</h4>
-              <div className="space-y-3">
-                <SentimentMini icon={Smile} label="Positive" percentage={88} color="bg-[#159665]" />
-                <SentimentMini icon={Meh} label="Neutral" percentage={8} color="bg-[#FCBC43]" />
-                <SentimentMini icon={Frown} label="Negative" percentage={4} color="bg-[#F24633]" />
-              </div>
-            </GlassCard>
+      {/* Reviews List */}
+      <div className="bg-white dark:bg-[#0b1220] rounded-[48px] border border-black/5 dark:border-white/5 shadow-luxury-sm overflow-hidden">
+        <div className="p-10 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-[#0E5A75]/[0.02]">
+          <div className="flex items-center gap-8">
+            <h2 className="text-xl font-black text-[#053344] dark:text-white tracking-tight uppercase">Guest Feedback</h2>
+            <div className="flex items-center gap-4">
+               <FilterTab label="All" active count={reviews.length} />
+               <FilterTab label="Needs Reply" count={reviews.filter(r => !r.responseMessage).length} />
+               <FilterTab label="Featured" count={reviews.filter(r => r.isFeatured).length} />
+            </div>
           </div>
-        </aside>
+          <div className="relative">
+             <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-[#0E5A75]/30" />
+             <input 
+               placeholder="Search guest name..."
+               className="pl-12 pr-6 py-3 rounded-2xl bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 text-xs font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-[#0E5A75]/20 w-64"
+             />
+          </div>
+        </div>
 
-        {/* Right: Review Cards / Empty State */}
-        <div className="lg:col-span-3 space-y-6">
-          {filteredReviews.length > 0 ? (
-            <>
-              {filteredReviews.map((review) => (
-                <ReviewCard key={review.id} review={review} />
-              ))}
-              <button className="w-full py-5 rounded-[24px] border-2 border-dashed border-[#0E5A75]/10 text-[#0E5A75]/40 font-black uppercase tracking-[0.2em] hover:bg-[#0E5A75]/5 transition-all">
-                Explore Complete Guest Archives
-              </button>
-            </>
-          ) : (
-            <EmptyState 
-              icon={Star}
-              title="Awaiting Guest Stories"
-              description="No feedback matches this curated segment. Once guests share their stay memories, they will populate dynamically here."
-              actionLabel="Reset View"
-              onAction={() => setActiveTab("all")}
+        <div className="divide-y divide-black/5 dark:divide-white/5">
+          {reviews.length > 0 ? reviews.map((review) => (
+            <ReviewItem 
+              key={review.id} 
+              review={review} 
+              onToggleStatus={handleToggleStatus}
+              replyingTo={replyingTo}
+              setReplyingTo={setReplyingTo}
+              replyText={replyText}
+              setReplyText={setReplyText}
+              handleReply={handleReply}
+              isUpdating={isUpdating === review.id}
             />
+          )) : (
+            <div className="p-32 text-center space-y-4">
+              <div className="w-20 h-20 bg-[#0E5A75]/5 rounded-full flex items-center justify-center mx-auto text-[#0E5A75]/20">
+                <MessageSquare size={40} />
+              </div>
+              <p className="text-sm font-black text-[#0E5A75]/40 uppercase tracking-widest">No reviews found for this property.</p>
+            </div>
           )}
         </div>
       </div>
@@ -223,147 +195,164 @@ export default function ReviewsPage() {
   );
 }
 
-// --- Helper Components ---
-
-function StatMini({ label, value, icon: Icon, color }: { label: string, value: string, icon: LucideIcon, color: string }) {
+function StatCard({ label, value, icon: Icon, color, suffix = "" }: { label: string; value: string | number | undefined; icon: React.ElementType; color: string; suffix?: string }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-2">
-      <Icon size={18} className={color} />
-      <div>
-        <p className="text-[9px] font-black text-[#0E5A75]/40 uppercase tracking-widest leading-none mb-1">{label}</p>
-        <p className="text-sm font-black text-[#053344] dark:text-white leading-none">{value}</p>
+    <div className="p-8 rounded-[40px] bg-white dark:bg-white/5 border border-black/5 dark:border-white/5 shadow-luxury-sm group hover:border-[#0E5A75]/20 transition-all duration-500">
+      <div className="flex items-center gap-4 mb-4">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: color }}>
+          <Icon size={18} />
+        </div>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0E5A75]/40">{label}</span>
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span className="text-4xl font-black text-[#053344] dark:text-white tracking-tighter italic">{value}</span>
+        {suffix && <span className="text-sm font-bold text-[#0E5A75]/40 uppercase">{suffix}</span>}
       </div>
     </div>
   );
 }
 
-function MetricBar({ label, value }: { label: string, value: number }) {
+function FilterTab({ label, active, count }: { label: string; active?: boolean; count: number }) {
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-center">
-        <span className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60">{label}</span>
-        <span className="text-sm font-black text-[#053344] dark:text-white">{value}</span>
-      </div>
-      <div className="h-1.5 w-full bg-[#0E5A75]/10 rounded-full overflow-hidden">
-        <div 
-          className="h-full bg-[#0E5A75] rounded-full shadow-lg" 
-          style={{ width: `${(value / 5) * 100}%` }} 
-        />
-      </div>
-    </div>
-  );
-}
-
-function FilterTab({ label, count, active, onClick }: { label: string, count: number, active: boolean, onClick: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={cn(
-        "w-full flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300 group",
-        active 
-          ? "bg-[#0E5A75] text-white shadow-lg shadow-[#0E5A75]/20" 
-          : "text-[#0E5A75] hover:bg-[#0E5A75]/5"
-      )}
-    >
-      <span className="text-xs font-black uppercase tracking-widest">{label}</span>
-      <span className={cn(
-        "px-2 py-0.5 rounded-lg text-[9px] font-black",
-        active ? "bg-white/20 text-white" : "bg-[#0E5A75]/10 text-[#0E5A75]"
-      )}>
-        {count}
-      </span>
+    <button className={cn(
+      "px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border",
+      active 
+        ? "bg-[#0E5A75] text-white border-[#0E5A75] shadow-lg shadow-[#0E5A75]/20" 
+        : "bg-white dark:bg-white/5 text-[#0E5A75]/40 border-black/5 dark:border-white/5 hover:border-[#0E5A75]/20"
+    )}>
+      {label} <span className="ml-1 opacity-40">({count})</span>
     </button>
   );
 }
 
-function SentimentMini({ icon: Icon, label, percentage, color }: { icon: LucideIcon, label: string, percentage: number, color: string }) {
+function ReviewItem({ review, onToggleStatus, replyingTo, setReplyingTo, replyText, setReplyText, handleReply, isUpdating }: {
+  review: Review;
+  onToggleStatus: (id: string, currentStatus: boolean, field: 'isPublished' | 'isFeatured') => void;
+  replyingTo: string | null;
+  setReplyingTo: (id: string | null) => void;
+  replyText: string;
+  setReplyText: (text: string) => void;
+  handleReply: (id: string) => void;
+  isUpdating: boolean;
+}) {
   return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between text-[9px] font-black uppercase tracking-tighter">
-        <div className="flex items-center gap-1">
-          <Icon size={10} className={color.replace('bg-', 'text-')} />
-          <span>{label}</span>
+    <div className={cn(
+      "p-10 transition-colors group",
+      review.isFeatured ? "bg-[#FCBC43]/[0.02]" : "hover:bg-black/[0.01] dark:hover:bg-white/[0.01]"
+    )}>
+      <div className="flex items-start justify-between mb-8">
+        <div className="flex items-center gap-6">
+          <div className="w-16 h-16 rounded-[24px] bg-[#0E5A75]/5 flex items-center justify-center text-[#0E5A75] shadow-inner relative overflow-hidden">
+             {/* eslint-disable-next-line @next/next/no-img-element */}
+             {review.guestAvatar ? <img src={review.guestAvatar} alt={`${review.guestName} Avatar`} className="w-full h-full object-cover" /> : <User size={24} />}
+             {review.isVerified && (
+               <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#159665] border-2 border-white dark:border-[#0b1220] flex items-center justify-center text-white">
+                 <ShieldCheck size={12} />
+               </div>
+             )}
+          </div>
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h3 className="text-lg font-black text-[#053344] dark:text-white tracking-tight uppercase italic">{review.guestName}</h3>
+              <div className="w-1 h-1 rounded-full bg-black/10" />
+              <span className="text-[10px] font-bold text-[#0E5A75]/40 uppercase tracking-widest">{format(new Date(review.createdAt), "MMM dd, yyyy")}</span>
+            </div>
+            <div className="flex items-center gap-3">
+               <div className="flex gap-0.5 text-[#FCBC43]">
+                 {[...Array(5)].map((_, i) => <Star key={i} size={14} fill={i < review.rating ? "currentColor" : "none"} />)}
+               </div>
+               <span className="text-[10px] font-black text-[#0E5A75]/40 uppercase tracking-widest">{review.stayType} Trip • {review.roomType}</span>
+            </div>
+          </div>
         </div>
-        <span>{percentage}%</span>
+
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => onToggleStatus(review.id, review.isFeatured, 'isFeatured')}
+            className={cn(
+              "p-3 rounded-2xl border transition-all flex items-center gap-2",
+              review.isFeatured 
+                ? "bg-[#FCBC43]/10 border-[#FCBC43]/20 text-[#FCBC43]" 
+                : "border-black/5 text-[#0E5A75]/20 hover:border-[#FCBC43]/20 hover:text-[#FCBC43]"
+            )}
+            title="Feature on Website"
+          >
+            <Sparkles size={18} />
+          </button>
+          <button 
+            onClick={() => onToggleStatus(review.id, review.isPublished, 'isPublished')}
+            className={cn(
+              "p-3 rounded-2xl border transition-all flex items-center gap-2",
+              review.isPublished 
+                ? "bg-[#159665]/10 border-[#159665]/20 text-[#159665]" 
+                : "bg-red-500/10 border-red-500/20 text-red-500"
+            )}
+            title={review.isPublished ? "Visible on Site" : "Hidden"}
+          >
+            {review.isPublished ? <Eye size={18} /> : <EyeOff size={18} />}
+          </button>
+        </div>
       </div>
-      <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-        <div className={cn("h-full rounded-full", color)} style={{ width: `${percentage}%` }} />
-      </div>
-    </div>
-  );
-}
 
-function ReviewCard({ review }: { review: Review }) {
-  return (
-    <GlassCard className="p-0 overflow-hidden">
-      <div className="p-8 space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-[#0E5A75] to-[#0983B0] flex items-center justify-center text-white font-black text-lg shadow-lg">
-              {review.guestName.split(' ').map(n => n[0]).join('')}
-            </div>
-            <div>
-              <h3 className="text-lg font-black text-[#053344] dark:text-white leading-tight">{review.guestName}</h3>
-              <p className="text-[10px] font-black text-[#0E5A75]/40 uppercase tracking-widest mt-1">
-                Stayed: {review.room} • {review.date}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex gap-1">
-              {[1,2,3,4,5].map(i => (
-                <Star key={i} size={14} className={cn("fill-current", i <= review.rating ? "text-[#FCBC43]" : "text-[#0E5A75]/10")} />
-              ))}
-            </div>
-            <Badge variant={review.status}>{review.status}</Badge>
-          </div>
+      <div className="pl-22 space-y-6">
+        <div>
+           <h4 className="text-base font-black text-[#053344] dark:text-white uppercase mb-2 tracking-tight italic">&quot;{review.title}&quot;</h4>
+           <p className="text-sm font-medium text-[#0E5A75]/60 dark:text-white/60 leading-relaxed italic">{review.message}</p>
         </div>
 
-        <p className="text-sm font-medium text-[#053344] dark:text-white leading-relaxed italic border-l-4 border-[#0E5A75]/10 pl-4 py-1">
-          &ldquo;{review.text}&rdquo;
-        </p>
-
-        <div className="flex flex-wrap gap-2">
-          {review.tags.map(tag => (
-            <span key={tag} className="px-3 py-1 rounded-lg bg-[#0E5A75]/5 text-[#0E5A75] text-[9px] font-black uppercase tracking-widest">
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        {/* 15-day Auto Publish Countdown */}
-        {review.status === "pending" && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-[#FCBC43]/10 border border-[#FCBC43]/20">
-            <Clock size={14} className="text-[#FCBC43]" />
-            <p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#FCBC43]">
-              Auto publishes in {review.autoPublishDays} days
-            </p>
+        {review.responseMessage ? (
+          <div className="p-8 rounded-[32px] bg-[#0E5A75]/5 dark:bg-white/[0.02] border border-[#0E5A75]/10 relative group-hover:border-[#0E5A75]/20 transition-all">
+            <div className="flex items-center gap-3 mb-4">
+               <div className="w-8 h-8 rounded-xl bg-[#0E5A75] flex items-center justify-center text-white">
+                 <Reply size={14} />
+               </div>
+               <span className="text-[10px] font-black text-[#0E5A75] uppercase tracking-[0.2em]">Management Response</span>
+               <div className="w-1 h-1 rounded-full bg-[#0E5A75]/20" />
+               <span className="text-[10px] font-bold text-[#0E5A75]/40 uppercase tracking-widest">{review.responseAt ? format(new Date(review.responseAt), "MMM dd") : ""}</span>
+            </div>
+            <p className="text-sm font-medium text-[#0E5A75]/70 dark:text-white/50 leading-relaxed italic">{review.responseMessage}</p>
           </div>
+        ) : (
+          replyingTo === review.id ? (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <textarea 
+                placeholder="Write your response to this guest..."
+                className="w-full p-6 rounded-[32px] bg-[#0E5A75]/5 border border-[#0E5A75]/20 text-sm font-medium text-[#053344] focus:outline-none focus:ring-2 focus:ring-[#0E5A75]/30 min-h-[120px] resize-none italic"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+              />
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => handleReply(review.id)}
+                  disabled={isUpdating}
+                  className="px-8 py-3 rounded-2xl bg-[#0E5A75] text-white font-black text-[10px] uppercase tracking-widest hover:bg-[#0A4459] transition-all flex items-center gap-2"
+                >
+                  {isUpdating ? <RefreshCcw size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                  Publish Response
+                </button>
+                <button 
+                  onClick={() => setReplyingTo(null)}
+                  className="px-8 py-3 rounded-2xl border border-black/5 text-[#0E5A75]/40 font-black text-[10px] uppercase tracking-widest hover:bg-black/5 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <button 
+              onClick={() => setReplyingTo(review.id)}
+              className="flex items-center gap-2 text-[#0E5A75] hover:text-[#0983B0] transition-colors"
+            >
+              <Reply size={16} />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Respond to Feedback</span>
+            </button>
+          )
         )}
       </div>
-
-      <div className="px-8 py-5 bg-black/[0.02] dark:bg-white/[0.02] border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60 hover:text-[#0E5A75] transition-all">
-            <ThumbsUp size={14} /> Helpful
-          </button>
-          <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60 hover:text-[#F24633] transition-all">
-            <Flag size={14} /> Flag
-          </button>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {review.status === "awaiting_response" ? (
-            <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#0E5A75] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#0E5A75]/20 hover:bg-[#0A4459] transition-all">
-              <MessageSquare size={14} /> Response to Guest
-            </button>
-          ) : (
-            <button className="px-6 py-2.5 rounded-xl border border-[#0E5A75]/20 text-[#0E5A75] text-[10px] font-black uppercase tracking-widest hover:bg-[#0E5A75]/5 transition-all">
-              View Conversation
-            </button>
-          )}
-        </div>
-      </div>
-    </GlassCard>
+    </div>
   );
 }

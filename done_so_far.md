@@ -49,6 +49,74 @@ This document provides a comprehensive breakdown of the Home4Stay monorepo archi
 - **Prisma Proxy**: Hardened the database layer by replacing unsafe `require()` imports with a type-safe Prisma proxy.
 - **Brand Harmonization**: Eliminated slate tones in favor of the signature luxury palette across all partner and guest portals.
 
+### 🧑‍💼 Partner Onboarding Wizard & Portal Infrastructure (2026-05)
+- **Multi-Step Onboarding**: Built a full 9-step guided onboarding wizard for new property partners covering Welcome, Property Details, Rooms, Gallery, Amenities, Experiences, Policies, Theme, and Pricing/Launch.
+- **Partner Registration**: Created partner account registration with OTP-style flow and profile setup.
+- **OnboardingContext**: Shared React context stores wizard state across steps with persistence and progress tracking.
+- **SetupProgress Tracking**: Server-side `PropertySetupProgress` model tracks each completed onboarding step in the database.
+- **Partner Dashboard**: Launched full Partner portal with pages for Bookings, Calendar, Financials, Properties, Promotions, Reviews, Rooms, Experiences, and Operational Panel.
+- **Subscription Plans**: Designed tiered subscription model (Basic, Pro, Enterprise) with plan feature gates and pricing.
+
+### 🔔 Notification & Email Infrastructure (2026-05)
+- **Email Queue System**: Built an async transactional email queue (`EmailQueueWorker`) using database-backed job polling with retry logic.
+- **Email Templates**: Created HTML email templates for welcome messages, payment confirmations, invoice delivery, and subscription renewals.
+- **Real-Time Notifications**: Added WebSocket-based notification endpoints via `/api/realtime` and in-portal notification bell component.
+
+### 📋 Legal Agreements & Compliance Infrastructure — Phase 10A (2026-05)
+- **Legal Document Models**: Created `LegalDocument` and `LegalAcceptanceLog` Prisma models with version control and immutable consent logging.
+- **Legal Document Types**: Implemented `TERMS_AND_CONDITIONS`, `PRIVACY_POLICY`, `REFUND_POLICY`, and `SUBSCRIPTION_AGREEMENT` enum support.
+- **XSS Sanitization Guard**: Built `sanitizeHtml()` utility that strips dangerous tags/event handlers while allowing safe formatting markup.
+- **LegalService**: Transactional draft/publish lifecycle, version history retrieval, and forced re-acceptance detection.
+- **Legal Admin Control Center**: Premium glassmorphic admin dashboard at `/super-admin/legal-documents` with live HTML preview editor, version history ledger, and CSV-exportable consent audit logs.
+- **Legal Wall Component**: Intercepts partner logins if unsigned legal documents are detected, forcing acceptance before portal access.
+- **Public Legal Pages**: Auto-generated pages for `/terms`, `/privacy`, `/refund-policy`, and `/subscription-agreement`.
+
+### ⚙️ Legal Clauses, SLA & Tax Compliance Enhancement — Phase 10A.5 (2026-05)
+- **FinancialSettings Expansion**: Extended schema with `defaultSACCode`, `defaultGSTPercent`, `defaultStateCode`, `placeOfSupplyMode`, `enableGSTSplitting`, `enableIGST`, `invoiceTerms`, `refundTerms`, `SLAUptimeTarget`, `SLAMaintenanceWindow`, `liabilityCapMonths`, `dataRetentionDays`.
+- **GST Jurisdiction Engine**: Upgraded `gstEngine.ts` to auto-resolve intrastate (CGST+SGST) vs. interstate (IGST) based on customer state code or GSTIN prefix.
+- **Gujarat Registration**: Configured supplier state as Gujarat (State Code `24`) — intrastate = split 9%+9%, interstate = full 18% IGST.
+- **GSTIN Field in Super Admin**: Added GSTIN text input with live validation to the Financial Settings admin panel.
+- **B2B Billing Capture**: Partner onboarding pricing step now captures Legal Business Name, GSTIN, billing state, pincode, and contact — saved to User profile on launch.
+- **Compliance Test Suite**: Expanded automated test script passing **40/40 assertions** covering place-of-supply resolution, B2B onboarding, and dynamic invoice tax splits.
+
+### 🧾 GST Invoice Engine & Financial Document System — Phase 10B (2026-05)
+- **Invoice & FinancialSettings Models**: Created Prisma `Invoice` model with sequential invoice numbering, and `FinancialSettings` for company billing info.
+- **InvoiceType & InvoiceStatus Enums**: `SUBSCRIPTION`, `RENEWAL`, `MANUAL_ADJUSTMENT`, `REFUND` and `DRAFT`, `ISSUED`, `PAID`, `CANCELLED`, `REFUNDED`.
+- **Decimal-Safe GST Calculator**: `gstEngine.ts` computes taxes backwards from gross amounts with `Number(val.toFixed(2))` rounding to prevent JS float drift.
+- **Collision-Safe Invoice Numbering**: `financialNumberingService.ts` runs inside a `LOCK TABLE` transaction to guarantee sequential serial numbers (e.g. `H4S-2026-000001`).
+- **A4 PDF Invoice Generator**: `subscriptionPdfGenerator.ts` using `pdfkit` produces print-quality tax invoices with company logo, HSN/SAC codes, GST breakdowns, bank details, and digital signature placeholders.
+- **Auto-Issuance on Payment Approval**: Approving a manual UPI payment instantly generates and links a GST-compliant invoice in one atomic transaction.
+- **Partner Billing History Ledger**: `/partner/dashboard/billing` — searchable invoice history with pagination and PDF download links.
+- **Invoice Download API**: Secure ownership-checked endpoint at `/api/payments/invoices/[id]/download`.
+- **Accounting Export API**: `/api/admin/financial-settings/export` generates Zoho Books and Tally ERP formatted CSV exports.
+
+### 📊 Accounting Exports, Finance Reconciliation & Admin Finance Suite — Phase 10C (2026-05)
+- **SettlementRecord & ReconciliationLog Models**: New Prisma models for gateway payout tracking and immutable reconciliation audit logs.
+- **ReconciliationStatus Enum**: `MATCHED`, `MISMATCH`, `PENDING`, `FAILED`.
+- **Settlement Tracker**: `financeService.ts` — idempotently records gateway batches, updates existing records on duplicate reference.
+- **Reconciliation Engine**: Auto-matches payment amounts to settlements; flags underpayments, overpayments, and duplicate UTR replay risks.
+- **Zoho Books CSV Exporter**: Generates schema-compliant double-quoted CSV with HSN/SAC codes and GST columns for Zoho Books import.
+- **Tally ERP CSV Exporter**: Generates double-entry credit/debit voucher CSV with SaaS Income ledger mapping.
+- **Finance Dashboard API**: `/api/admin/finance/dashboard` aggregates gross revenue, tax liabilities (CGST/SGST/IGST), mismatch counts, and reconciliation histories.
+- **Reconcile API**: `/api/admin/finance/reconcile` — logs manual gateway payouts and triggers reconciliation engine.
+- **Export API**: `/api/admin/finance/export` — date-filtered downloads for General, Zoho, Tally, Payments, and Reconciliation CSV types.
+- **Super Admin Finance Panel**: Glassmorphic dashboard at `/super-admin/finance` with metric cards, settlement audit feed, reconciliation modal, and export hub.
+- **Phase 10C Test Suite**: **26/26 assertions** passing — covering settlement idempotency, exact matching, underpayment flagging, duplicate UTR detection, and all CSV format validators.
+
+### 🎁 Referral Credits, Rewards & Renewal Discount Engine — Phase 11 (2026-05)
+- **Referral Database Models**: Created `ReferralProfile`, `ReferralEvent`, `ReferralCreditLedger`, and `ReferralRewardRedemption` Prisma models with full relation cascades.
+- **ReferralService**: Core business logic at `src/lib/referral/referralService.ts` — handles referral binding, fraud detection, credit awarding, discount calculation, and transactional redemptions.
+- **Fraud Prevention Engine**: Detects self-referral abuse by matching phone numbers, GSTINs, and suspicious signup patterns. Flags events for admin review instead of silently blocking.
+- **Tiered Discount System**: Credit thresholds mapped to renewal discounts — 4 credits = 50% off half-yearly, 6 credits = 50% off yearly, 10 credits = 100% off either plan. Discounts apply **before** GST calculation.
+- **Credit Awarding on Subscription Activation**: Referral events are automatically converted from PENDING to AWARDED when the referred partner activates a paid subscription.
+- **Credit Ledger**: Immutable `ReferralCreditLedger` records every credit earn/spend with timestamps and notes for full audit traceability.
+- **Carry-Forward Credits**: Unused credits after redemption roll over to the referrer's balance for future use.
+- **Partner Referral Dashboard**: Premium glassmorphic portal at `/partner/dashboard/referrals` with gamified progress circle, one-click referral code copy, credit balance breakdown, and live referral log.
+- **Super Admin Referrals Panel**: Admin control at `/super-admin/referrals` — platform-wide credit velocity matrix, fraud flag review queue, and manual override capability with full audit trail.
+- **Admin Sidebar Navigation**: Added "Referrals & Rewards" link to `PartnerLayout.tsx` and "Referrals" link to `AdminLayout.tsx`.
+- **GST-Aware Invoice Integration**: `InvoiceService` generates invoices with the discounted amount as base, back-calculates subtotal and GST correctly, and records `referralDiscount`, `referralCreditsUsed`, and `originalSubtotal` in invoice metadata.
+- **E2E Integration Test Suite**: `scripts/test-referral-rewards.mjs` — **54/54 assertions** passing across 7 test groups covering: referral code generation, fraud detection, admin overrides, subscription credit awarding, tiered discount calculations, transactional redemptions, and GST-compliant invoice integration.
+
 ---
 
 ## 📂 Project Structure

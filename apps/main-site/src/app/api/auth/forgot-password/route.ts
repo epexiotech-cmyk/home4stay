@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
       // Store hashedToken and Context (IP/UA) in database
-      await setResetToken(email, hashedToken, expires, ip, userAgent);
+      await setResetToken(email, hashedToken, expires);
 
       // Log Audit Event
       await logAuditEvent({

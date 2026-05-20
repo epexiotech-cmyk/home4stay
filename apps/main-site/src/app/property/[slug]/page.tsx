@@ -1,6 +1,5 @@
-import { getProperty } from "@/properties-data";
+import crypto from "crypto";
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
 import Gallery from "@/components/property/Gallery";
 import BrandedHero from "@/components/property/BrandedHero";
 import ContactSection from "@/components/property/ContactSection";
@@ -9,96 +8,129 @@ import HostSection from "@/components/property/HostSection";
 import RoomSelection from "@/components/property/RoomSelection";
 import MealPlans from "@/components/property/MealPlans";
 import CustomizeStaySection from "@/components/property/CustomizeStaySection";
+import PolicyAndFAQSection from "@/components/property/PolicyAndFAQSection";
 import FloatingBookingBar from "@/components/booking/FloatingBookingBar";
-import { BookingProvider } from "@/context/BookingContext";
-import { Star, Wifi, Car, Tv, Wind, Coffee, Utensils } from "lucide-react";
-import { getSubdomain } from "@/lib/utils/domains";
+import { Star, Sparkles } from "lucide-react";
 import NarrativeCardStack from "@/components/property/NarrativeCardStack";
+import { ICON_MAP } from "@/lib/experiences-config";
+import { resolvePropertyContext, getPropertyBranding } from "@/lib/tenant/contextResolver";
+import { Metadata } from "next";
 import { prisma } from "@/lib/database/prisma";
-import { Property as BaselineProperty } from "@/properties-data/types";
+import { SubscriptionStatus } from "@prisma/client";
 
-interface Section {
-  type: string;
-  enabled: boolean;
-  data?: {
-    title?: string;
-    subtitle?: string;
-    backgroundImage?: string;
-    mainHeading?: string;
-    highlightText?: string;
-    smallLabel?: string;
-    [key: string]: unknown;
-  };
-}
-
-interface ExtendedProperty extends Partial<BaselineProperty> {
-  pageContent?: {
-    sections?: Section[];
-  };
-}
-
-export default async function PropertyPage({ params }: { params: Promise<{ slug: string }> }) {
+// types moved to contextResolver
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  
-  // Extract primary legacy data models as strong baseline mapping fallbacks
-  const baselineProperty = getProperty(slug);
-  
-  // Extract persistent PostgreSQL record mapping real-time live site builder configurations
-  let persistentDbRecord: Record<string, unknown> | null = null;
-  try {
-    persistentDbRecord = await prisma.property.findUnique({
-      where: { slug },
-    });
-    // If exact slug miss, check by simulated ID pattern mapping
-    if (!persistentDbRecord && slug === "shivay-resort") {
-      persistentDbRecord = await prisma.property.findUnique({
-        where: { id: "shivay-resort-101" },
-      });
-    }
-  } catch (err) {
-    console.error("Live DB lookup adapter query mapping fault:", err);
+  const property = await resolvePropertyContext(slug);
+
+  if (!property) {
+    return { title: "Property Not Found" };
   }
 
-  const property = { ...(baselineProperty || {}), ...(persistentDbRecord || {}) } as ExtendedProperty;
+  const branding = getPropertyBranding(property);
+  const seo = branding.seo;
+
+  // Prevent search engine indexing for non-LIVE properties (preview mode)
+  const isLive = property.status === "LIVE";
+
+  return {
+    title: seo.title || `${property.name} | Home4Stay`,
+    description: seo.description || property.tagline || property.description,
+    keywords: seo.keywords || [],
+    robots: isLive ? "index, follow" : "noindex, nofollow",
+    openGraph: {
+      title: seo.title || property.name,
+      description: seo.description || property.tagline || property.description,
+      images: [seo.ogImage || branding.heroBackground],
+    },
+  };
+}
+
+export default async function PropertyPage({ 
+  params,
+  searchParams
+}: { 
+  params: Promise<{ slug: string }>,
+  searchParams?: Promise<{ draft?: string }>
+}) {
+  const { slug } = await params;
+  const sParams = await searchParams;
+  const draftToken = sParams?.draft;
+  
+  // The slug is either passed directly or rewritten by middleware from the subdomain.
+  const property = await resolvePropertyContext(slug);
 
   if (!property || !property.name) {
     notFound();
   }
 
-  const headersList = await headers();
-  const host = headersList.get("host") || "";
-  
-  // Domain detection for switching views
-  getSubdomain(host);
+  // 1. PUBLIC VISIBILITY ENGINE + SECURE PREVIEW GATEWAY
+  const isLive = property.status === "LIVE";
+  if (!isLive) {
+    const expectedToken = crypto
+      .createHmac("sha256", process.env.JWT_SECRET || "secret")
+      .update(slug)
+      .digest("hex")
+      .slice(0, 16);
 
-  // Gracefully merge persistent CMS section block state layers onto interactive interfaces
-  const sectionsArray: Section[] = property.pageContent?.sections || [];
-  
-  const heroBlock = sectionsArray.find((s: Section) => s.type === "hero" && s.enabled);
-  const narrativeBlock = sectionsArray.find((s: Section) => s.type === "narrative" && s.enabled);
+    const isAuthorizedPreview = draftToken === expectedToken;
 
-  // Fallback defaults mapped safely if decoupled records remain absent
-  const heroTitleOverride = heroBlock?.data?.title || property.name;
-  const heroTaglineOverride = heroBlock?.data?.subtitle || property.tagline;
-  const heroBgOverride = heroBlock?.data?.backgroundImage || (property.images && property.images[0]) || "";
+    if (!isAuthorizedPreview) {
+      notFound();
+    }
+  }
 
-  const narrativeHeadingOverride = narrativeBlock?.data?.mainHeading || "A sanctuary of";
-  const narrativeHighlightOverride = narrativeBlock?.data?.highlightText || "timeless luxury.";
+  const branding = getPropertyBranding(property);
+
+  // Fetch the latest subscription to evaluate grace states
+  const subscription = await prisma.propertySubscription.findFirst({
+    where: { propertyId: property.id },
+    orderBy: { createdAt: "desc" }
+  });
+
+  const isGrace = subscription?.status === SubscriptionStatus.IN_GRACE_PERIOD;
+
+  // Enforce image gallery limitations in grace period
+  const displayImages = isGrace
+    ? (property.images || [branding.heroBackground]).slice(0, 3)
+    : (property.images || [branding.heroBackground]);
+
+  const displayGallery = isGrace
+    ? (property.gallery || []).slice(0, 3)
+    : (property.gallery || []);
+
+  // Block premium inquiry channel if in grace period
+  const activeWhatsapp = isGrace ? undefined : (branding.contact?.whatsapp || property.contact?.whatsapp);
+
+  // Inject primary theme color into a safe style tag or inline it directly on wrappers
+  const themeStyles = {
+    "--brand-primary": branding.themeColor,
+    "--brand-secondary": branding.theme.secondary,
+    "--brand-accent": branding.theme.accent,
+  } as React.CSSProperties;
 
   // --- BRANDED SUBDOMAIN VIEW (Cinematic Luxury) ---
   return (
-    <BookingProvider>
-      <div className="flex flex-col bg-[#FDF6F1] dark:bg-[#053344] relative">
+    <>
+      <div className="flex flex-col bg-[#FDF6F1] dark:bg-[#053344] relative" style={themeStyles}>
         
+        {/* Grace Period Notification Banner */}
+        {isGrace && (
+          <div className="w-full bg-gradient-to-r from-amber-600/90 to-orange-600/90 backdrop-blur-md text-white py-3 px-6 text-center text-xs font-black uppercase tracking-[0.2em] shadow-lg border-b border-orange-500/30 flex items-center justify-center gap-2 z-50 animate-pulse">
+            <Sparkles size={16} className="animate-spin duration-1000" />
+            <span>Notice: Listing in Grace Period. Some media galleries and direct inquiry channels are restricted.</span>
+          </div>
+        )}
+
         {/* 1. Cinematic Hero */}
         <BrandedHero 
-          name={heroTitleOverride}
-          image={heroBgOverride}
+          name={branding.heroTitle || ""}
+          image={branding.heroBackground}
           location={property.location || "Mountain Highlands"}
           rating={property.rating || 4.9}
-          tagline={heroTaglineOverride}
-          phone={property.contact?.phone}
-          whatsapp={property.contact?.whatsapp}
+          tagline={branding.heroTagline}
+          phone={branding.contact?.phone}
+          whatsapp={activeWhatsapp}
         />
 
         <div className="max-w-[1440px] mx-auto w-full px-6 md:px-10 lg:px-20">
@@ -108,12 +140,12 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
              <div className="space-y-10 animate-in fade-in duration-1000">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-px bg-[#0E5A75]" />
-                  <span className="text-[10px] font-black text-[#0E5A75] uppercase tracking-[0.3em]">
-                    {narrativeBlock?.data?.smallLabel || "The Narrative"}
+                  <span className="text-[10px] font-black text-[var(--brand-primary,#0E5A75)] uppercase tracking-[0.3em]">
+                    {branding.narrativeLabel}
                   </span>
                 </div>
                 <h2 className="text-6xl font-black text-[#053344] dark:text-white tracking-tighter leading-none">
-                  {narrativeHeadingOverride} <span className="text-[#0983B0]">{narrativeHighlightOverride}</span>
+                  {branding.narrativeHeading} <span className="text-[var(--brand-secondary,#0983B0)]">{branding.narrativeHighlight}</span>
                 </h2>
                 <p className="text-xl text-[#0E5A75]/60 font-medium leading-relaxed italic">
                   &quot;{property.description || 'Curated settings tailored to blend exceptional environments with unparalleled hospitality excellence.'}&quot;
@@ -130,7 +162,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
                 </div>
              </div>
              <div className="relative w-full">
-                <NarrativeCardStack images={property.images || [heroBgOverride]} />
+                <NarrativeCardStack images={displayImages} />
              </div>
           </section>
 
@@ -145,7 +177,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
                  <h2 className="text-5xl font-black text-[#053344] dark:text-white tracking-tighter">Every Corner, <span className="text-[#159665]">a Masterpiece.</span></h2>
                </div>
             </div>
-            <Gallery images={property.images || [heroBgOverride]} gallery={property.gallery || []} name={property.name} />
+            <Gallery images={displayImages} gallery={displayGallery} name={property.name} />
           </section>
 
           {/* 4. Amenities & Hospitality */}
@@ -158,35 +190,41 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
                 </button>
              </div>
              <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
-                {[
-                  { icon: <Wifi size={24} />, label: "High Speed Fiber Wi-Fi", detail: "Seamless connectivity for work or leisure." },
-                  { icon: <Car size={24} />, label: "Private Secured Parking", detail: "Complimentary valet and secure parking." },
-                  { icon: <Tv size={24} />, label: "Premium Entertainment", detail: "Netflix, Apple TV, and High-fidelity audio." },
-                  { icon: <Wind size={24} />, label: "Climate Control", detail: "Individual temperature controls in each room." },
-                  { icon: <Coffee size={24} />, label: "Gourmet Kitchen", detail: "Fully equipped with organic spices \u0026 teas." },
-                  { icon: <Utensils size={24} />, label: "Private Dining", detail: "Personal chef available on request." },
-                ].map((item, idx) => (
-                  <div key={`amenity-item-${idx}`} className="flex gap-6 group">
-                    <div className="w-16 h-16 bg-[#0E5A75]/5 rounded-2xl flex items-center justify-center text-[#0E5A75] group-hover:bg-[#0E5A75] group-hover:text-white transition-all duration-500 shadow-lg border border-black/5 dark:border-white/5">
-                       {item.icon}
+                {(property.amenities || [
+                  { icon: "Wifi", label: "High Speed Fiber Wi-Fi" },
+                  { icon: "Car", label: "Private Secured Parking" },
+                  { icon: "Tv", label: "Premium Entertainment" },
+                  { icon: "Wind", label: "Climate Control" },
+                  { icon: "Coffee", label: "Gourmet Kitchen" },
+                  { icon: "Utensils", label: "Private Dining" },
+                ]).map((item: { icon: string; label: string; detail?: string }, idx: number) => {
+                  const Icon = (ICON_MAP as Record<string, React.ComponentType<{ size?: number }>>)[item.icon] || Sparkles;
+                  return (
+                    <div key={`amenity-item-${idx}`} className="flex gap-6 group">
+                      <div className="w-16 h-16 bg-[#0E5A75]/5 rounded-2xl flex items-center justify-center text-[#0E5A75] group-hover:bg-[#0E5A75] group-hover:text-white transition-all duration-500 shadow-lg border border-black/5 dark:border-white/5">
+                        <Icon size={24} />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-black text-[#053344] dark:text-white mb-1 group-hover:text-[#0E5A75] transition-colors">{item.label}</h4>
+                        <p className="text-xs font-bold text-[#0E5A75]/40 uppercase tracking-widest">{item.detail || "Luxury Standard"}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-lg font-black text-[#053344] dark:text-white mb-1 group-hover:text-[#0E5A75] transition-colors">{item.label}</h4>
-                      <p className="text-xs font-bold text-[#0E5A75]/40 uppercase tracking-widest">{item.detail}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
              </div>
           </section>
 
           {/* 5. Immersive Room Selection */}
-          <RoomSelection />
+          <RoomSelection rooms={property.rooms} />
 
           {/* 6. Gastronomy / Meal Plans */}
           <MealPlans />
 
           {/* 7. Customize Stay (Concierge Upsell) */}
-          <CustomizeStaySection />
+          <CustomizeStaySection propertyId={property.id} />
+
+          {/* 7.5. Policies & FAQ */}
+          <PolicyAndFAQSection faqs={property.faqs} policies={property.policies} />
 
           {/* 8. Reviews & Trust */}
           <section id="reviews" className="py-32 border-b border-black/5 dark:border-white/5">
@@ -199,13 +237,13 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
               <h2 className="text-5xl font-black text-[#053344] dark:text-white tracking-tighter mb-4">Guest Sentiments</h2>
               <p className="text-lg text-[#0E5A75]/60 font-medium italic">Verified experiences from our luxury global community.</p>
             </div>
-            <ReviewsSection />
+            <ReviewsSection propertyId={property.id || ""} />
           </section>
 
           {/* 9. Host / Concierge Section */}
           {property.owner && (
             <section className="py-32 border-b border-black/5 dark:border-white/5">
-              <HostSection owner={property.owner} whatsapp={property.contact?.whatsapp} />
+              <HostSection owner={property.owner} whatsapp={activeWhatsapp} />
             </section>
           )}
 
@@ -214,13 +252,13 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
         {/* 10. Contact / Footer-like Section */}
         <ContactSection 
            name={property.name}
-           phone={property.contact?.phone}
-           whatsapp={property.contact?.whatsapp}
+           phone={branding.contact?.phone}
+           whatsapp={activeWhatsapp}
         />
         
         {/* 11. Persistent Floating Booking Engine */}
         <FloatingBookingBar />
       </div>
-    </BookingProvider>
+    </>
   );
 }

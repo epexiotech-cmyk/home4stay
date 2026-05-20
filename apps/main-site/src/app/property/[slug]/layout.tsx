@@ -2,7 +2,6 @@ import { headers } from "next/headers";
 import { getSubdomain } from "@/lib/utils/domains";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { getProperty } from "@/properties-data";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Search, Globe } from "lucide-react";
@@ -10,6 +9,7 @@ import StickyHeader from "@/components/property/StickyHeader";
 import Logo from "@/components/ui/Logo";
 import ThemeProvider from "@/components/theme/ThemeProvider";
 import { BookingProvider } from "@/context/BookingContext";
+import { resolvePropertyContext, getPropertyBranding } from "@/lib/tenant/contextResolver";
 
 export default async function PropertyLayout({
   children,
@@ -19,11 +19,13 @@ export default async function PropertyLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const property = getProperty(slug);
+  const property = await resolvePropertyContext(slug);
 
   if (!property) {
     notFound();
   }
+
+  const branding = getPropertyBranding(property);
 
   const headersList = await headers();
   const host = headersList.get("host") || "";
@@ -34,7 +36,7 @@ export default async function PropertyLayout({
   // If accessed from the main domain, show the default Navbar and Footer
   if (!isSubdomain) {
     return (
-      <BookingProvider>
+      <BookingProvider initialPropertyId={property.id}>
         <Navbar />
         <main className="pt-28">
           {children}
@@ -45,14 +47,14 @@ export default async function PropertyLayout({
   }
 
   return (
-    <BookingProvider>
-      <ThemeProvider theme={property.theme}>
+    <BookingProvider initialPropertyId={property.id}>
+      <ThemeProvider theme={branding.theme}>
         <style dangerouslySetInnerHTML={{ __html: `
           :root {
-            --primary: ${property.theme?.primary || "#4A69BD"};
-            --secondary: ${property.theme?.secondary || "#6A89CC"};
-            --accent: ${property.theme?.accent || "#FAD390"};
-            --theme-bg: ${property.theme?.background || "#ffffff"};
+            --primary: ${branding.theme.primary};
+            --secondary: ${branding.theme.secondary};
+            --accent: ${branding.theme.accent};
+            --theme-bg: ${branding.theme.background || "#ffffff"};
           }
         `}} />
         <div className="flex flex-col min-h-screen bg-theme-bg">

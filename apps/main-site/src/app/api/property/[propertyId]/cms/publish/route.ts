@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/database/prisma";
 import { requireRole } from "@/lib/auth/rbac";
+import { validatePropertyAccess } from "@/lib/tenant/tenantUtils";
 
 interface ContextProps {
   params: Promise<{ propertyId: string }>;
@@ -12,7 +13,10 @@ export async function POST(request: NextRequest, { params }: ContextProps) {
     const { propertyId } = resolvedParams;
 
     const auth = await requireRole(request, ["owner", "manager", "admin", "super_admin"]);
-    const activeUserId = auth.authorized ? auth.userId : "partner_admin_owner";
+    if (!auth.authorized) return auth.response;
+
+    const activeUserId = auth.userId;
+    if (!activeUserId) return NextResponse.json({ error: "Missing user context." }, { status: 401 });
 
     // Verify authorized multi-tenant property access credentials
     const targetProperty = await prisma.property.findUnique({
@@ -24,7 +28,8 @@ export async function POST(request: NextRequest, { params }: ContextProps) {
       },
     });
 
-    if (targetProperty && targetProperty.ownerId !== activeUserId && targetProperty.id !== "shivay-resort-101" && !["owner", "manager", "admin", "super_admin"].includes(auth.role || "")) {
+    const hasAccess = await validatePropertyAccess(activeUserId, auth.role || "", propertyId);
+    if (!hasAccess) {
       return NextResponse.json({ error: "Unauthorized release creation attempted." }, { status: 403 });
     }
 
@@ -68,6 +73,9 @@ export async function GET(request: NextRequest, { params }: ContextProps) {
   try {
     const resolvedParams = await params;
     const { propertyId } = resolvedParams;
+
+    const auth = await requireRole(request, ["owner", "manager", "admin", "super_admin"]);
+    if (!auth.authorized) return auth.response;
 
     // Retrieve full version timeline history
     const history = await prisma.cmsVersion.findMany({

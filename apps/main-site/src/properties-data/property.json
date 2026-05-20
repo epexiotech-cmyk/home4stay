@@ -10,6 +10,28 @@
     "createdAt": "2026-04-29T10:00:00.000Z",
     "slug": "shivay",
     "type": "Villa",
+    "seo": {
+      "title": "Shivay Resort | Luxury Mountain Stay in Manali",
+      "description": "Experience the ultimate mountain sanctuary at Shivay Resort Manali. Offering luxury valley views, trekking, and authentic Himalayan hospitality.",
+      "keywords": ["Manali Resort", "Luxury Villa Manali", "Mountain Stay", "Shivay Resort"],
+      "ogImage": "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=1200"
+    },
+    "amenities": [
+      { "icon": "Mountain", "label": "Valley View Deck" },
+      { "icon": "Wind", "label": "Himalayan Air" },
+      { "icon": "Coffee", "label": "Authentic Chai" },
+      { "icon": "Tent", "label": "Bonfire Setup" }
+    ],
+    "faqs": [
+      { "question": "How far is the resort from Mall Road?", "answer": "We are located 2.5km from Mall Road, offering a peaceful escape while remaining accessible." },
+      { "question": "Do you provide trekking guides?", "answer": "Yes, we have certified local mountaineers who guide our Pahaadi Trails experiences." }
+    ],
+    "policies": {
+      "checkIn": "12:00 PM",
+      "checkOut": "10:00 AM",
+      "cancellation": "Free cancellation up to 72 hours before arrival.",
+      "petPolicy": "We are a pet-friendly resort in specific room categories."
+    },
     "image": "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=800",
     "themeColor": "#2563EB",
     "theme": {
@@ -81,6 +103,28 @@
     "createdAt": "2026-04-29T10:00:00.000Z",
     "slug": "royalvilla",
     "type": "Villa",
+    "seo": {
+      "title": "Royal Villa Goa | Premium Coastal Escape",
+      "description": "Discover coastal elegance at Royal Villa Goa. A premium private pool villa offering luxury beachside living and personalized concierge services.",
+      "keywords": ["Goa Luxury Villa", "Private Pool Villa Goa", "Royal Villa", "Beachside Stay"],
+      "ogImage": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1200"
+    },
+    "amenities": [
+      { "icon": "Waves", "label": "Private Pool" },
+      { "icon": "Sun", "label": "Sun Deck" },
+      { "icon": "Utensils", "label": "Private Chef" },
+      { "icon": "Car", "label": "Luxury Transfers" }
+    ],
+    "faqs": [
+      { "question": "Is the pool private to the villa?", "answer": "Yes, each Royal Villa comes with its own completely private infinity pool." },
+      { "question": "Are you close to the beach?", "answer": "We are just a 5-minute buggy ride from the private beach club." }
+    ],
+    "policies": {
+      "checkIn": "02:00 PM",
+      "checkOut": "11:00 AM",
+      "cancellation": "Non-refundable during peak season (Dec-Jan).",
+      "petPolicy": "Pets are not allowed inside the villa premises."
+    },
     "image": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800",
     "themeColor": "#E67E22",
     "theme": {
@@ -134,6 +178,28 @@
     "createdAt": "2026-05-05T09:00:00.000Z",
     "slug": "tajvilla",
     "type": "Villa",
+    "seo": {
+      "title": "Taj Villa Agra | Unobstructed Taj Mahal Views",
+      "description": "Experience timeless grandeur at Taj Villa Agra. The only luxury stay offering monument-view suites and traditional Mughal hospitality.",
+      "keywords": ["Agra Luxury Stay", "Taj Mahal View Hotel", "Heritage Villa Agra", "Taj Villa"],
+      "ogImage": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=1200"
+    },
+    "amenities": [
+      { "icon": "Camera", "label": "Monument View" },
+      { "icon": "Gem", "label": "Heritage Decor" },
+      { "icon": "Utensils", "label": "Mughlai Dining" },
+      { "icon": "History", "label": "Guided History Walk" }
+    ],
+    "faqs": [
+      { "question": "Can we see the Taj Mahal from all rooms?", "answer": "Yes, our Heritage and Imperial suites offer direct, unobstructed views of the Taj Mahal." },
+      { "question": "Do you arrange monument tickets?", "answer": "Our concierge can assist with ticket bookings and private guide arrangements." }
+    ],
+    "policies": {
+      "checkIn": "01:00 PM",
+      "checkOut": "10:00 AM",
+      "cancellation": "Flexible cancellation up to 48 hours before check-in.",
+      "petPolicy": "Service animals only."
+    },
     "image": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=800",
     "themeColor": "#D4AF37",
     "theme": {
@@ -187,6 +253,28 @@
     "createdAt": "2026-05-05T09:00:00.000Z",
     "slug": "oceanview",
     "type": "Homestay",
+    "seo": {
+      "title": "Ocean View Resort Varkala | Cliffside Serenity",
+      "description": "Escape to the cliffs of Varkala at Ocean View Resort. Panoramic ocean views, artistic homestays, and peaceful Kerala hospitality.",
+      "keywords": ["Varkala Resort", "Cliffside Homestay", "Kerala Ocean View", "Varkala Cliff Stay"],
+      "ogImage": "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=1200"
+    },
+    "amenities": [
+      { "icon": "Waves", "label": "Panoramic Ocean View" },
+      { "icon": "Heart", "label": "Artistic Vibes" },
+      { "icon": "Footprints", "label": "Cliff Access" },
+      { "icon": "Smile", "label": "Homely Service" }
+    ],
+    "faqs": [
+      { "question": "How do we reach the beach from the cliff?", "answer": "There are safe stone steps leading directly from our cliff path to the main beach." },
+      { "question": "Is the resort suitable for workations?", "answer": "Yes, we provide high-speed fiber internet in all rooms and common areas." }
+    ],
+    "policies": {
+      "checkIn": "12:00 PM",
+      "checkOut": "11:00 AM",
+      "cancellation": "Full refund if cancelled 7 days before arrival.",
+      "petPolicy": "Small pets are welcome in our ground-floor shacks."
+    },
     "image": "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=800",
     "themeColor": "#3498DB",
     "theme": {
