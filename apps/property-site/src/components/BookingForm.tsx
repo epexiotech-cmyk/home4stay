@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Property } from "../types/property";
 
 interface BookingFormProps {
@@ -26,14 +26,6 @@ export default function BookingForm({ property, isLocked = false }: BookingFormP
     validRoom?.name || property.rooms[0].name
   );
 
-  useEffect(() => {
-    if (roomParam) {
-      const exists = property.rooms.some((r) => r.name === roomParam);
-      if (exists) {
-        setSelectedRoomName(roomParam);
-      }
-    }
-  }, [roomParam, property.rooms]);
 
   // CALCULATION LOGIC
   const nights = useMemo(() => {

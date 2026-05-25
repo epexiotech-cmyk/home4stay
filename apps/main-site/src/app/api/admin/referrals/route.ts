@@ -88,9 +88,10 @@ export async function GET(request: NextRequest) {
         userEmail: r.user.email,
       })),
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[ADMIN_REFERRALS_GET] Error fetching administrative referrals:", error);
-    return NextResponse.json({ error: error.message || "Failed to fetch administrative referrals" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to fetch administrative referrals";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -124,8 +125,9 @@ export async function POST(request: NextRequest) {
       message: `Successfully resolved fraud flagged referral event. Status set to: ${updatedEvent.status}`,
       event: updatedEvent,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[ADMIN_REFERRALS_POST] Error resolving fraud flag:", error);
-    return NextResponse.json({ error: error.message || "Failed to resolve fraud flag" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to resolve fraud flag";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

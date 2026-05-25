@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/database/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,14 +23,20 @@ export async function GET(request: NextRequest) {
     const endDateParam = searchParams.get("endDate");
 
     // Build filter
-    const where: any = {};
+    const where: Prisma.InvoiceWhereInput = {};
     if (startDateParam || endDateParam) {
       where.createdAt = {};
       if (startDateParam) {
-        where.createdAt.gte = new Date(startDateParam);
+        where.createdAt = {
+          ...(where.createdAt as Prisma.DateTimeFilter),
+          gte: new Date(startDateParam)
+        };
       }
       if (endDateParam) {
-        where.createdAt.lte = new Date(endDateParam);
+        where.createdAt = {
+          ...(where.createdAt as Prisma.DateTimeFilter),
+          lte: new Date(endDateParam)
+        };
       }
     }
 
@@ -45,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     // 4. Map the invoice records to the requested format
     const formattedData = invoices.map(inv => {
-      const meta = inv.metadata as any;
+      const meta = inv.metadata as { cgst?: number; sgst?: number; igst?: number; utrNumber?: string } | null;
       const cgst = meta?.cgst || 0;
       const sgst = meta?.sgst || 0;
       const igst = meta?.igst || 0;
@@ -136,7 +143,7 @@ export async function GET(request: NextRequest) {
 
       for (const row of formattedData) {
         const values = headers.map(header => {
-          const val = (row as any)[header];
+          const val = (row as Record<string, unknown>)[header];
           // Escape quotes and wrap commas in quotes
           const escaped = ("" + (val !== undefined && val !== null ? val : "")).replace(/"/g, '\\"');
           return escaped.includes(",") ? `"${escaped}"` : escaped;
@@ -163,10 +170,10 @@ export async function GET(request: NextRequest) {
       count: formattedData.length,
       data: formattedData
     });
-
-  } catch (error: any) {
+  } catch (error) {
     console.error("[INVOICE_EXPORT_API] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

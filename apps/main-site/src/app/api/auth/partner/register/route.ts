@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Create everything in a secure database transaction
-    const user = await prisma.$transaction(async (tx) => {
+    const registeredUser = await prisma.$transaction(async (tx) => {
       // Create user with 'owner' role
       const newUser = await createUser({
         name,
@@ -190,19 +190,19 @@ export async function POST(request: NextRequest) {
     if (referralCode) {
       try {
         await ReferralService.bindReferral({
-          referredUserId: user.id,
+          referredUserId: registeredUser.id,
           referralCode,
           registrationIp: ip
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("[REFERRAL_BIND_ERROR] Failed to bind referral code:", err);
       }
     }
 
     // 5.2. Initialize referral profile for the new user
     try {
-      await ReferralService.getOrCreateProfile(user.id);
-    } catch (err: any) {
+      await ReferralService.getOrCreateProfile(registeredUser.id);
+    } catch (err: unknown) {
       console.error("[REFERRAL_PROFILE_CREATE_ERROR] Failed to create referral profile:", err);
     }
 

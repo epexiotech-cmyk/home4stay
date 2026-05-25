@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/database/prisma";
 import { encryptSecret } from "@/lib/server/encryption";
-import { PaymentProviderType } from "@prisma/client";
+import { PaymentProviderType, PaymentProvider, Prisma } from "@prisma/client";
 
 /**
  * GET /api/admin/payment-settings/providers
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Mask sensitive configurations in frontend responses
-    const maskedProviders = providers.map((p: any) => ({
+    const maskedProviders = providers.map((p: PaymentProvider) => ({
       ...p,
       apiKey: p.apiKey ? "••••••••" : null,
       secretKey: p.secretKey ? "••••••••" : null,
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     const parsedDefault = !!isDefault;
 
     // Persist transactionally
-    const provider = await prisma.$transaction(async (tx: any) => {
+    const provider = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Reset other defaults if this is marked as default
       if (parsedDefault) {
         await tx.paymentProvider.updateMany({
@@ -153,8 +153,9 @@ export async function POST(request: NextRequest) {
       providerId: provider.id
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("[ADMIN_PROVIDERS_POST] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

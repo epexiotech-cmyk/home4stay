@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   CreditCard,
   CheckCircle,
@@ -8,18 +8,12 @@ import {
   Shield,
   RefreshCw,
   AlertTriangle,
-  FileText,
-  Calendar,
   User,
   Home,
   DollarSign,
   Activity,
   Clock,
-  ArrowRight,
   Plus,
-  Play,
-  Pause,
-  Trash2,
   ListOrdered
 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
@@ -92,7 +86,13 @@ interface AuditLog {
   oldStatus: string | null;
   newStatus: string | null;
   performedBy: string | null;
-  metadata: any;
+  metadata: {
+    reason?: string;
+    daysAdded?: number;
+    oldPlanId?: string;
+    newPlanId?: string;
+    [key: string]: unknown;
+  } | null;
   createdAt: string;
   propertyName: string;
   utrNumber: string | null;
@@ -131,7 +131,6 @@ export default function SuperAdminPaymentsPage() {
   // Selection states for detail drawers/modals
   const [selectedPending, setSelectedPending] = useState<PendingPayment | null>(null);
   const [selectedSub, setSelectedSub] = useState<Subscription | null>(null);
-  const [adminNote, setAdminNote] = useState("");
   const [rejectReason, setRejectReason] = useState("");
   
   // Manual override states
@@ -146,12 +145,15 @@ export default function SuperAdminPaymentsPage() {
   const [subFilter, setSubFilter] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    fetchDashboardData();
+  const showNotice = useCallback((type: "success" | "error", message: string) => {
+    setNotice({ type, message });
+    setTimeout(() => setNotice(null), 5000);
   }, []);
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
+  const fetchDashboardData = useCallback(async (showQueueLoading = true) => {
+    if (showQueueLoading) {
+      setLoading(true);
+    }
     try {
       // 1. Load primary metrics & pending queues
       const dashboardRes = await fetch("/api/admin/payments/dashboard");
@@ -177,16 +179,25 @@ export default function SuperAdminPaymentsPage() {
         setAuditLogs(auditData.logs);
       }
     } catch (err) {
+      console.error(err);
       showNotice("error", "Error pulling operations records from Postgres.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [subFilter, showNotice]);
 
-  const showNotice = (type: "success" | "error", message: string) => {
-    setNotice({ type, message });
-    setTimeout(() => setNotice(null), 5000);
-  };
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      if (isMounted) {
+        await fetchDashboardData(false);
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchDashboardData]);
 
   // Payment approval logic
   const handleApprovePayment = async (id: string) => {
@@ -205,6 +216,7 @@ export default function SuperAdminPaymentsPage() {
         showNotice("error", data.error || "Approval transaction failed.");
       }
     } catch (err) {
+      console.error(err);
       showNotice("error", "Failed to compile approval.");
     } finally {
       setActioning(false);
@@ -234,6 +246,7 @@ export default function SuperAdminPaymentsPage() {
         showNotice("error", data.error || "Failed to commit rejection.");
       }
     } catch (err) {
+      console.error(err);
       showNotice("error", "Rejection execution error.");
     } finally {
       setActioning(false);
@@ -263,6 +276,7 @@ export default function SuperAdminPaymentsPage() {
         showNotice("error", data.error || "Extension action failed.");
       }
     } catch (err) {
+      console.error(err);
       showNotice("error", "Manual renewal offset error.");
     } finally {
       setActioning(false);
@@ -287,6 +301,7 @@ export default function SuperAdminPaymentsPage() {
         showNotice("error", data.error || "Failed to suspend.");
       }
     } catch (err) {
+      console.error(err);
       showNotice("error", "Suspension error.");
     } finally {
       setActioning(false);
@@ -308,6 +323,7 @@ export default function SuperAdminPaymentsPage() {
         showNotice("error", data.error || "Failed to reactivate.");
       }
     } catch (err) {
+      console.error(err);
       showNotice("error", "Reactivation error.");
     } finally {
       setActioning(false);
@@ -330,6 +346,7 @@ export default function SuperAdminPaymentsPage() {
         showNotice("error", data.error || "Failed to cancel.");
       }
     } catch (err) {
+      console.error(err);
       showNotice("error", "Cancellation error.");
     } finally {
       setActioning(false);
@@ -361,6 +378,7 @@ export default function SuperAdminPaymentsPage() {
         showNotice("error", data.error || "Plan modification failed.");
       }
     } catch (err) {
+      console.error(err);
       showNotice("error", "Plan shift error.");
     } finally {
       setActioning(false);
@@ -386,6 +404,7 @@ export default function SuperAdminPaymentsPage() {
         showNotice("error", data.error || "Failed to toggle status.");
       }
     } catch (err) {
+      console.error(err);
       showNotice("error", "Toggle status error.");
     } finally {
       setActioning(false);
@@ -429,7 +448,7 @@ export default function SuperAdminPaymentsPage() {
         </div>
 
         <button 
-          onClick={fetchDashboardData}
+          onClick={() => fetchDashboardData()}
           disabled={loading}
           className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all shadow-sm"
         >
@@ -461,16 +480,18 @@ export default function SuperAdminPaymentsPage() {
 
       {/* Tabs navigation */}
       <div className="flex items-center gap-2 mb-10 border-b border-gray-100 pb-2 overflow-x-auto">
-        {[
-          { id: "approvals", label: `Pending Approvals (${pendingQueue.length})`, icon: Clock },
-          { id: "subscriptions", label: "Active Subscriptions", icon: Home },
-          { id: "history", label: "Recent Collections", icon: CreditCard },
-          { id: "analytics", label: "Financial Analytics", icon: Activity },
-          { id: "audit", label: "System Audit Center", icon: Shield }
-        ].map(tab => (
+        {(
+          [
+            { id: "approvals", label: `Pending Approvals (${pendingQueue.length})`, icon: Clock },
+            { id: "subscriptions", label: "Active Subscriptions", icon: Home },
+            { id: "history", label: "Recent Collections", icon: CreditCard },
+            { id: "analytics", label: "Financial Analytics", icon: Activity },
+            { id: "audit", label: "System Audit Center", icon: Shield }
+          ] as const
+        ).map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all outline-none shrink-0 ${
               activeTab === tab.id 
                 ? "bg-emerald-500/10 text-emerald-700 shadow-sm" 
@@ -542,6 +563,7 @@ export default function SuperAdminPaymentsPage() {
                             onClick={() => setSelectedPending(pending)}
                             className="h-28 w-44 rounded-2xl bg-gray-50 border cursor-zoom-in overflow-hidden relative group"
                           >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img 
                               src={`/api/admin/payments/proofs/${pending.paymentScreenshotUrl}`} 
                               alt="Proof preview" 
@@ -873,6 +895,7 @@ export default function SuperAdminPaymentsPage() {
               <h4 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest mb-4">Manual Checkout UTR Screenshot Proof</h4>
               {selectedPending.paymentScreenshotUrl ? (
                 <div className="max-h-[420px] w-full rounded-2xl border overflow-hidden bg-white shadow-sm flex justify-center items-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={`/api/admin/payments/proofs/${selectedPending.paymentScreenshotUrl}`} 
                     alt="Manual UPI verification" 

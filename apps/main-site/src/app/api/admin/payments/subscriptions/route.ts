@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/database/prisma";
-import { SubscriptionStatus } from "@prisma/client";
+import { SubscriptionStatus, Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const statusParam = request.nextUrl.searchParams.get("status") || "ALL";
 
     // 2. Build where filter clauses
-    const whereClause: any = {};
+    const whereClause: Prisma.PropertySubscriptionWhereInput = {};
     if (statusParam !== "ALL") {
       whereClause.status = statusParam as SubscriptionStatus;
     }

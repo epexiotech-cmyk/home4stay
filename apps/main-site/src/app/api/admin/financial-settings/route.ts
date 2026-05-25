@@ -55,9 +55,10 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, settings });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[FINANCIAL_SETTINGS_GET] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -215,8 +216,9 @@ export async function POST(request: NextRequest) {
       message: "Financial configurations updated successfully",
       settings
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[FINANCIAL_SETTINGS_POST] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

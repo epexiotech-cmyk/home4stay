@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "../../../../../lib/auth/rbac";
 import { prisma } from "../../../../../lib/database/prisma";
-import { PaymentStatus } from "@prisma/client";
+import { PaymentStatus, Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const offset = Math.max(parseInt(searchParams.get("offset") || "0", 10), 0);
 
     // 3. Compile dynamic search filters
-    const whereClause: any = {};
+    const whereClause: Prisma.PaymentTransactionWhereInput = {};
 
     // Filter by status
     const upperStatus = statusParam.toUpperCase();
@@ -39,27 +39,28 @@ export async function GET(request: NextRequest) {
       whereClause.utrNumber = searchUtr.trim();
     }
 
-    // Filter by Property title (case-insensitive contains)
+    // Filter by Property title or Owner (relation filter)
+    const propertyFilter: Prisma.PropertyWhereInput = {};
     if (searchProperty && searchProperty.trim()) {
-      whereClause.property = {
-        title: {
-          contains: searchProperty.trim(),
-          mode: "insensitive"
-        }
+      propertyFilter.title = {
+        contains: searchProperty.trim(),
+        mode: "insensitive"
       };
     }
-
-    // Filter by Owner name or email (case-insensitive contains)
     if (searchOwner && searchOwner.trim()) {
       const trimmedOwner = searchOwner.trim();
-      whereClause.property = {
-        ...(whereClause.property || {}),
-        owner: {
+      propertyFilter.owner = {
+        is: {
           OR: [
             { name: { contains: trimmedOwner, mode: "insensitive" } },
             { email: { contains: trimmedOwner, mode: "insensitive" } }
           ]
         }
+      };
+    }
+    if (searchProperty || searchOwner) {
+      whereClause.property = {
+        is: propertyFilter
       };
     }
 

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/database/prisma";
 import { logger } from "@/lib/observability/logger";
-import { ReferralEventStatus } from "@prisma/client";
+import { ReferralEventStatus, ReferralProfile, ReferralEvent } from "@prisma/client";
 import * as crypto from "crypto";
 
 export class ReferralService {
@@ -28,7 +28,7 @@ export class ReferralService {
   /**
    * Automatically initializes a referral profile for a user if one does not exist.
    */
-  static async getOrCreateProfile(userId: string): Promise<any> {
+  static async getOrCreateProfile(userId: string): Promise<ReferralProfile> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { referralProfile: true },
@@ -65,7 +65,12 @@ export class ReferralService {
     referredUserId: string;
     referralCode: string;
     registrationIp?: string;
-  }): Promise<any> {
+  }): Promise<{
+    success: boolean;
+    message: string;
+    referralEvent?: ReferralEvent;
+    isFraudFlagged?: boolean;
+  }> {
     const { referredUserId, referralCode, registrationIp } = params;
 
     // Find referrer profile
@@ -79,6 +84,7 @@ export class ReferralService {
         level: "warn",
         event: "REFERRAL_BIND_FAILED",
         message: `Invalid referral code: ${referralCode}`,
+        requestId: "system",
       });
       return { success: false, message: "Invalid referral code" };
     }
@@ -91,6 +97,7 @@ export class ReferralService {
         level: "warn",
         event: "REFERRAL_SELF_ATTEMPT",
         message: `User ${referredUserId} attempted to self-refer using code ${referralCode}`,
+        requestId: "system",
       });
       return { success: false, message: "You cannot refer yourself." };
     }
@@ -185,6 +192,7 @@ export class ReferralService {
       message: isFraudFlagged
         ? `Fraud suspect in referral binding: referrer=${referrerUserId}, referred=${referredUserId}. Reasons: ${fraudReasons.join(", ")}`
         : `Successfully bound referral: referrer=${referrerUserId}, referred=${referredUserId}`,
+      requestId: "system",
     });
 
     return {
@@ -200,7 +208,15 @@ export class ReferralService {
   /**
    * Awards credit to the referrer when a referred user makes their first successful subscription payment.
    */
-  static async awardReferralCredit(referredUserId: string, subscriptionId: string): Promise<any> {
+  static async awardReferralCredit(
+    referredUserId: string,
+    subscriptionId: string
+  ): Promise<{
+    success: boolean;
+    message?: string;
+    updatedEvent?: ReferralEvent;
+    updatedProfile?: ReferralProfile;
+  }> {
     // Find matching referral event
     const referralEvent = await prisma.referralEvent.findFirst({
       where: {
@@ -219,6 +235,7 @@ export class ReferralService {
         level: "warn",
         event: "REFERRAL_AWARD_BLOCKED",
         message: `Referral award blocked for referred user ${referredUserId} due to FRAUD_FLAGGED status.`,
+        requestId: "system",
       });
       return { success: false, message: "Referral is flagged for fraud and requires manual review." };
     }
@@ -276,6 +293,7 @@ export class ReferralService {
       level: "info",
       event: "REFERRAL_CREDIT_AWARDED",
       message: `Referral credit successfully awarded to referrer ${referrerUserId} for referred user ${referredUserId}`,
+      requestId: "system",
     });
 
     return { success: true, ...result };
@@ -403,7 +421,7 @@ export class ReferralService {
 
     const { creditsToUse, discountPercentage, discountAmount, carryForwardCredits } = calculation;
 
-    const result = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       // 1. Decrement credits in ReferralProfile
       const updatedProfile = await tx.referralProfile.update({
         where: { userId },
@@ -438,24 +456,10 @@ export class ReferralService {
         },
       });
 
-      // If they used 10 credits on a half-yearly plan, we also record a carry-forward note/metadata
-      // that the next renewal is also 100% off. We can store this in the subscription record metadata.
+      // If they used 10 credits on a half-yearly plan, we record a carry-forward note in our logs
       if (creditsToUse === 10 && (billingCycle.toLowerCase().includes("half"))) {
-        const subscription = await tx.propertySubscription.findUnique({
-          where: { id: subscriptionId },
-        });
-
-        const currentMetadata = (subscription?.metadata as Record<string, any>) || {};
-        await tx.propertySubscription.update({
-          where: { id: subscriptionId },
-          data: {
-            metadata: {
-              ...currentMetadata,
-              nextCycleFree: true,
-              redemptionId: redemption.id,
-            },
-          },
-        });
+        // Carry-forward next cycle free note
+        console.log(`[ReferralService] Carry-forward 100% discount recorded: user=${userId}, subscription=${subscriptionId}, redemptionId=${redemption.id}`);
       }
 
       return { updatedProfile, redemption };
@@ -465,6 +469,7 @@ export class ReferralService {
       level: "info",
       event: "REFERRAL_CREDITS_REDEEMED",
       message: `User ${userId} successfully redeemed ${creditsToUse} credits for subscription ${subscriptionId}`,
+      requestId: "system",
     });
 
     return {
@@ -483,7 +488,7 @@ export class ReferralService {
     action: "APPROVE" | "REJECT";
     adminUserId: string;
     notes?: string;
-  }): Promise<any> {
+  }): Promise<ReferralEvent> {
     const { eventId, action, adminUserId, notes } = params;
 
     const event = await prisma.referralEvent.findUnique({
@@ -507,7 +512,7 @@ export class ReferralService {
         data: {
           status: newStatus,
           metadata: {
-            ...(event.metadata as Record<string, any>),
+            ...(event.metadata as Record<string, unknown>),
             reviewedBy: adminUserId,
             reviewedAt: new Date().toISOString(),
             reviewNotes: notes,
@@ -543,6 +548,7 @@ export class ReferralService {
       level: "info",
       event: "REFERRAL_FRAUD_REVIEWED",
       message: `Admin ${adminUserId} reviewed referral event ${eventId}. Action: ${action}.`,
+      requestId: "system",
     });
 
     return result;

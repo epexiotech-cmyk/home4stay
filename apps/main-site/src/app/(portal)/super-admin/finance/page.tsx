@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   TrendingUp,
   Coins,
@@ -9,15 +9,10 @@ import {
   Activity,
   FileSpreadsheet,
   AlertTriangle,
-  Calendar,
-  DollarSign,
   Layers,
-  Settings,
   RefreshCw,
   AlertCircle,
   CheckCircle2,
-  ExternalLink,
-  ChevronRight,
   PlusCircle,
   Info
 } from "lucide-react";
@@ -104,22 +99,22 @@ export default function FinanceDashboardPage() {
   const [reconLogs, setReconLogs] = useState<ReconLog[]>([]);
 
   // Export form options
-  const [exportStartDate, setExportStartDate] = useState(
+  const [exportStartDate, setExportStartDate] = useState(() =>
     new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
   );
-  const [exportEndDate, setExportEndDate] = useState(
+  const [exportEndDate, setExportEndDate] = useState(() =>
     new Date().toISOString().split("T")[0]
   );
 
   // Settlement manual tracking modal/states
   const [showSettlementModal, setShowSettlementModal] = useState(false);
-  const [settlementForm, setSettlementForm] = useState({
+  const [settlementForm, setSettlementForm] = useState(() => ({
     providerType: "PHONEPE",
     settlementReference: "",
     settlementDate: new Date().toISOString().split("T")[0],
     settlementAmount: "",
     currency: "INR"
-  });
+  }));
 
   // Reconciliation manual trigger modal/states
   const [showReconModal, setShowReconModal] = useState(false);
@@ -129,11 +124,12 @@ export default function FinanceDashboardPage() {
     settlementRecordId: ""
   });
 
-  useEffect(() => {
-    fetchDashboardData();
+  const showNotice = useCallback((type: "success" | "error", message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 5000);
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/finance/dashboard");
@@ -144,19 +140,44 @@ export default function FinanceDashboardPage() {
         setSettlements(data.recentSettlements);
         setReconLogs(data.recentReconciliationLogs);
       } else {
-        showNotice("error", data.error || "Failed to retrieve finance aggregations.");
+        showNotice("error", data.error || "Failed to retrieve finance aggregates.");
       }
     } catch (err) {
+      console.error("[FINANCE_DASHBOARD_ERROR]", err);
       showNotice("error", "Network anomaly when communicating with the Finance Dashboard.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [showNotice]);
 
-  const showNotice = (type: "success" | "error", message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 5000);
-  };
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboardData() {
+      try {
+        const res = await fetch("/api/admin/finance/dashboard");
+        const data = await res.json();
+        if (data.success && isMounted) {
+          setStats(data.stats);
+          setTransactions(data.recentTransactions);
+          setSettlements(data.recentSettlements);
+          setReconLogs(data.recentReconciliationLogs);
+        }
+      } catch (err) {
+        console.error("[FINANCE_LOAD_ERROR]", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboardData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSettlementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,6 +207,7 @@ export default function FinanceDashboardPage() {
         showNotice("error", data.error || "Failed to log payout settlement.");
       }
     } catch (err) {
+      console.error("[SETTLEMENT_SUBMIT_ERROR]", err);
       showNotice("error", "Network issue writing settlement ledger.");
     } finally {
       setActioning(false);
@@ -218,6 +240,7 @@ export default function FinanceDashboardPage() {
         showNotice("error", data.error || "Failed to complete reconciliation.");
       }
     } catch (err) {
+      console.error("[RECON_SUBMIT_ERROR]", err);
       showNotice("error", "Network interruption during matching service query.");
     } finally {
       setActioning(false);

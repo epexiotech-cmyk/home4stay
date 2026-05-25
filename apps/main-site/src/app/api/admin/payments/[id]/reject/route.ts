@@ -28,7 +28,7 @@ export async function POST(
       if (body.reason && body.reason.trim()) {
         reason = body.reason.trim();
       }
-    } catch (err) {
+    } catch {
       // Body might be empty, use default reason
     }
 
@@ -66,8 +66,9 @@ export async function POST(
       status: rejectedTx.paymentStatus
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("[ADMIN_PAYMENT_REJECT] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

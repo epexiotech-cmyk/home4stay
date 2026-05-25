@@ -4,15 +4,11 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { 
   ArrowLeft, 
-  Clock, 
   CheckCircle2, 
   XCircle, 
-  Calendar, 
-  FileText, 
   HelpCircle, 
   Phone, 
   Mail, 
-  Loader2, 
   AlertCircle,
   Eye
 } from "lucide-react";
@@ -75,7 +71,7 @@ interface AuditLog {
   newStatus: string | null;
   performedBy: string;
   createdAt: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 interface TransactionDetails {
@@ -117,26 +113,37 @@ export default function TransactionTimelinePage() {
   const [transaction, setTransaction] = useState<TransactionDetails | null>(null);
   const [showScreenshotModal, setShowScreenshotModal] = useState(false);
 
-  const fetchTransactionDetails = async () => {
-    if (!transactionId) return;
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/partner/billing/transactions/${transactionId}`);
-      if (!res.ok) {
-        throw new Error("Unable to retrieve transaction metrics.");
-      }
-      const data = await res.json();
-      setTransaction(data.transaction);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchTransactionDetails();
+    let isMounted = true;
+
+    async function load() {
+      if (!transactionId) return;
+      try {
+        const res = await fetch(`/api/partner/billing/transactions/${transactionId}`);
+        if (!res.ok) {
+          throw new Error("Unable to retrieve transaction metrics.");
+        }
+        const data = await res.json();
+        if (isMounted) {
+          setTransaction(data.transaction);
+          setError(null);
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      isMounted = false;
+    };
   }, [transactionId]);
 
   if (loading) {
@@ -170,7 +177,6 @@ export default function TransactionTimelinePage() {
   // Determine standard lifecycle steps
   const isApproved = transaction.paymentStatus.toUpperCase() === "APPROVED";
   const isRejected = transaction.paymentStatus.toUpperCase() === "REJECTED";
-  const isPending = transaction.paymentStatus.toUpperCase() === "PENDING_APPROVAL" || transaction.paymentStatus.toUpperCase() === "PENDING";
 
   return (
     <div className="space-y-8 pb-12">
@@ -246,7 +252,7 @@ export default function TransactionTimelinePage() {
               number={4}
               title="Subscription Plan Activated"
               description={
-                isApproved ? `Your ${transaction.subscription?.selectedPlanId.toUpperCase()} subscription is fully operational. Starts ${new Date(transaction.subscription?.startsAt!).toLocaleDateString()}` :
+                isApproved ? `Your ${transaction.subscription?.selectedPlanId?.toUpperCase() || ""} subscription is fully operational. Starts ${transaction.subscription?.startsAt ? new Date(transaction.subscription.startsAt).toLocaleDateString() : ""}` :
                 isRejected ? "Checkout lifecycle suspended." :
                 "Awaiting previous step verification."
               }
@@ -301,6 +307,7 @@ export default function TransactionTimelinePage() {
                   onClick={() => setShowScreenshotModal(true)}
                   className="relative rounded-2xl overflow-hidden border border-[#0E5A75]/10 bg-black/5 h-44 cursor-pointer group flex items-center justify-center p-2"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={`/api/partner/billing/proofs/${transaction.paymentScreenshotUrl}`} 
                     alt="Payment screenshot proof" 
@@ -375,6 +382,7 @@ export default function TransactionTimelinePage() {
             onClick={() => setShowScreenshotModal(false)}
           />
           <div className="relative max-w-4xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src={`/api/partner/billing/proofs/${transaction.paymentScreenshotUrl}`} 
               alt="Payment screenshot proof full resolution" 

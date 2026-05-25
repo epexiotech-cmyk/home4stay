@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/database/prisma";
 import { sendPlanChangeAlertEmail } from "@/lib/server/email";
+import { Prisma } from "@prisma/client";
 
 /**
  * PUT /api/admin/subscription-plans/:id
@@ -54,7 +55,7 @@ export async function PUT(
       supportPriority
     } = body;
 
-    const updateData: any = {};
+    const updateData: Prisma.SubscriptionPlanUpdateInput = {};
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (shortDescription !== undefined) updateData.shortDescription = shortDescription || null;
@@ -129,7 +130,7 @@ export async function PUT(
       updateData.slug = slug;
     }
 
-    const updated = await prisma.$transaction(async (tx: any) => {
+    const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const record = await tx.subscriptionPlan.update({
         where: { id: planId },
         data: updateData
@@ -191,7 +192,7 @@ export async function DELETE(
     }
 
     // Soft delete the plan
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.subscriptionPlan.update({
         where: { id: planId },
         data: { deletedAt: new Date() }

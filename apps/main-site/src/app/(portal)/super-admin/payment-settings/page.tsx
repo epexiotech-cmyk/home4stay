@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   CreditCard, 
   Settings, 
@@ -88,11 +88,12 @@ export default function SuperAdminPaymentSettingsPage() {
     isDefault: false
   });
 
-  useEffect(() => {
-    fetchSettings();
+  const showNotice = useCallback((type: "success" | "error", message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 5000);
   }, []);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/payment-settings/providers");
@@ -101,7 +102,7 @@ export default function SuperAdminPaymentSettingsPage() {
         setProviders(data.providers);
 
         // Bind fetched manual UPI settings
-        const upi = data.providers.find((p: any) => p.providerType === "MANUAL_UPI");
+        const upi = data.providers.find((p: PaymentProvider) => p.providerType === "MANUAL_UPI");
         if (upi) {
           setUpiForm({
             id: upi.id,
@@ -119,7 +120,7 @@ export default function SuperAdminPaymentSettingsPage() {
         }
 
         // Bind fetched Stripe settings
-        const stripe = data.providers.find((p: any) => p.providerType === "STRIPE");
+        const stripe = data.providers.find((p: PaymentProvider) => p.providerType === "STRIPE");
         if (stripe) {
           setStripeForm({
             id: stripe.id,
@@ -136,7 +137,7 @@ export default function SuperAdminPaymentSettingsPage() {
         }
 
         // Bind fetched Razorpay settings
-        const rzp = data.providers.find((p: any) => p.providerType === "RAZORPAY");
+        const rzp = data.providers.find((p: PaymentProvider) => p.providerType === "RAZORPAY");
         if (rzp) {
           setRazorpayForm({
             id: rzp.id,
@@ -152,16 +153,89 @@ export default function SuperAdminPaymentSettingsPage() {
         }
       }
     } catch (err) {
+      console.error("[PAYMENT_SETTINGS_FETCH_ERROR]", err);
       showNotice("error", "Failed to retrieve configurations.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [showNotice]);
 
-  const showNotice = (type: "success" | "error", message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 5000);
-  };
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSettings() {
+      try {
+        const res = await fetch("/api/admin/payment-settings/providers");
+        const data = await res.json();
+        if (data.success && data.providers && isMounted) {
+          setProviders(data.providers);
+
+          // Bind fetched manual UPI settings
+          const upi = data.providers.find((p: PaymentProvider) => p.providerType === "MANUAL_UPI");
+          if (upi) {
+            setUpiForm({
+              id: upi.id,
+              displayName: upi.displayName,
+              upiId: upi.upiId || "",
+              merchantName: upi.merchantName || "",
+              instructions: upi.instructions || "",
+              supportNumber: upi.supportNumber || "",
+              supportEmail: upi.supportEmail || "",
+              isEnabled: upi.isEnabled,
+              isDefault: upi.isDefault,
+              priority: upi.priority,
+              qrImageUrl: upi.qrImageUrl || ""
+            });
+          }
+
+          // Bind fetched Stripe settings
+          const stripe = data.providers.find((p: PaymentProvider) => p.providerType === "STRIPE");
+          if (stripe) {
+            setStripeForm({
+              id: stripe.id,
+              displayName: stripe.displayName,
+              apiKey: stripe.apiKey || "••••••••",
+              secretKey: stripe.secretKey || "••••••••",
+              webhookSecret: stripe.webhookSecret || "••••••••",
+              merchantId: stripe.merchantId || "",
+              isEnabled: stripe.isEnabled,
+              isSandbox: stripe.isSandbox,
+              priority: stripe.priority,
+              isDefault: stripe.isDefault
+            });
+          }
+
+          // Bind fetched Razorpay settings
+          const rzp = data.providers.find((p: PaymentProvider) => p.providerType === "RAZORPAY");
+          if (rzp) {
+            setRazorpayForm({
+              id: rzp.id,
+              displayName: rzp.displayName,
+              apiKey: rzp.apiKey || "••••••••",
+              secretKey: rzp.secretKey || "••••••••",
+              merchantId: rzp.merchantId || "",
+              isEnabled: rzp.isEnabled,
+              isSandbox: rzp.isSandbox,
+              priority: rzp.priority,
+              isDefault: rzp.isDefault
+            });
+          }
+        }
+      } catch (err) {
+        console.error("[PAYMENT_SETTINGS_LOAD_ERROR]", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleQRUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -186,6 +260,7 @@ export default function SuperAdminPaymentSettingsPage() {
         showNotice("error", data.error || "Failed to upload QR asset.");
       }
     } catch (err) {
+      console.error("[QR_UPLOAD_ERROR]", err);
       showNotice("error", "Failed to upload QR asset.");
     }
   };
@@ -219,6 +294,7 @@ export default function SuperAdminPaymentSettingsPage() {
         showNotice("error", data.error || "Failed to update configurations.");
       }
     } catch (err) {
+      console.error("[UPI_SAVE_ERROR]", err);
       showNotice("error", "Error saving configurations.");
     } finally {
       setSaving(false);
@@ -254,6 +330,7 @@ export default function SuperAdminPaymentSettingsPage() {
         showNotice("error", data.error || "Failed to update Stripe.");
       }
     } catch (err) {
+      console.error("[STRIPE_SAVE_ERROR]", err);
       showNotice("error", "Error saving configurations.");
     } finally {
       setSaving(false);
@@ -289,6 +366,7 @@ export default function SuperAdminPaymentSettingsPage() {
         showNotice("error", data.error || "Failed to update Razorpay.");
       }
     } catch (err) {
+      console.error("[RAZORPAY_SAVE_ERROR]", err);
       showNotice("error", "Error saving configurations.");
     } finally {
       setSaving(false);
@@ -341,7 +419,7 @@ export default function SuperAdminPaymentSettingsPage() {
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as "list" | "upi" | "gateways" | "audit")}
               className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all outline-none ${
                 activeTab === tab.id 
                   ? "bg-amber-500/10 text-amber-700 shadow-sm" 
@@ -514,6 +592,7 @@ export default function SuperAdminPaymentSettingsPage() {
                 <div className="border border-dashed border-gray-200 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6">
                   <div className="h-32 w-32 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border">
                     {upiForm.qrImageUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img 
                         src={`/api/admin/payment-settings/providers/qr-assets/${upiForm.qrImageUrl}`} 
                         alt="QR preview" 

@@ -41,9 +41,9 @@ export async function GET(
       
       const webStream = new ReadableStream({
         start(controller) {
-          stream.on("data", (chunk) => controller.enqueue(chunk));
+          stream.on("data", (chunk: string | Buffer) => controller.enqueue(chunk));
           stream.on("end", () => controller.close());
-          stream.on("error", (err) => controller.error(err));
+          stream.on("error", (err: Error) => controller.error(err));
         }
       });
 
@@ -54,7 +54,7 @@ export async function GET(
         }
       });
 
-    } catch (storageErr) {
+    } catch {
       return NextResponse.json({ error: "Screenshot proof not found in storage" }, { status: 404 });
     }
 

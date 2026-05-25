@@ -33,8 +33,9 @@ export async function POST(request: NextRequest) {
     let savedFilename = "";
     try {
       savedFilename = await assetsStorage.uploadFile(fileBuffer, file.name, file.type);
-    } catch (err: any) {
-      return NextResponse.json({ error: err.message || "Failed to process QR image upload" }, { status: 400 });
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Failed to process QR image upload";
+      return NextResponse.json({ error: errMsg }, { status: 400 });
     }
 
     return NextResponse.json({

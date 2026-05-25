@@ -18,9 +18,9 @@ export async function GET(
       
       const webStream = new ReadableStream({
         start(controller) {
-          stream.on("data", (chunk: any) => controller.enqueue(chunk));
+          stream.on("data", (chunk: string | Buffer) => controller.enqueue(chunk));
           stream.on("end", () => controller.close());
-          stream.on("error", (err: any) => controller.error(err));
+          stream.on("error", (err: Error) => controller.error(err));
         }
       });
 
@@ -31,7 +31,7 @@ export async function GET(
         }
       });
 
-    } catch (err) {
+    } catch {
       return NextResponse.json({ error: "QR asset not found" }, { status: 404 });
     }
 

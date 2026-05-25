@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/database/prisma";
+import { Prisma, type EmailJob } from "@prisma/client";
 import { transporter } from "@/lib/server/email";
 import { logger } from "@/lib/observability/logger";
 import path from "path";
@@ -67,8 +68,12 @@ export function bootEmailQueueWorker() {
  * Processes a single batch tick of up to 5 pending email jobs in a transaction-safe manner.
  */
 async function processEmailQueueTick() {
+  // 0. Cheap pre-check — skip transaction entirely if nothing to process
+  const pendingCount = await prisma.emailJob.count({ where: { status: "PENDING" } });
+  if (pendingCount === 0) return;
+
   // 1. Atomically query and mark jobs as PROCESSING inside a database transaction
-  const batch = await prisma.$transaction(async (tx) => {
+  const batch = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const pending = await tx.emailJob.findMany({
       where: { status: "PENDING" },
       orderBy: { createdAt: "asc" },
@@ -77,7 +82,7 @@ async function processEmailQueueTick() {
 
     if (pending.length === 0) return [];
 
-    const ids = pending.map(j => j.id);
+    const ids = pending.map((j: EmailJob) => j.id);
     await tx.emailJob.updateMany({
       where: { id: { in: ids } },
       data: { status: "PROCESSING" }
@@ -98,7 +103,7 @@ async function processEmailQueueTick() {
   // 2. Deliver each job in the batch
   for (const job of batch) {
     const startTime = Date.now();
-    let attachments: Array<{ filename: string; path: string }> = [];
+    const attachments: Array<{ filename: string; path: string }> = [];
 
     // Parse the htmlBody to check if there is an embedded bookingId
     // Standard format: <!-- bookingId: [bookingId] -->

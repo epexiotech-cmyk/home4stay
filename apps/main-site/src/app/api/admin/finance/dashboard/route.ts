@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       totalSubtotal += inv.subtotal;
       totalGstAmount += inv.gstAmount;
 
-      const metadata = (inv.metadata as any) || {};
+      const metadata = (inv.metadata as { cgst?: number; sgst?: number; igst?: number } | null) || {};
       totalCGST += metadata.cgst || 0;
       totalSGST += metadata.sgst || 0;
       totalIGST += metadata.igst || 0;
@@ -126,8 +126,9 @@ export async function GET(request: NextRequest) {
       recentSettlements,
       recentReconciliationLogs
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[FINANCE_DASHBOARD_GET] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

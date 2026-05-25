@@ -93,8 +93,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No active onboarding session found" }, { status: 404 });
     }
 
-    const propertyDraft = session.drafts.find(d => d.stepId === "property")?.data as any || {};
-    const pricingDraft = session.drafts.find(d => d.stepId === "pricing")?.data as any || {};
+    const propertyDraft = (session.drafts.find(d => d.stepId === "property")?.data as { title?: string } | null) || {};
+    const pricingDraft = (session.drafts.find(d => d.stepId === "pricing")?.data as {
+      enableBusinessBilling?: boolean;
+      legalBusinessName?: string;
+      gstin?: string;
+      billingAddress?: string;
+      billingState?: string;
+      billingPincode?: string;
+      billingContact?: string;
+    } | null) || {};
 
     // 3. Transactionally activate property in the database
     await prisma.$transaction([

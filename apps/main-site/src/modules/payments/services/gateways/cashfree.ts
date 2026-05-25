@@ -28,7 +28,7 @@ export class CashfreeProvider implements IPaymentProvider {
     };
   }
 
-  async verifyPayment(gatewayTransactionId: string, gatewayOrderId?: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: any }> {
+  async verifyPayment(gatewayTransactionId: string, gatewayOrderId?: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: Record<string, unknown> }> {
     return {
       success: true,
       status: PaymentStatus.SUCCESS,
@@ -41,7 +41,7 @@ export class CashfreeProvider implements IPaymentProvider {
     };
   }
 
-  async refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: any }> {
+  async refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: Record<string, unknown> }> {
     const mockRefundId = `cf_ref_${Date.now()}`;
     return {
       success: true,
@@ -54,16 +54,16 @@ export class CashfreeProvider implements IPaymentProvider {
     };
   }
 
-  async handleWebhook(payload: any, signature?: string): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }> {
-    const txStatus = payload?.txStatus;
-    const orderId = payload?.orderId;
+  async handleWebhook(payload: Record<string, unknown>): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }> {
+    const txStatus = payload?.txStatus as string | undefined;
+    const orderId = payload?.orderId as string | undefined;
 
     if (txStatus === "SUCCESS" && orderId) {
       // In production, cashfree can match orderId or custom metadata
       return {
         processed: true,
         status: PaymentStatus.SUCCESS,
-        transactionId: payload?.referenceId
+        transactionId: payload?.referenceId as string | undefined
       };
     }
 

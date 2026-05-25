@@ -8,14 +8,12 @@ import {
   XCircle,
   Bell,
   RefreshCw,
-  Clock,
   Terminal,
   Search,
   Filter,
   AlertTriangle,
   Mail,
   MessageSquare,
-  ShieldAlert,
   ChevronLeft,
   ChevronRight,
   Database
@@ -47,7 +45,7 @@ interface JobLog {
   status: string;
   recordsProcessed: number;
   errorMessage: string | null;
-  logs: string[] | any;
+  logs: string[] | unknown;
   createdAt: string;
 }
 
@@ -58,7 +56,7 @@ interface AuditLog {
   oldStatus: string | null;
   newStatus: string | null;
   performedBy: string | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   createdAt: string;
   transaction: {
     property: {
@@ -84,8 +82,8 @@ export default function SuperAdminAutomationPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // Load automation state from backend
-  const fetchAutomationLogs = async () => {
+  // Load automation state from backend (used by overrides)
+  const fetchAutomationLogs = React.useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/admin/automation/logs");
@@ -100,10 +98,34 @@ export default function SuperAdminAutomationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchAutomationLogs();
+    let isMounted = true;
+
+    async function loadAutomationLogs() {
+      try {
+        const res = await fetch("/api/admin/automation/logs");
+        if (!res.ok) throw new Error("Could not load lifecycle logs");
+        const data = await res.json();
+        if (data.success && isMounted) {
+          setJobLogs(data.jobLogs || []);
+          setAuditLogs(data.auditLogs || []);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadAutomationLogs();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Trigger Lifecycle scan synchronously
@@ -124,10 +146,10 @@ export default function SuperAdminAutomationPage() {
 
       // Reload lists
       fetchAutomationLogs();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setScanResult({
         success: false,
-        trace: ["CRITICAL ERROR: Failed to dispatch background lifecycle execution request.", err.message]
+        trace: ["CRITICAL ERROR: Failed to dispatch background lifecycle execution request.", err instanceof Error ? err.message : "Unknown error"]
       });
     } finally {
       setTriggeringScan(false);
@@ -158,7 +180,8 @@ export default function SuperAdminAutomationPage() {
           if (searchQuery) {
             const q = searchQuery.toLowerCase();
             const propertyName = log.transaction?.property?.title?.toLowerCase() || "";
-            const reminderType = (log.metadata as any)?.reminderType?.toLowerCase() || "";
+            const metadata = log.metadata as Record<string, unknown>;
+            const reminderType = typeof metadata?.reminderType === "string" ? metadata.reminderType.toLowerCase() : "";
             return propertyName.includes(q) || reminderType.includes(q);
           }
           return true;
@@ -437,7 +460,7 @@ export default function SuperAdminAutomationPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#0E5A75]/5 dark:divide-white/5">
-                      {displayedItems.map((job: any) => (
+                      {(displayedItems as JobLog[]).map((job) => (
                         <tr key={job.id} className="hover:bg-[#0E5A75]/5 dark:hover:bg-white/5 transition-colors font-bold text-[#053344] dark:text-[#FDF6F1]">
                           <td className="py-4 px-4 font-black">{job.id.substring(0, 8)}</td>
                           <td className="py-4 px-4 font-black text-[#0E5A75] dark:text-[#0983B0]">{job.jobType}</td>
@@ -472,8 +495,8 @@ export default function SuperAdminAutomationPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#0E5A75]/5 dark:divide-white/5">
-                      {displayedItems.map((log: any) => {
-                        const meta = log.metadata || {};
+                      {(displayedItems as AuditLog[]).map((log) => {
+                        const meta = (log.metadata || {}) as Record<string, string>;
                         return (
                           <tr key={log.id} className="hover:bg-[#0E5A75]/5 dark:hover:bg-white/5 transition-colors font-bold text-[#053344] dark:text-[#FDF6F1]">
                             <td className="py-4 px-4 font-black">{log.transaction?.property?.title || "Unknown Property"}</td>
@@ -511,7 +534,7 @@ export default function SuperAdminAutomationPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#0E5A75]/5 dark:divide-white/5">
-                      {displayedItems.map((log: any) => (
+                      {(displayedItems as AuditLog[]).map((log) => (
                         <tr key={log.id} className="hover:bg-[#0E5A75]/5 dark:hover:bg-white/5 transition-colors font-bold text-[#053344] dark:text-[#FDF6F1]">
                           <td className="py-4 px-4 font-black">{log.transaction?.property?.title || "Unknown Property"}</td>
                           <td className="py-4 px-4">

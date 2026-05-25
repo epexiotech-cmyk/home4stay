@@ -40,10 +40,11 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Compliance document acceptance logged successfully",
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[LEGAL_ACCEPT_POST] Error:", error);
+    const message = error instanceof Error ? error.message : "Failed to record policy signature";
     return NextResponse.json(
-      { error: error.message || "Failed to record policy signature" },
+      { error: message },
       { status: 500 }
     );
   }

@@ -195,8 +195,8 @@ export default function BillingDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Fetch Dashboard Data
-  const fetchDashboardData = async () => {
+  // Fetch Dashboard Data (used by Retry button)
+  const fetchDashboardData = React.useCallback(async () => {
     if (!propertyId) return;
     try {
       setLoading(true);
@@ -212,23 +212,60 @@ export default function BillingDashboard() {
       setTransactions(data.transactions);
       setInvoices(data.invoices || []);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [propertyId]);
 
   useEffect(() => {
-    fetchDashboardData();
+    let isMounted = true;
+
+    async function loadDashboardData() {
+      if (!propertyId) return;
+      try {
+        const res = await fetch(`/api/partner/billing/dashboard?propertyId=${propertyId}`);
+        if (!res.ok) {
+          throw new Error("Failed to retrieve subscription information");
+        }
+        const data = await res.json();
+        if (isMounted) {
+          setSubscription(data.subscription);
+          setUsages(data.usages);
+          setPlans(data.plans);
+          setActiveProvider(data.activeProvider);
+          setTransactions(data.transactions);
+          setInvoices(data.invoices || []);
+          setError(null);
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboardData();
+
     fetch("/api/legal/active")
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.versions) {
-          setActiveSubVersion(data.versions.SUBSCRIPTION_AGREEMENT || "1.0.0");
+          if (isMounted) {
+            setActiveSubVersion(data.versions.SUBSCRIPTION_AGREEMENT || "1.0.0");
+          }
         }
       })
       .catch((err) => console.error("Error loading active subscription agreement version:", err));
+
+    return () => {
+      isMounted = false;
+    };
   }, [propertyId]);
 
   // Handle Drag & Drop Upload
@@ -303,8 +340,8 @@ export default function BillingDashboard() {
 
       // Success - Redirect to transaction visualizer page
       router.push(`/partner/dashboard/billing/transactions/${data.transactionId}`);
-    } catch (err: any) {
-      setCheckoutError(err.message || "Failed to submit transaction details.");
+    } catch (err: unknown) {
+      setCheckoutError(err instanceof Error ? err.message : "Failed to submit transaction details.");
     } finally {
       setSubmitLoading(false);
     }
@@ -771,6 +808,7 @@ export default function BillingDashboard() {
                 {/* QR Code Container */}
                 {activeProvider.upiId ? (
                   <div className="flex flex-col items-center justify-center p-4 bg-white rounded-3xl shadow-md border border-[#0E5A75]/10 max-w-[200px] mx-auto mb-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={dynamicQrUrl} 
                       alt="Merchant payment QR code" 
@@ -780,6 +818,7 @@ export default function BillingDashboard() {
                   </div>
                 ) : activeProvider.qrImageUrl ? (
                   <div className="flex flex-col items-center justify-center p-4 bg-white rounded-3xl shadow-md border border-[#0E5A75]/10 max-w-[200px] mx-auto mb-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={activeProvider.qrImageUrl} 
                       alt="Merchant payment QR code" 
@@ -858,7 +897,7 @@ export default function BillingDashboard() {
                     <button
                       key={cycle}
                       type="button"
-                      onClick={() => setBillingCycle(cycle as any)}
+                      onClick={() => setBillingCycle(cycle as "MONTHLY" | "QUARTERLY" | "YEARLY" | "LIFETIME")}
                       className={cn(
                         "py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                         billingCycle === cycle
@@ -928,6 +967,7 @@ export default function BillingDashboard() {
                       </div>
                     ) : (
                       <div className="relative rounded-2xl overflow-hidden border border-[#0E5A75]/10 h-32 bg-black/5 flex items-center justify-center p-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img 
                           src={screenshotPreview} 
                           alt="Screenshot upload preview" 

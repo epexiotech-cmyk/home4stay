@@ -1,5 +1,5 @@
 import { prisma } from "../../../lib/database/prisma";
-import { SubscriptionStatus, BillingCycle, PaymentAuditLog } from "@prisma/client";
+import { SubscriptionStatus, BillingCycle } from "@prisma/client";
 import { ReferralService } from "../../../lib/referral/referralService";
 
 
@@ -18,7 +18,7 @@ export class SubscriptionLifecycleService {
     }
 
     const now = new Date();
-    let expiresAt = new Date();
+    const expiresAt = new Date();
 
     // Calculate expiration offset based on billing cycles
     switch (subscription.billingCycle) {
@@ -88,8 +88,9 @@ export class SubscriptionLifecycleService {
     // 4. Award referral credit if this subscription activation qualifies a referred user
     try {
       await ReferralService.awardReferralCredit(subscription.property.ownerId, subscriptionId);
-    } catch (referralErr: any) {
-      console.error("[REFERRAL_CREDIT_AWARD_ERROR] Failed to award credit:", referralErr);
+    } catch (referralErr) {
+      const message = referralErr instanceof Error ? referralErr.message : "Unknown error";
+      console.error("[REFERRAL_CREDIT_AWARD_ERROR] Failed to award credit:", message);
     }
   }
 
@@ -205,8 +206,9 @@ export class SubscriptionLifecycleService {
         });
         logs.push(`Successfully updated sub ID ${sub.id} (Property: "${sub.property.title}") to RENEWAL_DUE.`);
         processed++;
-      } catch (err: any) {
-        logs.push(`[ERROR] Failed to transition sub ID ${sub.id} to RENEWAL_DUE: ${err.message}`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        logs.push(`[ERROR] Failed to transition sub ID ${sub.id} to RENEWAL_DUE: ${message}`);
       }
     }
 
@@ -269,8 +271,9 @@ export class SubscriptionLifecycleService {
         });
         logs.push(`Successfully updated sub ID ${sub.id} (Property: "${sub.property.title}") to IN_GRACE_PERIOD.`);
         processed++;
-      } catch (err: any) {
-        logs.push(`[ERROR] Failed to transition sub ID ${sub.id} to IN_GRACE_PERIOD: ${err.message}`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        logs.push(`[ERROR] Failed to transition sub ID ${sub.id} to IN_GRACE_PERIOD: ${message}`);
       }
     }
 
@@ -346,8 +349,9 @@ export class SubscriptionLifecycleService {
         });
         logs.push(`Successfully suspended sub ID ${sub.id} & Property: "${sub.property.title}" due to overdue grace period.`);
         processed++;
-      } catch (err: any) {
-        logs.push(`[ERROR] Failed to suspend sub ID ${sub.id}: ${err.message}`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        logs.push(`[ERROR] Failed to suspend sub ID ${sub.id}: ${message}`);
       }
     }
 
@@ -366,11 +370,6 @@ export class SubscriptionLifecycleService {
 
     // Let's define the scan ranges for our checks
     const oneDayMs = 24 * 60 * 60 * 1000;
-
-    // Helper thresholds
-    const sevenDaysFromNow = new Date(now.getTime() + 7 * oneDayMs);
-    const threeDaysFromNow = new Date(now.getTime() + 3 * oneDayMs);
-    const oneDayFromNow = new Date(now.getTime() + 1 * oneDayMs);
 
     // Fetch all active, renewed, renewal_due, grace or suspended overdue subscriptions
     const subscriptions = await prisma.propertySubscription.findMany({
@@ -439,7 +438,7 @@ export class SubscriptionLifecycleService {
         });
 
         const alreadySent = sentReminders.some((log) => {
-          const meta = log.metadata as any;
+          const meta = log.metadata as Record<string, string> | null;
           return meta?.reminderType === reminderType && meta?.expiresAt === sub.expiresAt?.toISOString();
         });
 
@@ -508,13 +507,14 @@ export class SubscriptionLifecycleService {
               reminderType,
               expiresAt: sub.expiresAt,
               sentAt: now
-            }
+            } as import("@prisma/client").Prisma.InputJsonValue
           }
         });
 
         processed++;
-      } catch (err: any) {
-        logs.push(`[ERROR] Failed to dispatch reminder for sub ID ${sub.id}: ${err.message}`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        logs.push(`[ERROR] Failed to dispatch reminder for sub ID ${sub.id}: ${message}`);
       }
     }
 

@@ -1,15 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   Users, 
   ShieldAlert, 
   CheckCircle, 
-  XCircle, 
   Search, 
   Filter, 
   Activity, 
-  AlertTriangle,
   RefreshCw,
   Award,
   BookOpen,
@@ -49,7 +47,7 @@ interface ReferralEvent {
   status: string;
   creditsAwarded: number;
   awardedAt: string | null;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
   createdAt: string;
   referrer: Referrer;
   referred: Referrer;
@@ -78,9 +76,11 @@ export default function SuperAdminReferralsPage() {
   const [activeTab, setActiveTab] = useState<"audit" | "leaderboard">("audit");
 
   // Fetch admin telemetry datasets
-  const fetchReferralLogs = async () => {
+  const fetchReferralLogs = useCallback(async (showQueueLoading = true) => {
     try {
-      setLoading(true);
+      if (showQueueLoading) {
+        setLoading(true);
+      }
       const res = await fetch("/api/admin/referrals");
       if (!res.ok) throw new Error("Could not load administrative referral records");
       const data = await res.json();
@@ -93,11 +93,20 @@ export default function SuperAdminReferralsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchReferralLogs();
-  }, []);
+    let isMounted = true;
+    const load = async () => {
+      if (isMounted) {
+        await fetchReferralLogs(false);
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchReferralLogs]);
 
   // Handle Administrative Approval/Rejection Override
   const handleAdminOverride = async (eventId: string, action: "APPROVE" | "REJECT") => {
@@ -122,8 +131,9 @@ export default function SuperAdminReferralsPage() {
       
       // Reload logs
       fetchReferralLogs();
-    } catch (err: any) {
-      alert(`Error applying override: ${err.message}`);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      alert(`Error applying override: ${errMsg}`);
     } finally {
       setSubmittingAction(false);
     }
@@ -176,7 +186,7 @@ export default function SuperAdminReferralsPage() {
           </div>
 
           <button
-            onClick={fetchReferralLogs}
+            onClick={() => fetchReferralLogs()}
             disabled={loading}
             className="flex items-center gap-2.5 px-6 py-4 rounded-2xl bg-gradient-to-r from-[#0E5A75] to-[#0A4459] dark:from-[#0983B0] dark:to-[#053344] text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-[#0E5A75]/20 hover:shadow-2xl transition-all duration-300 transform active:scale-95 disabled:opacity-50 shrink-0"
           >
@@ -374,7 +384,7 @@ export default function SuperAdminReferralsPage() {
                             <td className="py-4 px-4 font-mono text-[10px] max-w-[200px] truncate text-[#0E5A75]/70 dark:text-white/60">
                               {evt.metadata ? (
                                 <div className="space-y-0.5 leading-tight">
-                                  {Object.entries(evt.metadata).map(([k, v]: any) => (
+                                  {Object.entries(evt.metadata).map(([k, v]) => (
                                     <p key={k} className={cn(v === true && "text-rose-500 font-bold")}>
                                       {k}: {String(v)}
                                     </p>

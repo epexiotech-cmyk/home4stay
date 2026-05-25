@@ -10,7 +10,6 @@ import {
   Users, 
   Clock,
   LayoutGrid,
-  Image as ImageIcon,
   Tag,
   Star,
   Zap,

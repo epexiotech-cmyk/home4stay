@@ -9,7 +9,7 @@ interface AuditParams {
   resourceType?: string;
   resourceId?: string;
   status: "SUCCESS" | "FAILURE";
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   request?: NextRequest | Request;
 }
 
@@ -29,7 +29,7 @@ export class AuditLogService {
       
       // Extract IP address safely from forwarded headers
       ipAddress = 
-        (params.request as any).ip || 
+        ("ip" in params.request ? (params.request as { ip?: string }).ip : null) || 
         headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
         headers.get("x-real-ip") || 
         "127.0.0.1";
@@ -48,7 +48,7 @@ export class AuditLogService {
           ipAddress,
           userAgent,
           status: params.status,
-          metadata: params.metadata || {}
+          metadata: (params.metadata || {}) as import("@prisma/client").Prisma.InputJsonValue
         }
       });
 

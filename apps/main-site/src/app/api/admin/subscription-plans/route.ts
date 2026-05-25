@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/database/prisma";
 import { sendNewPlanAlertEmail } from "@/lib/server/email";
+import { Prisma } from "@prisma/client";
 
 /**
  * GET /api/admin/subscription-plans
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Persist transactionally
-    const plan = await prisma.$transaction(async (tx: any) => {
+    const plan = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const record = await tx.subscriptionPlan.create({
         data: {
           name,

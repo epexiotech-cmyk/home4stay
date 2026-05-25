@@ -127,7 +127,7 @@ export async function GET(
     const pdfBuffer = await InvoiceStorageService.getInvoicePdf(bookingId);
     const filename = `${invoice.invoiceNumber}.pdf`;
 
-    return new Response(pdfBuffer as any, {
+    return new Response(pdfBuffer as unknown as BodyInit, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filename}"`,

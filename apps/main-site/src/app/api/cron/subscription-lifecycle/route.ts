@@ -26,7 +26,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized: Invalid or missing cron secret" }, { status: 401 });
     }
 
-    const executionSummary: any[] = [];
+    interface JobSummary {
+      job: string;
+      status: "SUCCESS" | "FAILED";
+      processed?: number;
+      durationMs?: number;
+      error?: string;
+    }
+
+    const executionSummary: JobSummary[] = [];
     const executionTrace: string[] = ["Starting centralized subscription lifecycle automation run..."];
 
     // A. Run scanForRenewalDues
@@ -46,18 +54,20 @@ export async function GET(request: NextRequest) {
       
       executionSummary.push({ job: "EXPIRY_SCAN", status: "SUCCESS", processed: result.processed, durationMs: duration });
       executionTrace.push(...result.logs);
-    } catch (err: any) {
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Unknown error";
+      const errStack = err instanceof Error ? err.stack || "" : "";
       await prisma.automationJobLog.create({
         data: {
           jobType: "EXPIRY_SCAN",
           status: "FAILED",
           recordsProcessed: 0,
-          errorMessage: err.message,
-          logs: [err.message, err.stack]
+          errorMessage: errMsg,
+          logs: [errMsg, errStack]
         }
       });
-      executionSummary.push({ job: "EXPIRY_SCAN", status: "FAILED", error: err.message });
-      executionTrace.push(`[CRITICAL ERROR] EXPIRY_SCAN failed: ${err.message}`);
+      executionSummary.push({ job: "EXPIRY_SCAN", status: "FAILED", error: errMsg });
+      executionTrace.push(`[CRITICAL ERROR] EXPIRY_SCAN failed: ${errMsg}`);
     }
 
     // B. Run scanAndProcessExpiries
@@ -77,18 +87,20 @@ export async function GET(request: NextRequest) {
       
       executionSummary.push({ job: "GRACE_SCAN", status: "SUCCESS", processed: result.processed, durationMs: duration });
       executionTrace.push(...result.logs);
-    } catch (err: any) {
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Unknown error";
+      const errStack = err instanceof Error ? err.stack || "" : "";
       await prisma.automationJobLog.create({
         data: {
           jobType: "GRACE_SCAN",
           status: "FAILED",
           recordsProcessed: 0,
-          errorMessage: err.message,
-          logs: [err.message, err.stack]
+          errorMessage: errMsg,
+          logs: [errMsg, errStack]
         }
       });
-      executionSummary.push({ job: "GRACE_SCAN", status: "FAILED", error: err.message });
-      executionTrace.push(`[CRITICAL ERROR] GRACE_SCAN failed: ${err.message}`);
+      executionSummary.push({ job: "GRACE_SCAN", status: "FAILED", error: errMsg });
+      executionTrace.push(`[CRITICAL ERROR] GRACE_SCAN failed: ${errMsg}`);
     }
 
     // C. Run scanAndProcessGraceExpiries
@@ -108,18 +120,20 @@ export async function GET(request: NextRequest) {
       
       executionSummary.push({ job: "SUSPENSION_PROCESSING", status: "SUCCESS", processed: result.processed, durationMs: duration });
       executionTrace.push(...result.logs);
-    } catch (err: any) {
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Unknown error";
+      const errStack = err instanceof Error ? err.stack || "" : "";
       await prisma.automationJobLog.create({
         data: {
           jobType: "SUSPENSION_PROCESSING",
           status: "FAILED",
           recordsProcessed: 0,
-          errorMessage: err.message,
-          logs: [err.message, err.stack]
+          errorMessage: errMsg,
+          logs: [errMsg, errStack]
         }
       });
-      executionSummary.push({ job: "SUSPENSION_PROCESSING", status: "FAILED", error: err.message });
-      executionTrace.push(`[CRITICAL ERROR] SUSPENSION_PROCESSING failed: ${err.message}`);
+      executionSummary.push({ job: "SUSPENSION_PROCESSING", status: "FAILED", error: errMsg });
+      executionTrace.push(`[CRITICAL ERROR] SUSPENSION_PROCESSING failed: ${errMsg}`);
     }
 
     // D. Run dispatchRenewalReminders
@@ -139,18 +153,20 @@ export async function GET(request: NextRequest) {
       
       executionSummary.push({ job: "REMINDER_SCAN", status: "SUCCESS", processed: result.processed, durationMs: duration });
       executionTrace.push(...result.logs);
-    } catch (err: any) {
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Unknown error";
+      const errStack = err instanceof Error ? err.stack || "" : "";
       await prisma.automationJobLog.create({
         data: {
           jobType: "REMINDER_SCAN",
           status: "FAILED",
           recordsProcessed: 0,
-          errorMessage: err.message,
-          logs: [err.message, err.stack]
+          errorMessage: errMsg,
+          logs: [errMsg, errStack]
         }
       });
-      executionSummary.push({ job: "REMINDER_SCAN", status: "FAILED", error: err.message });
-      executionTrace.push(`[CRITICAL ERROR] REMINDER_SCAN failed: ${err.message}`);
+      executionSummary.push({ job: "REMINDER_SCAN", status: "FAILED", error: errMsg });
+      executionTrace.push(`[CRITICAL ERROR] REMINDER_SCAN failed: ${errMsg}`);
     }
 
     return NextResponse.json({
@@ -160,12 +176,13 @@ export async function GET(request: NextRequest) {
       trace: executionTrace
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("[CRON_ROUTE_ERROR] Lifecycle execution failed:", error);
+    const message = error instanceof Error ? error.message : "Global execution failure";
     return NextResponse.json({
       success: false,
       error: "Global execution failure",
-      message: error.message
+      message
     }, { status: 500 });
   }
 }

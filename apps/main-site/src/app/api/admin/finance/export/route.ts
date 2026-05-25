@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
     const startStr = searchParams.get("startDate");
     const endStr = searchParams.get("endDate");
 
-    let startDate = startStr ? new Date(startStr) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    let endDate = endStr ? new Date(endStr) : new Date();
+    const startDate = startStr ? new Date(startStr) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const endDate = endStr ? new Date(endStr) : new Date();
 
     // Reset times to cover full days
     startDate.setHours(0, 0, 0, 0);
@@ -56,8 +56,9 @@ export async function GET(request: NextRequest) {
         "Content-Disposition": `attachment; filename="${fileName}"`
       }
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[FINANCE_EXPORT_GET] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

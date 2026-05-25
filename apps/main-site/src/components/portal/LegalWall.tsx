@@ -4,32 +4,46 @@ import React, { useState, useEffect } from "react";
 import { ShieldAlert, Check, ArrowRight, Loader2 } from "lucide-react";
 import { sanitizeHtml } from "@/lib/legal/sanitizer";
 
+interface LegalDocument {
+  id: string;
+  version: string;
+  documentType: string;
+  title: string;
+  content: string;
+}
+
 export function LegalWall() {
-  const [pendingDocs, setPendingDocs] = useState<any[]>([]);
+  const [pendingDocs, setPendingDocs] = useState<LegalDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStatus = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/auth/legal-status");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.pending) {
-          setPendingDocs(data.pending);
+  useEffect(() => {
+    let active = true;
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch("/api/auth/legal-status");
+        if (res.ok && active) {
+          const data = await res.json() as { success?: boolean; pending?: LegalDocument[] };
+          if (data.success && data.pending) {
+            setPendingDocs(data.pending);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load user legal compliance status:", err);
+      } finally {
+        if (active) {
+          setLoading(false);
         }
       }
-    } catch (err) {
-      console.error("Failed to load user legal compliance status:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  useEffect(() => {
     fetchStatus();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   if (loading) {
@@ -59,7 +73,7 @@ export function LegalWall() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json() as { error?: string };
       if (!res.ok) {
         throw new Error(data.error || "Failed to log acceptance signature");
       }
@@ -67,8 +81,9 @@ export function LegalWall() {
       // Acceptance logged successfully. Remove the document from the local queue.
       setConsentChecked(false);
       setPendingDocs((prev) => prev.slice(1));
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred. Please try again.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred. Please try again.";
+      setError(message);
     } finally {
       setAccepting(false);
     }

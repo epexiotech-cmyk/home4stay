@@ -26,9 +26,9 @@ export async function GET(
       // Convert Node ReadStream to Web ReadableStream for standard Next Response piping
       const webStream = new ReadableStream({
         start(controller) {
-          stream.on("data", (chunk) => controller.enqueue(chunk));
+          stream.on("data", (chunk: string | Buffer) => controller.enqueue(chunk));
           stream.on("end", () => controller.close());
-          stream.on("error", (err) => controller.error(err));
+          stream.on("error", (err: Error) => controller.error(err));
         }
       });
 
@@ -39,7 +39,7 @@ export async function GET(
         }
       });
 
-    } catch (storageErr) {
+    } catch {
       return NextResponse.json({ error: "Proof screenshot file not found" }, { status: 404 });
     }
 

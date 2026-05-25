@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/database/prisma";
 import { eventBroadcaster } from "./eventBroadcaster";
-import { notificationService } from "./notificationService";
 import { InvoiceNumberingService } from "./invoiceNumberingService";
 import { InvoicePdfGenerator } from "./invoicePdfGenerator";
 import { InvoiceStorageService } from "./invoiceStorageService";
@@ -230,7 +229,7 @@ class BookingEngine {
         const htmlWithComment = `${invEmail.html}\n<!-- bookingId: ${bookingId} -->`;
         await queueEmail(guestEmail || "billing@home4stay.homes", invEmail.subject, htmlWithComment);
 
-      } catch (err: any) {
+      } catch (err) {
         console.error("[BookingEngine] Post-transaction billing operations failed:", err);
         // Do not crash the return since database states have committed successfully
       }
@@ -253,9 +252,10 @@ class BookingEngine {
         invoiceNumber 
       };
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("[BookingEngine] Confirmation transaction crashed:", error);
-      return { success: false, message: error.message || "Confirmation failed." };
+      const message = error instanceof Error ? error.message : "Confirmation failed.";
+      return { success: false, message };
     }
   }
 
@@ -391,7 +391,7 @@ class BookingEngine {
         const rejectMail = await sendPaymentRejectedEmail(guestEmail || "billing@home4stay.homes", emailDetails);
         await queueEmail(guestEmail || "billing@home4stay.homes", rejectMail.subject, rejectMail.html);
 
-      } catch (err: any) {
+      } catch (err) {
         console.error("[BookingEngine] Post-transaction rejection operations failed:", err);
       }
 
@@ -409,9 +409,10 @@ class BookingEngine {
 
       return { success: true, message: "Booking declined and room hold released." };
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("[BookingEngine] Rejection transaction crashed:", error);
-      return { success: false, message: error.message || "Rejection failed." };
+      const message = error instanceof Error ? error.message : "Rejection failed.";
+      return { success: false, message };
     }
   }
 
@@ -513,7 +514,7 @@ class BookingEngine {
         const expireMail = await sendBookingExpiredEmail(guestEmail || "billing@home4stay.homes", emailDetails);
         await queueEmail(guestEmail || "billing@home4stay.homes", expireMail.subject, expireMail.html);
 
-      } catch (err: any) {
+      } catch (err) {
         console.error("[BookingEngine] Post-transaction expiry operations failed:", err);
       }
 
@@ -529,9 +530,10 @@ class BookingEngine {
 
       return { success: true, message: "Booking holds lease automatically expired successfully." };
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("[BookingEngine] Expiry transaction crashed:", error);
-      return { success: false, message: error.message || "Expiry failed." };
+      const message = error instanceof Error ? error.message : "Expiry failed.";
+      return { success: false, message };
     }
   }
 }

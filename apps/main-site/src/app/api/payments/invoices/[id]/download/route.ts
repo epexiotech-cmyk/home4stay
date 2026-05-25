@@ -36,7 +36,7 @@ export async function GET(
     }
 
     // 4. Resolve local PDF file path
-    const meta = invoice.metadata as any;
+    const meta = invoice.metadata as { localPath?: string } | null;
     let localPath = meta?.localPath;
 
     if (!localPath) {
@@ -73,7 +73,7 @@ export async function GET(
     // 5. Read file buffer and return stream response
     const pdfBuffer = fs.readFileSync(resolvedPath);
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfBuffer as unknown as BodyInit, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
@@ -82,8 +82,9 @@ export async function GET(
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("[INVOICE_DOWNLOAD_API] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

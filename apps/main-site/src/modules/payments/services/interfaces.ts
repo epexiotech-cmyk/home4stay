@@ -1,4 +1,4 @@
-import { PaymentProviderType, PaymentStatus } from "@prisma/client";
+import { PaymentStatus } from "@prisma/client";
 
 export interface PaymentRequest {
   transactionId: string;
@@ -6,7 +6,7 @@ export interface PaymentRequest {
   currency: string;
   customerEmail: string;
   customerPhone?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PaymentResponse {
@@ -15,7 +15,7 @@ export interface PaymentResponse {
   gatewayOrderId?: string;
   paymentUrl?: string; // Checkout redirect URL for Stripe/Razorpay
   qrCodeUrl?: string;  // QR payload or deep link for manual/auto UPI systems
-  rawResponse: any;
+  rawResponse: Record<string, unknown>;
 }
 
 export interface IPaymentProvider {
@@ -27,15 +27,15 @@ export interface IPaymentProvider {
   /**
    * Verifies the actual real-time status of a transaction
    */
-  verifyPayment(gatewayTransactionId: string, gatewayOrderId?: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: any }>;
+  verifyPayment(gatewayTransactionId: string, gatewayOrderId?: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: Record<string, unknown> }>;
 
   /**
    * Refunds a captured payment transaction
    */
-  refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: any }>;
+  refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: Record<string, unknown> }>;
 
   /**
    * Handles webhook callback events from the provider
    */
-  handleWebhook(payload: any, signature?: string): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }>;
+  handleWebhook(payload: Record<string, unknown>, signature?: string): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }>;
 }

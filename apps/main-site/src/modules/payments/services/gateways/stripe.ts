@@ -30,7 +30,7 @@ export class StripeProvider implements IPaymentProvider {
     };
   }
 
-  async verifyPayment(gatewayTransactionId: string, gatewayOrderId?: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: any }> {
+  async verifyPayment(gatewayTransactionId: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: Record<string, unknown> }> {
     return {
       success: true,
       status: PaymentStatus.SUCCESS,
@@ -42,7 +42,7 @@ export class StripeProvider implements IPaymentProvider {
     };
   }
 
-  async refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: any }> {
+  async refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: Record<string, unknown> }> {
     const mockRefundId = `re_stripe_${Date.now()}`;
     return {
       success: true,
@@ -55,15 +55,17 @@ export class StripeProvider implements IPaymentProvider {
     };
   }
 
-  async handleWebhook(payload: any, signature?: string): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }> {
-    const type = payload?.type;
-    const object = payload?.data?.object;
+  async handleWebhook(payload: Record<string, unknown>): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }> {
+    const type = payload?.type as string | undefined;
+    const data = payload?.data as Record<string, unknown> | undefined;
+    const object = data?.object as Record<string, unknown> | undefined;
 
     if (type === "checkout.session.completed" && object) {
+      const metadata = object.metadata as Record<string, string> | undefined;
       return {
         processed: true,
         status: PaymentStatus.SUCCESS,
-        transactionId: object.metadata?.transactionId || object.metadata?.transaction_id
+        transactionId: metadata?.transactionId || metadata?.transaction_id
       };
     }
 

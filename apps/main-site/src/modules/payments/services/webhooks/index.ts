@@ -6,7 +6,7 @@ export class PaymentWebhookDelegator {
   /**
    * Dispatches and processes webhook events dynamically matching providers
    */
-  static async handleWebhook(providerId: string, payload: any, signature?: string): Promise<{ processed: boolean; status: string }> {
+  static async handleWebhook(providerId: string, payload: Record<string, unknown>, signature?: string): Promise<{ processed: boolean; status: string }> {
     const provider = await PaymentService.getProviderInstance(providerId);
     
     // Call gateway webhook parser
@@ -26,17 +26,25 @@ export class PaymentWebhookDelegator {
 
     // Process status updates transactionally
     await prisma.$transaction(async (tx) => {
+      const currentResponse = (transaction.gatewayResponse as Record<string, unknown>) || {};
+      const updatedResponse: import("@prisma/client").Prisma.InputJsonValue = {
+        ...currentResponse,
+        webhookPayload: payload as import("@prisma/client").Prisma.InputJsonValue
+      };
+
       await tx.paymentTransaction.update({
         where: { id: transaction.id },
         data: {
           paymentStatus: outcome.status,
           paidAt: outcome.status === PaymentStatus.SUCCESS ? new Date() : null,
-          gatewayResponse: {
-            ...(transaction.gatewayResponse as any || {}),
-            webhookPayload: payload
-          }
+          gatewayResponse: updatedResponse
         }
       });
+
+      const auditLogMetadata: import("@prisma/client").Prisma.InputJsonValue = {
+        signature: signature || null,
+        eventPayload: payload as import("@prisma/client").Prisma.InputJsonValue
+      };
 
       await tx.paymentAuditLog.create({
         data: {
@@ -45,10 +53,7 @@ export class PaymentWebhookDelegator {
           oldStatus: transaction.paymentStatus,
           newStatus: outcome.status,
           performedBy: `webhook_delegator_${providerId}`,
-          metadata: {
-            signature: signature || null,
-            eventPayload: payload
-          }
+          metadata: auditLogMetadata
         }
       });
     });

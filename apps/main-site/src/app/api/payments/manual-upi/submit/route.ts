@@ -111,8 +111,9 @@ export async function POST(request: NextRequest) {
     let storedFilename = "";
     try {
       storedFilename = await storageDriver.uploadFile(fileBuffer, screenshot.name, screenshot.type);
-    } catch (uploadError: any) {
-      return NextResponse.json({ error: uploadError.message || "Failed to process screenshot upload" }, { status: 400 });
+    } catch (uploadError) {
+      const message = uploadError instanceof Error ? uploadError.message : "Failed to process screenshot upload";
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
     // 9. Determine rates
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
     const amount = PLAN_RATES[planIdKey]?.[cycleUpper] || PLAN_RATES["basic"]?.[cycleUpper] || 999;
 
     // 10. Transactional persistence
-    const { transaction } = await prisma.$transaction(async (tx: any) => {
+    const { transaction } = await prisma.$transaction(async (tx) => {
       // Create inactive subscription tracker
       const subscription = await tx.propertySubscription.create({
         data: {
@@ -167,7 +168,7 @@ export async function POST(request: NextRequest) {
       // Write immutable legal acceptance log
       await tx.legalAcceptanceLog.create({
         data: {
-          userId: auth.userId,
+          userId: auth.userId as string,
           documentId: subAgreementDocId,
           acceptedVersion: acceptedSubscriptionAgreementVersion,
           ipAddress: ip,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getProperty } from "@home4stay/data";
 import { getPropertySubscriptionState } from "../../lib/db";
 
@@ -176,26 +177,32 @@ export default async function PropertyHomePage({
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {/* Main Featured Image */}
             <div className="md:col-span-2 aspect-video w-full rounded-2xl overflow-hidden bg-zinc-100">
-              <img 
-                src={imagesToShow[0]} 
+              <Image
+                src={imagesToShow[0]}
                 alt={`${property.name} experience`}
-                className="h-full w-full object-cover"
+                fill
+                sizes="(max-width: 768px) 100vw, 66vw"
+                className="object-cover"
               />
             </div>
             {/* Sidebar Images */}
             <div className="grid grid-cols-1 gap-6">
               <div className="aspect-video w-full rounded-2xl overflow-hidden bg-zinc-100">
-                <img 
-                  src={imagesToShow[1] || imagesToShow[0]} 
+                <Image
+                  src={imagesToShow[1] || imagesToShow[0]}
                   alt={`${property.name} view`}
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-cover"
                 />
               </div>
               <div className="aspect-video w-full rounded-2xl overflow-hidden bg-zinc-100">
-                <img 
-                  src={imagesToShow[2] || imagesToShow[0]} 
+                <Image
+                  src={imagesToShow[2] || imagesToShow[0]}
                   alt={`${property.name} detail`}
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-cover"
                 />
               </div>
             </div>

@@ -29,7 +29,7 @@ export class ManualUpiProvider implements IPaymentProvider {
     };
   }
 
-  async verifyPayment(gatewayTransactionId: string, gatewayOrderId?: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: any }> {
+  async verifyPayment(): Promise<{ success: boolean; status: PaymentStatus; rawResponse: Record<string, unknown> }> {
     // Manual UPI payments require human review (UTR verification)
     return {
       success: false,
@@ -40,7 +40,7 @@ export class ManualUpiProvider implements IPaymentProvider {
     };
   }
 
-  async refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: any }> {
+  async refundPayment(): Promise<{ success: boolean; refundId?: string; rawResponse: Record<string, unknown> }> {
     // Manual refunds are executed offline by operations teams
     return {
       success: true,
@@ -51,7 +51,7 @@ export class ManualUpiProvider implements IPaymentProvider {
     };
   }
 
-  async handleWebhook(payload: any, signature?: string): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }> {
+  async handleWebhook(): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }> {
     // Webhooks are not supported for manual UPI transfers
     return {
       processed: false,

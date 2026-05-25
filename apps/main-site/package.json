@@ -37,8 +37,11 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.4",
     "@types/bcryptjs": "^2.4.6",
+    "@types/estree": "^1.0.9",
+    "@types/json-schema": "^7.0.15",
+    "@types/json5": "^0.0.29",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^20",
+    "@types/node": "^20.19.41",
     "@types/pdfkit": "^0.17.6",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",

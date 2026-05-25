@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/database/prisma";
 import { LegalService } from "@/lib/legal/legalService";
-import { LegalDocumentType } from "@prisma/client";
+import { LegalDocumentType, Prisma } from "@prisma/client";
 
 /**
  * GET: Retrieve all versions of legal documents
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const typeParam = searchParams.get("type");
 
-    const whereClause: any = {};
+    const whereClause: Prisma.LegalDocumentWhereInput = {};
     if (typeParam) {
       const upperType = typeParam.toUpperCase();
       if (Object.values(LegalDocumentType).includes(upperType as LegalDocumentType)) {
@@ -106,9 +106,10 @@ export async function POST(request: NextRequest) {
       success: true,
       document
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[LEGAL_DOCUMENTS_POST] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -190,8 +191,9 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json({ error: "Invalid action. Use 'publish' or 'edit'." }, { status: 400 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[LEGAL_DOCUMENTS_PATCH] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -15,9 +15,6 @@ export async function POST(
       return auth.response || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json().catch(() => ({}));
-    const reason = body.reason || "Manual operational suspension.";
-
     // 2. Process Suspension Lifecycle
     await SubscriptionLifecycleService.suspendSubscription(subscriptionId, auth.userId);
 
@@ -26,8 +23,9 @@ export async function POST(
       message: "Subscription suspended and property visibility restricted successfully"
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("[ADMIN_SUBSCRIPTION_SUSPEND] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

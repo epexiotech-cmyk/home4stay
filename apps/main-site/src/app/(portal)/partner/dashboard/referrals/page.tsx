@@ -6,7 +6,6 @@ import {
   Copy, 
   Check, 
   Users, 
-  DollarSign, 
   Award, 
   HelpCircle,
   Clock,
@@ -85,8 +84,8 @@ export default function PartnerReferralPage() {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"referrals" | "ledger" | "redemptions">("referrals");
 
-  // Fetch Referral Data
-  const fetchReferralDetails = async () => {
+  // Fetch Referral Data (used by Refresh button)
+  const fetchReferralDetails = React.useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/partner/referrals");
@@ -103,10 +102,36 @@ export default function PartnerReferralPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchReferralDetails();
+    let isMounted = true;
+
+    async function loadReferralData() {
+      try {
+        const res = await fetch("/api/partner/referrals");
+        if (!res.ok) throw new Error("Failed to fetch referral metrics");
+        const data = await res.json();
+        if (data.success && isMounted) {
+          setProfile(data.profile);
+          setEvents(data.events || []);
+          setLedger(data.ledger || []);
+          setRedemptions(data.redemptions || []);
+        }
+      } catch (error) {
+        console.error("[REFERRALS_FETCH_ERROR] Error fetching partner referrals:", error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadReferralData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const copyToClipboard = () => {

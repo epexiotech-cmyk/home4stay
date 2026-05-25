@@ -32,7 +32,7 @@ export class RazorpayProvider implements IPaymentProvider {
     };
   }
 
-  async verifyPayment(gatewayTransactionId: string, gatewayOrderId?: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: any }> {
+  async verifyPayment(gatewayTransactionId: string, gatewayOrderId?: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: Record<string, unknown> }> {
     return {
       success: true,
       status: PaymentStatus.SUCCESS,
@@ -45,7 +45,7 @@ export class RazorpayProvider implements IPaymentProvider {
     };
   }
 
-  async refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: any }> {
+  async refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: Record<string, unknown> }> {
     const mockRefundId = `rfnd_rzp_${Date.now()}`;
     return {
       success: true,
@@ -58,16 +58,19 @@ export class RazorpayProvider implements IPaymentProvider {
     };
   }
 
-  async handleWebhook(payload: any, signature?: string): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }> {
+  async handleWebhook(payload: Record<string, unknown>): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }> {
     // In the future, verify the webhook signature here
-    const event = payload?.event;
-    const paymentEntity = payload?.payload?.payment?.entity;
+    const event = payload?.event as string | undefined;
+    const innerPayload = payload?.payload as Record<string, unknown> | undefined;
+    const payment = innerPayload?.payment as Record<string, unknown> | undefined;
+    const paymentEntity = payment?.entity as Record<string, unknown> | undefined;
     
     if (event === "payment.captured" && paymentEntity) {
+      const notes = paymentEntity.notes as Record<string, string> | undefined;
       return {
         processed: true,
         status: PaymentStatus.SUCCESS,
-        transactionId: paymentEntity.notes?.transactionId || paymentEntity.notes?.transaction_id
+        transactionId: notes?.transactionId || notes?.transaction_id
       };
     }
 

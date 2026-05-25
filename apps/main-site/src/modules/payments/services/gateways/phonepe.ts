@@ -17,16 +17,16 @@ export class PhonePeProvider implements IPaymentProvider {
     callbackUrl?: string;
     redirectUrl?: string;
     isSandbox?: boolean;
-    gatewayConfig?: any;
+    gatewayConfig?: Record<string, unknown>;
   }) {
     // Gracefully resolve configs from direct params or gatewayConfig JSON block
-    const gatewayConfig = config.gatewayConfig || {};
-    this.merchantId = config.merchantId || gatewayConfig.merchantId || "MID_PHONEPE_MOCK";
-    this.saltKey = config.saltKey || gatewayConfig.saltKey || "mock-salt-key-phonepe-1234567890";
-    this.saltIndex = config.saltIndex || gatewayConfig.saltIndex || "1";
-    this.callbackUrl = config.callbackUrl || gatewayConfig.callbackUrl || "http://localhost:3000/api/payments/webhooks/phonepe";
-    this.redirectUrl = config.redirectUrl || gatewayConfig.redirectUrl || "http://localhost:3000/payments/checkout/phonepe";
-    this.isSandbox = config.isSandbox !== undefined ? config.isSandbox : (gatewayConfig.isSandbox ?? true);
+    const gatewayConfig = (config.gatewayConfig || {}) as Record<string, string | boolean | undefined>;
+    this.merchantId = config.merchantId || (gatewayConfig.merchantId as string | undefined) || "MID_PHONEPE_MOCK";
+    this.saltKey = config.saltKey || (gatewayConfig.saltKey as string | undefined) || "mock-salt-key-phonepe-1234567890";
+    this.saltIndex = config.saltIndex || (gatewayConfig.saltIndex as string | undefined) || "1";
+    this.callbackUrl = config.callbackUrl || (gatewayConfig.callbackUrl as string | undefined) || "http://localhost:3000/api/payments/webhooks/phonepe";
+    this.redirectUrl = config.redirectUrl || (gatewayConfig.redirectUrl as string | undefined) || "http://localhost:3000/payments/checkout/phonepe";
+    this.isSandbox = config.isSandbox !== undefined ? config.isSandbox : ((gatewayConfig.isSandbox as boolean | undefined) ?? true);
   }
 
   /**
@@ -98,7 +98,7 @@ export class PhonePeProvider implements IPaymentProvider {
   /**
    * Verifies the actual real-time status of a transaction with PhonePe
    */
-  async verifyPayment(gatewayTransactionId: string, gatewayOrderId?: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: any }> {
+  async verifyPayment(gatewayTransactionId: string, gatewayOrderId?: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: Record<string, unknown> }> {
     const txnId = gatewayOrderId || gatewayTransactionId;
     
     // Support test override simulation via query param markers inside simulated gatewayOrderId or custom metadata
@@ -135,7 +135,7 @@ export class PhonePeProvider implements IPaymentProvider {
   /**
    * Simulates PhonePe refund protocol
    */
-  async refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: any }> {
+  async refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: Record<string, unknown> }> {
     const mockRefundId = `pp_ref_${Date.now()}`;
     return {
       success: true,
@@ -158,7 +158,7 @@ export class PhonePeProvider implements IPaymentProvider {
   /**
    * Handles webhook callback events from PhonePe
    */
-  async handleWebhook(payload: any, signature?: string): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }> {
+  async handleWebhook(payload: Record<string, unknown>, signature?: string): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }> {
     // Expect PhonePe payload format:
     // { response: "Base64JSONString" }
     // Signature header check
@@ -166,17 +166,25 @@ export class PhonePeProvider implements IPaymentProvider {
       return { processed: false, status: PaymentStatus.FAILED };
     }
 
+    const payloadResponse = payload.response as string;
+
     // Checksum verification
     if (signature) {
-      const computed = this.generateChecksum(payload.response, "/api/payments/webhooks/phonepe");
+      const computed = this.generateChecksum(payloadResponse, "/api/payments/webhooks/phonepe");
       if (computed !== signature) {
         throw new Error("PhonePe Webhook validation failed: corrupt signature checksum mismatch");
       }
     }
 
     // Decode response body
-    const decodedText = Buffer.from(payload.response, "base64").toString("utf-8");
-    const body = JSON.parse(decodedText);
+    const decodedText = Buffer.from(payloadResponse, "base64").toString("utf-8");
+    const body = JSON.parse(decodedText) as {
+      success?: boolean;
+      code?: string;
+      data?: {
+        merchantTransactionId?: string;
+      };
+    };
 
     const isSuccess = body.success === true && body.code === "PAYMENT_SUCCESS";
     const isFailed = body.code === "PAYMENT_ERROR";

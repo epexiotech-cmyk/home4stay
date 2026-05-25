@@ -1,5 +1,5 @@
 import { prisma } from "../../../lib/database/prisma";
-import { IPaymentProvider, PaymentRequest } from "./interfaces";
+import { IPaymentProvider } from "./interfaces";
 import { ManualUpiProvider } from "./manual-upi/provider";
 import { RazorpayProvider } from "./gateways/razorpay";
 import { StripeProvider } from "./gateways/stripe";
@@ -62,7 +62,7 @@ export class PaymentService {
           merchantId: config.merchantId || undefined,
           saltKey: config.secretKey || undefined,
           isSandbox: config.isSandbox,
-          gatewayConfig: config.gatewayConfig
+          gatewayConfig: (config.gatewayConfig as Record<string, unknown> | null) || undefined
         });
 
       case PaymentProviderType.YES_BANK:
@@ -70,7 +70,7 @@ export class PaymentService {
           merchantId: config.merchantId || undefined,
           encryptionKey: config.secretKey || undefined,
           isSandbox: config.isSandbox,
-          gatewayConfig: config.gatewayConfig
+          gatewayConfig: (config.gatewayConfig as Record<string, unknown> | null) || undefined
         });
 
       default:
@@ -89,8 +89,8 @@ export class PaymentService {
     currency?: string;
     customerEmail: string;
     customerPhone?: string;
-    metadata?: Record<string, any>;
-  }): Promise<{ transaction: PaymentTransaction; gatewayResponse: any; paymentUrl?: string; qrCodeUrl?: string }> {
+    metadata?: Record<string, unknown>;
+  }): Promise<{ transaction: PaymentTransaction; gatewayResponse: Record<string, unknown>; paymentUrl?: string; qrCodeUrl?: string }> {
     const currency = params.currency || "INR";
 
     // 1. Transactionally write pending transaction and baseline audit logs
@@ -137,7 +137,7 @@ export class PaymentService {
       data: {
         gatewayOrderId: charge.gatewayOrderId || null,
         gatewayTransactionId: charge.gatewayTransactionId || null,
-        gatewayResponse: charge.rawResponse || {}
+        gatewayResponse: (charge.rawResponse || {}) as import("@prisma/client").Prisma.InputJsonValue
       }
     });
 
@@ -264,10 +264,10 @@ export class PaymentService {
     currency?: string;
     customerEmail: string;
     customerPhone?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }): Promise<{
     transaction: PaymentTransaction;
-    gatewayResponse: any;
+    gatewayResponse: Record<string, unknown>;
     paymentUrl?: string;
     qrCodeUrl?: string;
     providerType: PaymentProviderType;
@@ -352,7 +352,7 @@ export class PaymentService {
             paymentStatus: PaymentStatus.PENDING,
             gatewayOrderId: charge.gatewayOrderId || null,
             gatewayTransactionId: charge.gatewayTransactionId || null,
-            gatewayResponse: charge.rawResponse || {}
+            gatewayResponse: (charge.rawResponse || {}) as import("@prisma/client").Prisma.InputJsonValue
           }
         });
 
@@ -376,9 +376,10 @@ export class PaymentService {
           qrCodeUrl: charge.qrCodeUrl,
           providerType: currentProvider.providerType
         };
-      } catch (err: any) {
-        console.error(`Gateway ${currentProvider.displayName} failed to initiate checkout:`, err.message);
-        lastError = err;
+      } catch (err) {
+        const errorInstance = err instanceof Error ? err : new Error("Unknown routing failure");
+        console.error(`Gateway ${currentProvider.displayName} failed to initiate checkout:`, errorInstance.message);
+        lastError = errorInstance;
       }
     }
 

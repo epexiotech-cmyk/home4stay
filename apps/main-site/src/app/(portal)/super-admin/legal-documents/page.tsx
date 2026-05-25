@@ -1,28 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   FileText,
   Shield,
   Users,
   Download,
   Plus,
-  Edit,
-  Eye,
   BookOpen,
   CheckCircle,
   RefreshCw,
   AlertTriangle,
   Search,
-  Calendar,
-  ChevronRight,
-  ArrowRight,
-  Lock,
   Globe,
-  Settings,
   History,
-  List,
-  Trash2,
   X
 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
@@ -48,7 +39,7 @@ interface AuditLog {
   acceptedVersion: string;
   ipAddress: string | null;
   userAgent: string | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   user: {
     name: string;
     email: string;
@@ -84,26 +75,16 @@ export default function SuperAdminLegalDocumentsPage() {
   const [filterDocType, setFilterDocType] = useState<string>("ALL");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [auditLimit, setAuditLimit] = useState(25);
+  const auditLimit = 25;
   const [auditOffset, setAuditOffset] = useState(0);
   const [totalAuditCount, setTotalAuditCount] = useState(0);
 
-  useEffect(() => {
-    fetchDocuments();
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === "audit") {
-      fetchAuditLogs();
-    }
-  }, [activeTab, filterDocType, searchTerm, startDate, endDate, auditLimit, auditOffset]);
-
-  const showNotice = (type: "success" | "error", message: string) => {
+  const showNotice = useCallback((type: "success" | "error", message: string) => {
     setNotice({ type, message });
     setTimeout(() => setNotice(null), 5000);
-  };
+  }, []);
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/legal-documents");
@@ -114,13 +95,14 @@ export default function SuperAdminLegalDocumentsPage() {
         showNotice("error", data.error || "Failed to load legal policies.");
       }
     } catch (err) {
+      console.error("[LEGAL_DOCUMENTS_FETCH_ERROR]", err);
       showNotice("error", "Error connection to database.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [showNotice]);
 
-  const fetchAuditLogs = async () => {
+  const fetchAuditLogs = useCallback(async () => {
     try {
       const params = new URLSearchParams({
         limit: auditLimit.toString(),
@@ -139,9 +121,70 @@ export default function SuperAdminLegalDocumentsPage() {
         setTotalAuditCount(data.pagination.total);
       }
     } catch (err) {
+      console.error("[AUDIT_LOGS_FETCH_ERROR]", err);
       showNotice("error", "Error loading compliance logs.");
     }
-  };
+  }, [auditLimit, auditOffset, searchTerm, filterDocType, startDate, endDate, showNotice]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDocuments() {
+      try {
+        const res = await fetch("/api/admin/legal-documents");
+        const data = await res.json();
+        if (data.success && isMounted) {
+          setAllDocuments(data.documents);
+        }
+      } catch (err) {
+        console.error("[LEGAL_DOCUMENTS_LOAD_ERROR]", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDocuments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadAuditLogs() {
+      if (activeTab !== "audit") return;
+      try {
+        const params = new URLSearchParams({
+          limit: auditLimit.toString(),
+          offset: auditOffset.toString()
+        });
+
+        if (searchTerm) params.append("search", searchTerm);
+        if (filterDocType && filterDocType !== "ALL") params.append("documentType", filterDocType);
+        if (startDate) params.append("startDate", startDate);
+        if (endDate) params.append("endDate", endDate);
+
+        const res = await fetch(`/api/admin/legal-documents/audit?${params.toString()}`);
+        const data = await res.json();
+        if (data.success && isMounted) {
+          setAuditLogs(data.logs);
+          setTotalAuditCount(data.pagination.total);
+        }
+      } catch (err) {
+        console.error("[AUDIT_LOGS_LOAD_ERROR]", err);
+      }
+    }
+
+    loadAuditLogs();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab, filterDocType, searchTerm, startDate, endDate, auditLimit, auditOffset]);
 
   // Pre-fill form when creating new draft version
   const handleInitiateNewVersion = (type: LegalDocumentType) => {
@@ -234,6 +277,7 @@ export default function SuperAdminLegalDocumentsPage() {
         }
       }
     } catch (err) {
+      console.error("[LEGAL_DOC_SAVE_ERROR]", err);
       showNotice("error", "A network error occurred while saving.");
     } finally {
       setActioning(false);
@@ -266,6 +310,7 @@ Are you sure you want to proceed with this dynamic version promotion?`;
         showNotice("error", data.error || "Failed to publish document.");
       }
     } catch (err) {
+      console.error("[LEGAL_DOC_PUBLISH_ERROR]", err);
       showNotice("error", "Error publishing policy.");
     } finally {
       setActioning(false);

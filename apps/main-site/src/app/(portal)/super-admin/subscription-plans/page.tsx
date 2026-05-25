@@ -1,25 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   Plus, 
   Edit, 
   Trash2, 
-  Check, 
   X, 
-  Settings, 
   DollarSign, 
   Layers, 
   Sliders, 
   Star, 
-  HelpCircle,
   RefreshCw,
   CheckCircle,
   XCircle,
   ShieldCheck,
   Zap,
   Globe,
-  Image,
+  Image as ImageIcon,
   Video,
   Bookmark,
   Calendar,
@@ -88,12 +85,15 @@ export default function SuperAdminSubscriptionPlansPage() {
     }
   });
 
-  useEffect(() => {
-    fetchPlans();
+  const showNotice = useCallback((type: "success" | "error", message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 5000);
   }, []);
 
-  const fetchPlans = async () => {
-    setLoading(true);
+  const fetchPlans = useCallback(async (showQueueLoading = true) => {
+    if (showQueueLoading) {
+      setLoading(true);
+    }
     try {
       const res = await fetch("/api/admin/subscription-plans");
       const data = await res.json();
@@ -101,16 +101,25 @@ export default function SuperAdminSubscriptionPlansPage() {
         setPlans(data.plans);
       }
     } catch (err) {
+      console.error(err);
       showNotice("error", "Failed to retrieve subscription plans.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [showNotice]);
 
-  const showNotice = (type: "success" | "error", message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 5000);
-  };
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      if (isMounted) {
+        await fetchPlans(false);
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchPlans]);
 
   const handleEdit = (plan: SubscriptionPlan) => {
     setEditingId(plan.id);
@@ -205,6 +214,7 @@ export default function SuperAdminSubscriptionPlansPage() {
         showNotice("error", data.error || "Failed to update configurations.");
       }
     } catch (err) {
+      console.error(err);
       showNotice("error", "Error saving plan options.");
     } finally {
       setSaving(false);
@@ -223,6 +233,7 @@ export default function SuperAdminSubscriptionPlansPage() {
         showNotice("error", data.error || "Failed to delete.");
       }
     } catch (err) {
+      console.error(err);
       showNotice("error", "Error processing soft deletion.");
     }
   };
@@ -263,7 +274,7 @@ export default function SuperAdminSubscriptionPlansPage() {
               Create Plan Tiers
             </button>
             <button 
-              onClick={fetchPlans}
+              onClick={() => fetchPlans()}
               className="flex items-center justify-center h-12 w-12 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-all shadow-sm"
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
@@ -355,7 +366,7 @@ export default function SuperAdminSubscriptionPlansPage() {
                         <span>Properties: {plan.maxProperties}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <Image size={12} className="text-amber-500" />
+                        <ImageIcon size={12} className="text-amber-500" />
                         <span>Max Images: {plan.maxImagesPerProperty}</span>
                       </div>
                       <div className="flex items-center gap-1.5">

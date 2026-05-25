@@ -81,8 +81,9 @@ export async function GET(request: NextRequest) {
         createdAt: r.createdAt,
       })),
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[PARTNER_REFERRALS_GET] Error fetching referral details:", error);
-    return NextResponse.json({ error: error.message || "Failed to fetch referral details" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to fetch referral details";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

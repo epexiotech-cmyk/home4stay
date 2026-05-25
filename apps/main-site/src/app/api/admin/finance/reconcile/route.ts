@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/rbac";
 import { SettlementTracker, ReconciliationEngine } from "@/lib/financial/financeService";
-import { prisma } from "@/lib/database/prisma";
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,8 +56,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ error: "Invalid action specifier. Must be 'recordSettlement' or 'reconcile'." }, { status: 400 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[FINANCE_RECONCILE_POST] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

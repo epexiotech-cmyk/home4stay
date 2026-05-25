@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Building2,
   Receipt,
@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   FileText,
   Percent,
-  Hash,
   Scale,
   ShieldAlert
 } from "lucide-react";
@@ -98,11 +97,12 @@ export default function FinancialSettingsPage() {
     dataRetentionDays: "365"
   });
 
-  useEffect(() => {
-    fetchSettings();
+  const showNotice = useCallback((type: "success" | "error", message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 6000);
   }, []);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/financial-settings");
@@ -143,16 +143,68 @@ export default function FinancialSettingsPage() {
         showNotice("error", data.error || "Failed to load financial settings.");
       }
     } catch (err) {
+      console.error("[FINANCE_SETTINGS_FETCH_ERROR]", err);
       showNotice("error", "Network error retrieving financial settings.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [showNotice]);
 
-  const showNotice = (type: "success" | "error", message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 6000);
-  };
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSettings() {
+      try {
+        const res = await fetch("/api/admin/financial-settings");
+        const data = await res.json();
+        if (data.success && data.settings && isMounted) {
+          setFormData({
+            companyName: data.settings.companyName || "",
+            legalBusinessName: data.settings.legalBusinessName || "",
+            GSTIN: data.settings.GSTIN || "",
+            PAN: data.settings.PAN || "",
+            address: data.settings.address || "",
+            supportEmail: data.settings.supportEmail || "",
+            supportPhone: data.settings.supportPhone || "",
+            invoicePrefix: data.settings.invoicePrefix || "",
+            invoiceStartingNumber: data.settings.invoiceStartingNumber || 1,
+            defaultGSTPercent: data.settings.defaultGSTPercent || 18.0,
+            SACCode: data.settings.SACCode || "",
+            bankDetails: {
+              bankName: data.settings.bankDetails?.bankName || "",
+              accountName: data.settings.bankDetails?.accountName || "",
+              accountNumber: data.settings.bankDetails?.accountNumber || "",
+              ifsc: data.settings.bankDetails?.ifsc || "",
+              branch: data.settings.bankDetails?.branch || ""
+            },
+            // Phase 10A.5
+            defaultStateCode: data.settings.defaultStateCode || "24",
+            placeOfSupplyMode: data.settings.placeOfSupplyMode || "STATE_MATCH",
+            enableGSTSplitting: data.settings.enableGSTSplitting !== undefined ? data.settings.enableGSTSplitting : true,
+            enableIGST: data.settings.enableIGST !== undefined ? data.settings.enableIGST : true,
+            invoiceTerms: data.settings.invoiceTerms || "",
+            refundTerms: data.settings.refundTerms || "",
+            SLAUptimeTarget: data.settings.SLAUptimeTarget !== null && data.settings.SLAUptimeTarget !== undefined ? String(data.settings.SLAUptimeTarget) : "",
+            SLAMaintenanceWindow: data.settings.SLAMaintenanceWindow || "",
+            liabilityCapMonths: data.settings.liabilityCapMonths !== null && data.settings.liabilityCapMonths !== undefined ? String(data.settings.liabilityCapMonths) : "",
+            dataRetentionDays: data.settings.dataRetentionDays !== null && data.settings.dataRetentionDays !== undefined ? String(data.settings.dataRetentionDays) : ""
+          });
+        }
+      } catch (err) {
+        console.error("[FINANCE_SETTINGS_LOAD_ERROR]", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -206,6 +258,7 @@ export default function FinancialSettingsPage() {
         showNotice("error", data.error || "Validation error saving settings.");
       }
     } catch (err) {
+      console.error("[FINANCE_SETTINGS_SAVE_ERROR]", err);
       showNotice("error", "Failed to update financial settings due to network issue.");
     } finally {
       setSaving(false);

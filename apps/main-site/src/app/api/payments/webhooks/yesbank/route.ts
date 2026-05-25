@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     const outcome = await providerInstance.handleWebhook(rawBody, xSignatureHeader);
 
     // Save state transactionally and build reconciliation foundation
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx) => {
       // Update transaction status
       await tx.paymentTransaction.update({
         where: { id: transactionId },
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
           paymentStatus: outcome.status,
           paidAt: outcome.status === PaymentStatus.SUCCESS ? new Date() : null,
           gatewayResponse: {
-            ...(transaction.gatewayResponse as any || {}),
+            ...(transaction.gatewayResponse as Record<string, unknown> || {}),
             webhookReceivedAt: new Date().toISOString(),
             webhookPayload: rawBody
           }
@@ -95,6 +95,12 @@ export async function POST(req: NextRequest) {
       const settlementRef = rawBody.settlementReference || `yb_settle_ref_${Date.now()}`;
 
       if (existingRecon) {
+        const previousLogs = (existingRecon.callbackLogs as import("@prisma/client").Prisma.InputJsonValue[]) || [];
+        const newLogEntry: import("@prisma/client").Prisma.InputJsonValue = {
+          timestamp: new Date().toISOString(),
+          event: "yesbank_webhook",
+          status: outcome.status
+        };
         await tx.paymentReconciliation.update({
           where: { transactionId },
           data: {
@@ -104,13 +110,15 @@ export async function POST(req: NextRequest) {
             reconciliationStatus: outcome.status === PaymentStatus.SUCCESS ? "MATCHED" : "MISMATCHED",
             verificationState: outcome.status === PaymentStatus.SUCCESS ? "VERIFIED" : "FAILED",
             mismatchReason: outcome.status !== PaymentStatus.SUCCESS ? "Payment Webhook reported FAILED status" : null,
-            callbackLogs: [
-              ...(existingRecon.callbackLogs as any || []),
-              { timestamp: new Date().toISOString(), event: "yesbank_webhook", status: outcome.status }
-            ]
+            callbackLogs: [...previousLogs, newLogEntry]
           }
         });
       } else {
+        const initialLog: import("@prisma/client").Prisma.InputJsonValue = {
+          timestamp: new Date().toISOString(),
+          event: "yesbank_webhook_init",
+          status: outcome.status
+        };
         await tx.paymentReconciliation.create({
           data: {
             transactionId,
@@ -120,17 +128,16 @@ export async function POST(req: NextRequest) {
             reconciliationStatus: outcome.status === PaymentStatus.SUCCESS ? "MATCHED" : "MISMATCHED",
             verificationState: outcome.status === PaymentStatus.SUCCESS ? "VERIFIED" : "FAILED",
             mismatchReason: outcome.status !== PaymentStatus.SUCCESS ? "Payment Webhook reported FAILED status" : null,
-            callbackLogs: [
-              { timestamp: new Date().toISOString(), event: "yesbank_webhook_init", status: outcome.status }
-            ]
+            callbackLogs: [initialLog]
           }
         });
       }
     });
 
     return NextResponse.json({ success: true, code: "OK", status: outcome.status });
-  } catch (error: any) {
+  } catch (error) {
     console.error("YES BANK Webhook processing exception:", error);
-    return NextResponse.json({ success: false, error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

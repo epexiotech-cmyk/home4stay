@@ -1,6 +1,5 @@
 import 'server-only';
 import PDFDocument from "pdfkit";
-import { prisma } from "@/lib/database/prisma";
 import { logger } from "@/lib/observability/logger";
 
 interface InvoicePdfData {

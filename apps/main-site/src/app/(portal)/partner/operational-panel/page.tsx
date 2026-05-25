@@ -8,9 +8,7 @@ import {
   RefreshCcw, 
   AlertTriangle, 
   Clock, 
-  CheckCircle,
   Database,
-  Users,
   FileSpreadsheet
 } from "lucide-react";
 import { prisma } from "@/lib/database/prisma";

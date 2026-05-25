@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/database/prisma";
 import { encryptSecret } from "@/lib/server/encryption";
+import { Prisma } from "@prisma/client";
 
 /**
  * PUT /api/admin/payment-settings/providers/:id
@@ -53,7 +54,7 @@ export async function PUT(
     } = body;
 
     // Build update parameters object
-    const updateData: any = {};
+    const updateData: Prisma.PaymentProviderUpdateInput = {};
     if (displayName !== undefined) updateData.displayName = displayName;
     if (isEnabled !== undefined) updateData.isEnabled = !!isEnabled;
     if (isManual !== undefined) updateData.isManual = !!isManual;
@@ -90,7 +91,7 @@ export async function PUT(
     }
 
     // Run transaction
-    const updated = await prisma.$transaction(async (tx: any) => {
+    const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Reset other defaults if this is marked as default
       if (parsedDefault && !currentProvider.isDefault) {
         await tx.paymentProvider.updateMany({
@@ -127,9 +128,10 @@ export async function PUT(
       providerId: updated.id
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("[ADMIN_PROVIDER_PUT] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -167,7 +169,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Cannot delete the default active payment provider. Mark another provider as default first." }, { status: 400 });
     }
 
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Cascade delete or soft-disable settings
       await tx.paymentProvider.delete({
         where: { id: providerId }

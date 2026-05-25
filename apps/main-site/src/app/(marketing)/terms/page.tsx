@@ -1,7 +1,7 @@
 import { LegalService } from "@/lib/legal/legalService";
 import { sanitizeHtml } from "@/lib/legal/sanitizer";
 import Link from "next/link";
-import { ShieldAlert, Calendar, FileText, ArrowRight } from "lucide-react";
+import { ShieldAlert, Calendar, FileText } from "lucide-react";
 
 export const revalidate = 0; // Dynamic server rendering to reflect super-admin updates instantly
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/database/prisma";
-import { LegalDocumentType } from "@prisma/client";
+import { LegalDocumentType, Prisma } from "@prisma/client";
 
 /**
  * GET: Retrieve compliance acceptance logs with filters and pagination
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "20", 10), 200);
     const offset = Math.max(parseInt(searchParams.get("offset") || "0", 10), 0);
 
-    const whereClause: any = {};
+    const whereClause: Prisma.LegalAcceptanceLogWhereInput = {};
 
     // Filter by dynamic documentType
     if (docType) {
@@ -55,10 +55,16 @@ export async function GET(request: NextRequest) {
     if (startDate || endDate) {
       whereClause.acceptedAt = {};
       if (startDate) {
-        whereClause.acceptedAt.gte = new Date(startDate);
+        whereClause.acceptedAt = {
+          ...(whereClause.acceptedAt as Prisma.DateTimeFilter),
+          gte: new Date(startDate)
+        };
       }
       if (endDate) {
-        whereClause.acceptedAt.lte = new Date(endDate);
+        whereClause.acceptedAt = {
+          ...(whereClause.acceptedAt as Prisma.DateTimeFilter),
+          lte: new Date(endDate)
+        };
       }
     }
 

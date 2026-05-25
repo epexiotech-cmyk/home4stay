@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 function CheckoutSimulatorContent() {
@@ -13,17 +13,19 @@ function CheckoutSimulatorContent() {
   const merchantTransactionId = searchParams.get("merchantTransactionId") || `TXN_PP_${transactionId}`;
 
   // Determine provider from path or default
-  const [provider, setProvider] = useState<"phonepe" | "yesbank">("phonepe");
+  const [provider] = useState<"phonepe" | "yesbank">(() => {
+    if (typeof window !== "undefined") {
+      const merchantTxnId = searchParams.get("merchantTransactionId") || "";
+      if (merchantTxnId.includes("YB") || window.location.pathname.includes("yesbank")) {
+        return "yesbank";
+      }
+    }
+    return "phonepe";
+  });
   const [status, setStatus] = useState<"idle" | "processing" | "success" | "failed" | "timeout" | "cancelled">("idle");
   const [logMessages, setLogMessages] = useState<string[]>([]);
-  const [isDuplicatePending, setIsDuplicatePending] = useState(false);
 
-  useEffect(() => {
-    // Dynamically set provider based on URL or transaction prefix
-    if (merchantTransactionId.includes("YB") || window.location.pathname.includes("yesbank")) {
-      setProvider("yesbank");
-    }
-  }, [merchantTransactionId]);
+  // Keep provider in sync if merchantTransactionId changes dynamically
 
   const addLog = (msg: string) => {
     setLogMessages((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -41,8 +43,8 @@ function CheckoutSimulatorContent() {
     const endpoint = `/api/payments/webhooks/${provider}`;
     
     // Generate secure mock payload body
-    let body: any = {};
-    let headers: Record<string, string> = { "Content-Type": "application/json" };
+    let body: Record<string, unknown> = {};
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
 
     if (provider === "phonepe") {
       const responsePayload = {
@@ -96,7 +98,7 @@ function CheckoutSimulatorContent() {
           headers,
           body: JSON.stringify(body)
         });
-        const data = await response.json();
+        const data = await response.json() as { isDuplicate?: boolean };
         return { status: response.status, data };
       };
 
@@ -119,8 +121,9 @@ function CheckoutSimulatorContent() {
         setStatus("failed");
         addLog("Payment simulation reported failure state.");
       }
-    } catch (err: any) {
-      addLog(`Webhook posting error: ${err.message}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      addLog(`Webhook posting error: ${message}`);
       setStatus("failed");
     }
   };

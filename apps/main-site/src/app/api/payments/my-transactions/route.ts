@@ -18,9 +18,11 @@ export async function GET(request: NextRequest) {
     const offset = Math.max(parseInt(searchParams.get("offset") || "0", 10), 0);
 
     // 3. Formulate filters
-    const whereClause: any = {
+    const whereClause: import("@prisma/client").Prisma.PaymentTransactionWhereInput = {
       property: {
-        ownerId: auth.userId
+        is: {
+          ownerId: auth.userId
+        }
       }
     };
 

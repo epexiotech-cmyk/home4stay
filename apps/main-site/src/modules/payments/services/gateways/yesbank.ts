@@ -17,15 +17,15 @@ export class YesBankProvider implements IPaymentProvider {
     callbackUrl?: string;
     redirectUrl?: string;
     isSandbox?: boolean;
-    gatewayConfig?: any;
+    gatewayConfig?: Record<string, unknown>;
   }) {
-    const gatewayConfig = config.gatewayConfig || {};
-    this.merchantId = config.merchantId || gatewayConfig.merchantId || "YB_MERCH_MOCK";
-    this.terminalId = config.terminalId || gatewayConfig.terminalId || "YB_TERM_MOCK";
-    this.encryptionKey = config.encryptionKey || gatewayConfig.encryptionKey || "yb-mock-encryption-secret-987654321";
-    this.callbackUrl = config.callbackUrl || gatewayConfig.callbackUrl || "http://localhost:3000/api/payments/webhooks/yesbank";
-    this.redirectUrl = config.redirectUrl || gatewayConfig.redirectUrl || "http://localhost:3000/payments/checkout/yesbank";
-    this.isSandbox = config.isSandbox !== undefined ? config.isSandbox : (gatewayConfig.isSandbox ?? true);
+    const gatewayConfig = (config.gatewayConfig || {}) as Record<string, string | boolean | undefined>;
+    this.merchantId = config.merchantId || (gatewayConfig.merchantId as string | undefined) || "YB_MERCH_MOCK";
+    this.terminalId = config.terminalId || (gatewayConfig.terminalId as string | undefined) || "YB_TERM_MOCK";
+    this.encryptionKey = config.encryptionKey || (gatewayConfig.encryptionKey as string | undefined) || "yb-mock-encryption-secret-987654321";
+    this.callbackUrl = config.callbackUrl || (gatewayConfig.callbackUrl as string | undefined) || "http://localhost:3000/api/payments/webhooks/yesbank";
+    this.redirectUrl = config.redirectUrl || (gatewayConfig.redirectUrl as string | undefined) || "http://localhost:3000/payments/checkout/yesbank";
+    this.isSandbox = config.isSandbox !== undefined ? config.isSandbox : ((gatewayConfig.isSandbox as boolean | undefined) ?? true);
   }
 
   /**
@@ -78,7 +78,7 @@ export class YesBankProvider implements IPaymentProvider {
   /**
    * Verifies actual transaction state with YES BANK core system
    */
-  async verifyPayment(gatewayTransactionId: string, gatewayOrderId?: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: any }> {
+  async verifyPayment(gatewayTransactionId: string, gatewayOrderId?: string): Promise<{ success: boolean; status: PaymentStatus; rawResponse: Record<string, unknown> }> {
     const txnId = gatewayOrderId || gatewayTransactionId;
     
     let bankState = "SUCCESS";
@@ -111,7 +111,7 @@ export class YesBankProvider implements IPaymentProvider {
   /**
    * Simulates YES BANK corporate refund processing
    */
-  async refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: any }> {
+  async refundPayment(gatewayTransactionId: string, amount: number): Promise<{ success: boolean; refundId?: string; rawResponse: Record<string, unknown> }> {
     const mockRefundId = `yb_ref_${Date.now()}`;
     return {
       success: true,
@@ -129,7 +129,7 @@ export class YesBankProvider implements IPaymentProvider {
   /**
    * Handles YES BANK webhook response payload
    */
-  async handleWebhook(payload: any, signature?: string): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }> {
+  async handleWebhook(payload: Record<string, unknown>, signature?: string): Promise<{ processed: boolean; status: PaymentStatus; transactionId?: string }> {
     if (!payload || !payload.transactionId) {
       return { processed: false, status: PaymentStatus.FAILED };
     }
@@ -165,7 +165,7 @@ export class YesBankProvider implements IPaymentProvider {
     return {
       processed: true,
       status: targetStatus,
-      transactionId: payload.transactionId
+      transactionId: payload.transactionId as string | undefined
     };
   }
 }

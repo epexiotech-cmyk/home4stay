@@ -49,7 +49,7 @@ export async function POST(
       // Auto-issue GST Tax Invoice atomically on approval
       try {
         await InvoiceService.generateInvoiceForTransaction(transactionId);
-      } catch (invoiceErr: any) {
+      } catch (invoiceErr) {
         console.error("[INVOICE_GENERATION_HOOK_ERROR] Failed to auto-issue invoice:", invoiceErr);
       }
     }
@@ -60,9 +60,10 @@ export async function POST(
       status: approvedTx.paymentStatus
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("[ADMIN_PAYMENT_APPROVE] Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
