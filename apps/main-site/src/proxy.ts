@@ -18,7 +18,7 @@ export const config = {
   ],
 };
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const url = req.nextUrl.clone();
   
   // Get hostname (e.g., shivay.home4stay.com, shivay.localhost:3000)
