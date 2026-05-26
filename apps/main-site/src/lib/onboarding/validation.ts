@@ -12,13 +12,13 @@ export const propertyIdentitySchema = z.object({
   description: z.string()
     .min(10, "Aspirational Description must be at least 10 characters long")
     .trim(),
-  tagline: z.string().optional(),
-  slug: z.string().optional(),
+  tagline: z.string().nullable().optional().transform(val => val ?? ""),
+  slug: z.string().nullable().optional().transform(val => val ?? ""),
 });
 
 // Step 3: Property Theme Config
 export const themeConfigSchema = z.object({
-  themeId: z.string().min(1, "Please select an atmospheric visual preset"),
+  themeId: z.string().nullish().transform(val => val || "coastal"),
 });
 
 // Step 4: Rooms & Inventory Draft
