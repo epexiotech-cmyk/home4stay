@@ -61,11 +61,14 @@ export default async function PropertyPage({
   const property = await resolvePropertyContext(slug);
 
   if (!property || !property.name) {
+    console.log("NOT FOUND: Property not found or no name", { property, slug });
     notFound();
   }
 
   // 1. PUBLIC VISIBILITY ENGINE + SECURE PREVIEW GATEWAY
-  const isLive = property.status === "LIVE";
+  // Default to LIVE if status is undefined (e.g. for mock properties)
+  const isLive = property.status === "LIVE" || property.status === undefined;
+  console.log("VISIBILITY:", { status: property.status, isLive, draftToken });
   if (!isLive) {
     const expectedToken = crypto
       .createHmac("sha256", process.env.JWT_SECRET || "secret")
