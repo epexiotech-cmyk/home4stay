@@ -1,6 +1,8 @@
 //COMMON APP ROUTE HERE
 
 import 'package:home4stay/core/common_imports.dart';
+import 'package:home4stay/pages/welcome/welcome_binding.dart';
+import 'package:home4stay/pages/welcome/welcome_page.dart';
 
 class CommonRoutes {
   static final routes = [
@@ -18,6 +20,11 @@ class CommonRoutes {
       name: routeregisterpage,
       page: () => const RegisterScreen(),
       binding: RegisterBinding(),
+    ),
+    GetPage(
+      name: routewelocmepage,
+      page: () => const WelcomeScreen(),
+      binding: WelcomeBinding(),
     ),
     // GetPage(
     //   name: routedashboard,

@@ -35,8 +35,8 @@ class SplashController extends GetxController
   void onReady() {
     super.onReady();
 
-    Timer(const Duration(seconds: 5), () {
-      // Get.offAllNamed(routeLoginpage);
+    Timer(const Duration(seconds: 3), () {
+      Get.offAllNamed(routeregisterpage);
     });
   }
 

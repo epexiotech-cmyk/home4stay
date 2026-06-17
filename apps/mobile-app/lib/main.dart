@@ -2,6 +2,7 @@ import 'package:home4stay/core/common_imports.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  setupLocator();
   runApp(const Home4StayPartnerApp());
 }
 

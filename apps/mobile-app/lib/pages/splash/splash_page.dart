@@ -15,19 +15,9 @@ class SplashScreen extends StatelessWidget {
               opacity: controller.fadeAnimation,
               child: SlideTransition(
                 position: controller.slideAnimation,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.asset(
-                      'assets/images/splash_logo.png',
-                      scale: dp(context, 2.3),
-                      color: AppColors.PRIMARY_COLOR,
-                    ),
-
-                    SizedBox(height: hp(2)),
-
-                    CustomText(text: "Patient Management System"),
-                  ],
+                child: Image.asset(
+                  'assets/image/Home4StayLogo.png',
+                  scale: dp(context, 2.3),
                 ),
               ),
             ),

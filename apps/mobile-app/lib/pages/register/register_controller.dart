@@ -11,6 +11,8 @@ class RegisterController extends GetxController {
   final isPasswordVisible = false.obs;
   final isConfirmPasswordVisible = false.obs;
 
+  bool? value = false;
+
   @override
   void onClose() {
     emailController.dispose();
