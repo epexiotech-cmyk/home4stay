@@ -5,6 +5,7 @@ class SplashController extends GetxController
   late AnimationController animationController;
   late Animation<double> fadeAnimation;
   late Animation<Offset> slideAnimation;
+  Timer? _splashTimer;
 
   @override
   void onInit() {
@@ -35,13 +36,14 @@ class SplashController extends GetxController
   void onReady() {
     super.onReady();
 
-    Timer(const Duration(seconds: 3), () {
+    _splashTimer = Timer(const Duration(seconds: 3), () {
       Get.offAllNamed(routeregisterpage);
     });
   }
 
   @override
   void onClose() {
+    _splashTimer?.cancel();
     animationController.dispose();
     super.onClose();
   }

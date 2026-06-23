@@ -19,6 +19,10 @@ class Home4StayPartnerApp extends StatelessWidget {
         useMaterial3: true,
       ),
       initialRoute: routeRootpage,
+      unknownRoute: GetPage(
+        name: '/notfound',
+        page: () => const Scaffold(body: Center(child: Text('Route Not Found'))),
+      ),
       getPages: AppRoutes.routes,
     );
   }
