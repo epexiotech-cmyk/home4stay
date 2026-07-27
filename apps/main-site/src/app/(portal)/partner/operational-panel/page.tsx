@@ -227,7 +227,7 @@ export default async function OperationalPanelPage() {
               </div>
             ) : (
               <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
-                {stuckPayments.map(b => (
+                {stuckPayments.map((b: any) => (
                   <div key={b.id} className="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl flex justify-between items-center text-xs">
                     <div>
                       <div className="font-bold text-slate-800">BKG-{b.id.substring(0,8).toUpperCase()}</div>
@@ -259,7 +259,7 @@ export default async function OperationalPanelPage() {
               </div>
             ) : (
               <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
-                {expiredHolds.map(b => (
+                {expiredHolds.map((b: any) => (
                   <div key={b.id} className="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl flex justify-between items-center text-xs">
                     <div>
                       <div className="font-bold text-slate-800">BKG-{b.id.substring(0,8).toUpperCase()}</div>

@@ -1,3 +1,28 @@
+import pino from 'pino';
+
+const isProd = process.env.NODE_ENV === 'production';
+
+export const pinoLogger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  formatters: {
+    level: (label) => {
+      return { level: label.toUpperCase() };
+    },
+  },
+  timestamp: pino.stdTimeFunctions.isoTime,
+  base: {
+    env: process.env.NODE_ENV,
+  },
+  transport: !isProd ? {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      ignore: 'pid,hostname,env',
+      translateTime: 'SYS:standard',
+    },
+  } : undefined,
+});
+
 type LogLevel = 'info' | 'warn' | 'error' | 'fatal';
 
 interface LogEntry {
@@ -5,50 +30,55 @@ interface LogEntry {
   event: string;
   message?: string;
   requestId: string;
+  correlationId?: string;
   ip?: string;
   userId?: string;
   route?: string;
   statusCode?: number;
   durationMs?: number;
   errorStack?: string;
-  timestamp: string;
   metadata?: Record<string, unknown>;
 }
-
-const isProd = process.env.NODE_ENV === 'production';
 
 /**
  * production-grade Centralized Observability & Structured JSON Logger
  */
-export async function logger(entry: Omit<LogEntry, 'timestamp'>) {
-  const fullEntry: LogEntry = {
-    ...entry,
-    timestamp: new Date().toISOString(),
+export async function logger(entry: LogEntry) {
+  const { level, message, event, ...context } = entry;
+
+  const logPayload = {
+    event,
+    ...context,
+    msg: message,
   };
 
-  // 1. Production Mode: Structured JSON (for Kibana, Vercel, Datadog parsing)
-  if (isProd) {
-    console.log(JSON.stringify(fullEntry));
-  } else {
-    // 2. Development Mode: High-fidelity pretty-printed logs
-    const color = entry.level === 'error' ? '❌' : entry.level === 'warn' ? '⚠️' : entry.level === 'fatal' ? '🚨' : 'ℹ️';
-    const duration = entry.durationMs !== undefined ? ` [${entry.durationMs}ms]` : '';
-    const routeNode = entry.route ? ` [${entry.route}]` : '';
-    console.log(`${color} [${entry.level.toUpperCase()}] ${entry.event}${routeNode}${duration}: ${entry.message || ''}`);
+  switch (level) {
+    case 'info':
+      pinoLogger.info(logPayload);
+      break;
+    case 'warn':
+      pinoLogger.warn(logPayload);
+      break;
+    case 'error':
+      pinoLogger.error(logPayload);
+      break;
+    case 'fatal':
+      pinoLogger.fatal(logPayload);
+      break;
   }
 
   // 3. LOG RETENTION & COST MONITORING
   const shouldSendExternal = 
-    entry.level === 'error' || 
-    entry.level === 'fatal' || 
-    entry.level === 'warn' ||
-    (entry.level === 'info' && Math.random() < 0.05); // 5% log sampling for verbose HTTP 200 checks
+    level === 'error' || 
+    level === 'fatal' || 
+    level === 'warn' ||
+    (level === 'info' && Math.random() < 0.05); // 5% log sampling for verbose HTTP 200 checks
 
   if (isProd && shouldSendExternal) {
     try {
-      await sendToExternalMonitoring(fullEntry);
+      await sendToExternalMonitoring(entry);
     } catch (err) {
-      console.warn("⚠️ Telemetry pipeline failed dispatch:", err);
+      pinoLogger.warn({ msg: "Telemetry pipeline failed dispatch", err });
     }
   }
 }
@@ -56,11 +86,13 @@ export async function logger(entry: Omit<LogEntry, 'timestamp'>) {
 async function sendToExternalMonitoring(log: LogEntry) {
   // Flag anomalies (SLAs, severe system defects)
   if (log.durationMs && log.durationMs > 1500) {
-    console.warn(`[ALERT] API SLA BREACH DETECTED: Route ${log.route} took ${log.durationMs}ms`);
+    pinoLogger.warn(`[ALERT] API SLA BREACH DETECTED: Route ${log.route} took ${log.durationMs}ms`);
   }
   if (log.level === 'fatal') {
-    console.error(`[FATAL ESCALATION] Critical system error: ${log.message}`);
+    pinoLogger.error(`[FATAL ESCALATION] Critical system error: ${log.message}`);
   }
+  
+  // Future Sentry / Datadog / OpenTelemetry logic goes here
   return Promise.resolve();
 }
 
@@ -70,5 +102,6 @@ async function sendToExternalMonitoring(log: LogEntry) {
 export function withRequestContext(req: { headers: { get: (name: string) => string | null } }) {
   return {
     requestId: req.headers.get("x-request-id") || "unknown",
+    correlationId: req.headers.get("x-correlation-id") || "unknown",
   };
 }

@@ -55,16 +55,18 @@ function createErrorResponse(error: unknown, requestId: string) {
  * Enterprise production-grade API Route Wrapper.
  * Captures execution duration, logs metrics, and masks internal exceptions safely.
  */
-export const withErrorHandler = (
-  handler: (req: NextRequest) => Promise<NextResponse> | NextResponse
-) => async (req: NextRequest) => {
+export const withErrorHandler = <TContext = any>(
+  handler: (req: NextRequest, context: TContext) => Promise<NextResponse> | NextResponse
+) => async (req: NextRequest, context: TContext) => {
   const requestId = req.headers.get("x-request-id") || crypto.randomUUID();
   const start = Date.now();
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
   const route = new URL(req.url).pathname;
 
+  const correlationId = req.headers.get("x-correlation-id") || "unknown";
+
   try {
-    const response = await handler(req);
+    const response = await handler(req, context);
     const durationMs = Date.now() - start;
 
     // Log success metrics
@@ -72,6 +74,7 @@ export const withErrorHandler = (
       level: "info",
       event: "API_LATENCY",
       requestId,
+      correlationId,
       ip,
       route,
       statusCode: response.status,
@@ -90,6 +93,7 @@ export const withErrorHandler = (
       event: isOperational ? "API_OPERATIONAL_WARNING" : "API_SYSTEM_EXCEPTION",
       message: error instanceof Error ? error.message : "An unexpected error occurred",
       requestId,
+      correlationId,
       ip,
       route,
       statusCode,

@@ -1,6 +1,5 @@
 import 'package:home4stay/core/common_imports.dart';
 import 'package:home4stay/features/onboarding/controllers/onboarding_wizard_controller.dart';
-import 'package:flutter/material.dart';
 
 class PoliciesController extends GetxController {
   final childAgeLimitController = TextEditingController();

@@ -88,6 +88,131 @@ export class PropertyRepository {
       where: { id },
     });
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async updateCmsData(propertyId: string, data: any) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return await (prisma.property as any).update({
+      where: { id: propertyId },
+      data: {
+        pageContent: data.sections ? { sections: data.sections } : undefined,
+        amenities: data.amenities,
+        faqs: data.faqs,
+        policies: data.policies,
+        seo: data.seo,
+        contact: data.contact,
+        branding: data.branding
+      }
+    });
+  }
+
+  async getCmsData(propertyId: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return await (prisma.property as any).findUnique({
+      where: { id: propertyId },
+      select: {
+        id: true,
+        name: true,
+        pageContent: true,
+        amenities: true,
+        faqs: true,
+        policies: true,
+        seo: true,
+        contact: true,
+        branding: true
+      }
+    });
+  }
+
+  // --- MEDIA ASSET METHODS ---
+  async findMediaByPropertyId(propertyId: string) {
+    return await prisma.mediaAsset.findMany({
+      where: { propertyId },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  // --- PAYMENT CONFIG METHODS ---
+  async findActivePaymentConfig(propertyId: string) {
+    return await prisma.propertyPaymentConfig.findFirst({
+      where: {
+        propertyId,
+        isActive: true
+      }
+    });
+  }
+
+  async findPaymentConfigsByPropertyId(propertyId: string) {
+    return await prisma.propertyPaymentConfig.findMany({
+      where: { propertyId },
+      orderBy: { provider: "asc" }
+    });
+  }
+
+  async upsertPaymentConfigWithTransaction(
+    propertyId: string,
+    provider: string,
+    encryptedGatewaySecret: string | null,
+    encryptedWebhookSecret: string | null,
+    isActive: boolean,
+    upiId: string | null,
+    merchantName: string | null,
+    bankName: string | null,
+    gatewayKey: string | null
+  ) {
+    return await prisma.$transaction(async (tx) => {
+      const existingConfig = await tx.propertyPaymentConfig.findFirst({
+        where: {
+          propertyId,
+          provider
+        }
+      });
+
+      const finalGatewaySecret = encryptedGatewaySecret !== undefined ? encryptedGatewaySecret : (existingConfig?.gatewaySecret || null);
+      const finalWebhookSecret = encryptedWebhookSecret !== undefined ? encryptedWebhookSecret : (existingConfig?.webhookSecret || null);
+
+      if (isActive) {
+        await tx.propertyPaymentConfig.updateMany({
+          where: {
+            propertyId,
+            provider: { not: provider }
+          },
+          data: {
+            isActive: false
+          }
+        });
+      }
+
+      if (existingConfig) {
+        return await tx.propertyPaymentConfig.update({
+          where: { id: existingConfig.id },
+          data: {
+            upiId,
+            merchantName,
+            bankName,
+            gatewayKey,
+            gatewaySecret: finalGatewaySecret,
+            webhookSecret: finalWebhookSecret,
+            isActive
+          }
+        });
+      } else {
+        return await tx.propertyPaymentConfig.create({
+          data: {
+            propertyId,
+            provider,
+            upiId,
+            merchantName,
+            bankName,
+            gatewayKey,
+            gatewaySecret: finalGatewaySecret,
+            webhookSecret: finalWebhookSecret,
+            isActive
+          }
+        });
+      }
+    });
+  }
 }
 
 export const propertyRepository = new PropertyRepository();

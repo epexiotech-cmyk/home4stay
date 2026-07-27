@@ -97,6 +97,8 @@ model Property {
   paymentTransactions PaymentTransaction[]
 
   @@index([ownerId])
+  @@index([status])
+  @@index([status, publishedAt])
   @@map("properties")
 }
 
@@ -272,6 +274,9 @@ model Booking {
 
   @@index([propertyId])
   @@index([roomId])
+  @@index([createdAt])
+  @@index([propertyId, createdAt])
+  @@index([propertyId, startDate, endDate])
   @@map("bookings")
 }
 
@@ -882,6 +887,8 @@ model PaymentTransaction {
   @@index([subscriptionId])
   @@index([providerId])
   @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([paymentStatus, createdAt])
   @@map("payment_transactions")
 }
 

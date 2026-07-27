@@ -1,7 +1,6 @@
 import 'package:home4stay/core/common_imports.dart';
 import 'package:home4stay/pages/amenities/models/amenity_model.dart';
 import 'package:home4stay/features/onboarding/controllers/onboarding_wizard_controller.dart';
-import 'package:flutter/material.dart';
 
 class AmenitiesController extends GetxController {
   final customAmenityController = TextEditingController();
@@ -57,7 +56,9 @@ class AmenitiesController extends GetxController {
       } catch (e) {
         try {
           result.add(customAmenities.firstWhere((c) => c.id == id));
-        } catch (e) {}
+        } catch (e) {
+          // Ignore if not found in custom
+        }
       }
     }
     return result;

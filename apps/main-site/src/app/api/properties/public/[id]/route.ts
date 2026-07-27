@@ -1,28 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { resolvePropertyContext, getPropertyBranding } from "@/lib/tenant/contextResolver";
+import { withErrorHandler, AppError } from "@/lib/errors/handler";
+import { successResponse } from "@/lib/utils/apiResponse";
+import { z } from "zod";
 
-export async function GET(
+const idParamSchema = z.object({
+  id: z.string().min(1, "ID is required"),
+});
+
+export const GET = withErrorHandler(async (
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const property = await resolvePropertyContext(id);
+) => {
+  const resolvedParams = await params;
+  const { id } = idParamSchema.parse(resolvedParams);
 
-    if (!property) {
-      return NextResponse.json({ message: "Property not found" }, { status: 404 });
-    }
+  const property = await resolvePropertyContext(id);
 
-    const branding = getPropertyBranding(property);
-
-    return NextResponse.json({
-      id: property.id || id,
-      name: property.name,
-      location: property.location,
-      branding,
-    });
-  } catch (error) {
-    console.error("Error fetching public property data:", error);
-    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+  if (!property) {
+    throw new AppError("Property not found", 404, "NOT_FOUND");
   }
-}
+
+  const branding = getPropertyBranding(property);
+
+  return successResponse({
+    id: property.id || id,
+    name: property.name,
+    location: property.location,
+    branding,
+  });
+});

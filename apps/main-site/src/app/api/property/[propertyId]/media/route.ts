@@ -1,29 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/database/prisma";
+import { NextRequest } from "next/server";
+import { propertyMediaService } from "@/lib/services/propertyMediaService";
 import { requirePropertyAccess } from "@/lib/auth/rbac";
+import { withErrorHandler } from "@/lib/errors/handler";
+import { successResponse } from "@/lib/utils/apiResponse";
+import { z } from "zod";
 
-interface ContextProps {
-  params: Promise<{ propertyId: string }>;
-}
+const propertyIdParamSchema = z.object({
+  propertyId: z.string().min(1, "propertyId is required"),
+});
 
-export async function GET(request: NextRequest, { params }: ContextProps) {
-  try {
-    const resolvedParams = await params;
-    const { propertyId } = resolvedParams;
+export const GET = withErrorHandler(async (
+  request: NextRequest,
+  { params }: { params: Promise<{ propertyId: string }> }
+) => {
+  const resolvedParams = await params;
+  const { propertyId } = propertyIdParamSchema.parse(resolvedParams);
 
-    // 1. STRICT TENANT ISOLATION CHECK against PostgreSQL junction table
-    const auth = await requirePropertyAccess(request, propertyId);
-    if (!auth.authorized) return auth.response!;
+  const auth = await requirePropertyAccess(request, propertyId);
+  if (!auth.authorized) return auth.response!;
 
-    // 2. Fetch associated catalog list items ordered by recency
-    const assets = await prisma.mediaAsset.findMany({
-      where: { propertyId },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json({ success: true, assets }, { status: 200 });
-  } catch (error) {
-    console.error("GET Media Assets Error:", error);
-    return NextResponse.json({ error: "Failed to extract dynamic media registry library mapping feeds." }, { status: 500 });
-  }
-}
+  const assets = await propertyMediaService.getMediaAssets(propertyId);
+  return successResponse({ success: true, assets });
+});

@@ -1,72 +1,47 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { propertyService } from '@/lib/services/propertyService';
 import { updatePropertySchema } from '@/lib/validators/property.validators';
+import { withErrorHandler, AppError } from '@/lib/errors/handler';
+import { successResponse } from '@/lib/utils/apiResponse';
+import { z } from 'zod';
 
-interface RouteContext {
-  params: { id: string };
-}
+const idParamSchema = z.object({
+  id: z.string().min(1, "ID is required"),
+});
 
-export async function GET(req: Request, { params }: RouteContext) {
-  try {
-    const { id } = params;
-    if (!id) return NextResponse.json({ success: false, message: 'ID is required' }, { status: 400 });
+export const GET = withErrorHandler(async (
+  request: NextRequest, 
+  { params }: { params: Promise<{ id: string }> }
+) => {
+  const resolvedParams = await params;
+  const { id } = idParamSchema.parse(resolvedParams);
 
-    const property = await propertyService.getPropertyById(id);
+  const property = await propertyService.getPropertyById(id);
+  if (!property) throw new AppError("Property not found", 404, "NOT_FOUND");
+  return successResponse(property);
+});
 
-    return NextResponse.json({ success: true, data: property });
-  } catch (error: any) {
-    console.error('Error fetching property:', error);
-    if (error.message === 'Property not found') {
-      return NextResponse.json({ success: false, message: error.message }, { status: 404 });
-    }
-    return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
-  }
-}
+export const PUT = withErrorHandler(async (
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) => {
+  const resolvedParams = await params;
+  const { id } = idParamSchema.parse(resolvedParams);
 
-export async function PUT(req: Request, { params }: RouteContext) {
-  try {
-    const { id } = params;
-    if (!id) return NextResponse.json({ success: false, message: 'ID is required' }, { status: 400 });
+  const body = await request.json();
+  const validatedData = updatePropertySchema.parse(body);
 
-    const body = await req.json();
-    const validatedData = updatePropertySchema.parse(body);
+  const updatedProperty = await propertyService.updateProperty(id, validatedData);
+  return successResponse(updatedProperty);
+});
 
-    const updatedProperty = await propertyService.updateProperty(id, validatedData);
+export const DELETE = withErrorHandler(async (
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) => {
+  const resolvedParams = await params;
+  const { id } = idParamSchema.parse(resolvedParams);
 
-    return NextResponse.json({ success: true, data: updatedProperty });
-  } catch (error: any) {
-    console.error('Error updating property:', error);
-
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { success: false, message: 'Validation Error', errors: error.errors },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { success: false, message: error.message || 'Internal Server Error' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(req: Request, { params }: RouteContext) {
-  try {
-    const { id } = params;
-    if (!id) return NextResponse.json({ success: false, message: 'ID is required' }, { status: 400 });
-
-    await propertyService.deleteProperty(id);
-
-    return NextResponse.json({ success: true, message: 'Property deleted successfully' });
-  } catch (error: any) {
-    console.error('Error deleting property:', error);
-    if (error.message === 'Property not found') {
-      return NextResponse.json({ success: false, message: error.message }, { status: 404 });
-    }
-    if (error.message === 'Cannot delete a live property. Suspend it first.') {
-      return NextResponse.json({ success: false, message: error.message }, { status: 400 });
-    }
-    return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
-  }
-}
+  await propertyService.deleteProperty(id);
+  return successResponse({ success: true, message: 'Property deleted successfully' });
+});

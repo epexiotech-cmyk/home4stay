@@ -33,9 +33,10 @@ async function seed() {
       const { rows } = await pool.query("SELECT * FROM users WHERE email = $1", [user.email]);
       
       if (rows.length === 0) {
+        const newId = crypto.randomUUID();
         await pool.query(
-          "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4)",
-          [user.name, user.email, hashedPassword, user.role]
+          "INSERT INTO users (id, name, email, password, role, updated_at) VALUES ($1, $2, $3, $4, $5, NOW())",
+          [newId, user.name, user.email, hashedPassword, user.role]
         );
         console.log(`✅ ${user.role} user created.`);
       } else {

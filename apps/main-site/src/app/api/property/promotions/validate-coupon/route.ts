@@ -1,58 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma as db } from "@/lib/database/prisma";
+import { NextRequest } from "next/server";
+import { propertyPromotionService } from "@/lib/services/propertyPromotionService";
+import { withErrorHandler, AppError } from "@/lib/errors/handler";
+import { successResponse } from "@/lib/utils/apiResponse";
+import { z } from "zod";
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { couponCode, propertyId, bookingAmount } = body;
+const validateCouponSchema = z.object({
+  couponCode: z.string().min(1, "couponCode is required"),
+  propertyId: z.string().min(1, "propertyId is required"),
+  bookingAmount: z.number().positive("bookingAmount is required"),
+});
 
-    if (!couponCode || !propertyId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+export const POST = withErrorHandler(async (request: NextRequest) => {
+  const body = await request.json();
+  const { couponCode, propertyId, bookingAmount } = validateCouponSchema.parse(body);
 
-    const offer = await db.propertyOffer.findFirst({
-      where: {
-        couponCode: couponCode.toUpperCase(),
-        propertyId,
-        isActive: true
-      }
-    });
+  const result = await propertyPromotionService.validateCoupon(couponCode, propertyId, bookingAmount);
 
-    if (!offer) {
-      return NextResponse.json({ 
-        valid: false, 
-        message: "Invalid coupon code for this property." 
-      }, { status: 404 });
-    }
-
-    // Check dates
-    const now = new Date();
-    if (now < new Date(offer.startDate) || now > new Date(offer.endDate)) {
-      return NextResponse.json({ 
-        valid: false, 
-        message: "This coupon has expired or is not yet active." 
-      }, { status: 400 });
-    }
-
-    // Check minimum amount
-    if (bookingAmount < offer.minimumBookingAmount) {
-      return NextResponse.json({ 
-        valid: false, 
-        message: `Minimum booking amount of ₹${offer.minimumBookingAmount} required for this coupon.` 
-      }, { status: 400 });
-    }
-
-    return NextResponse.json({
-      valid: true,
-      offerId: offer.id,
-      title: offer.title,
-      discountType: offer.discountType,
-      discountValue: offer.discountValue,
-      message: "Coupon applied successfully!"
-    });
-
-  } catch (error) {
-    console.error("Coupon Validation Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  if (!result.valid) {
+    throw new AppError(result.message || "Invalid coupon", 400, "BAD_REQUEST");
   }
-}
+
+  return successResponse(result);
+});

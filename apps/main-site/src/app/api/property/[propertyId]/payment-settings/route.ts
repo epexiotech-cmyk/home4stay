@@ -1,181 +1,58 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requirePropertyAccess } from "@/lib/auth/rbac";
-import { prisma } from "@/lib/database/prisma";
-import { PropertyPaymentConfigSchema } from "@/modules/payments/validators";
-import { encrypt } from "@/modules/payments/utils/crypto";
+import { NextRequest } from "next/server";
+import { propertyPaymentConfigService } from "@/lib/services/propertyPaymentConfigService";
+import { requireRole, requirePropertyAccess } from "@/lib/auth/rbac";
+import { withErrorHandler } from "@/lib/errors/handler";
+import { successResponse } from "@/lib/utils/apiResponse";
+import { z } from "zod";
 
-// Mask sensitive strings (API Secrets, Webhook Secrets) for UI responses
-function maskSecret(secret: string | null | undefined): string | null {
-  if (!secret) return null;
-  return "••••••••••••••••";
-}
+const propertyIdParamSchema = z.object({
+  propertyId: z.string().min(1, "propertyId is required"),
+});
 
-/**
- * GET /api/property/[propertyId]/payment-settings
- * Returns all payment provider settings configured for a property, with sensitive fields masked.
- */
-export async function GET(
+export const GET = withErrorHandler(async (
   request: NextRequest,
-  props: { params: Promise<{ propertyId: string }> }
-) {
-  const { propertyId } = await props.params;
+  { params }: { params: Promise<{ propertyId: string }> }
+) => {
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "partner", "manager"]);
+  if (!auth.authorized) return auth.response!;
 
-  try {
-    // 1. Check strict tenant isolation & RBAC access bounds
-    const auth = await requirePropertyAccess(request, propertyId);
-    if (!auth.authorized) {
-      return auth.response || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const resolvedParams = await params;
+  const { propertyId } = propertyIdParamSchema.parse(resolvedParams);
 
-    // 2. Fetch configurations
-    const configs = await prisma.propertyPaymentConfig.findMany({
-      where: { propertyId },
-      orderBy: { provider: "asc" }
-    });
+  const access = await requirePropertyAccess(request, propertyId);
+  if (!access.authorized) return access.response!;
 
-    // 3. Mask sensitive keys before exposing them
-    const sanitizedConfigs = configs.map(config => ({
-      id: config.id,
-      provider: config.provider,
-      upiId: config.upiId,
-      merchantName: config.merchantName,
-      bankName: config.bankName,
-      gatewayKey: config.gatewayKey,
-      hasGatewaySecret: !!config.gatewaySecret,
-      gatewaySecret: maskSecret(config.gatewaySecret),
-      hasWebhookSecret: !!config.webhookSecret,
-      webhookSecret: maskSecret(config.webhookSecret),
-      isActive: config.isActive,
-      createdAt: config.createdAt,
-      updatedAt: config.updatedAt
-    }));
+  const configs = await propertyPaymentConfigService.getPaymentConfigs(propertyId);
+  return successResponse(configs);
+});
 
-    return NextResponse.json({ success: true, configs: sanitizedConfigs });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("GET payment settings failure:", message);
-    return NextResponse.json(
-      { success: false, error: message },
-      { status: 500 }
-    );
-  }
-}
+const paymentConfigSchema = z.object({
+  provider: z.enum(["RAZORPAY", "STRIPE", "PHONEPE", "MANUAL_UPI"]),
+  isActive: z.boolean().default(true),
+  upiId: z.string().optional(),
+  merchantName: z.string().optional(),
+  bankName: z.string().optional(),
+  gatewayKey: z.string().optional(),
+  gatewaySecret: z.string().optional(),
+  webhookSecret: z.string().optional(),
+});
 
-/**
- * PATCH /api/property/[propertyId]/payment-settings
- * Upserts a payment configuration for a property, encrypting secrets and enforcing RBAC.
- */
-export async function PATCH(
+export const POST = withErrorHandler(async (
   request: NextRequest,
-  props: { params: Promise<{ propertyId: string }> }
-) {
-  const { propertyId } = await props.params;
+  { params }: { params: Promise<{ propertyId: string }> }
+) => {
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "partner"]);
+  if (!auth.authorized) return auth.response!;
 
-  try {
-    // 1. Check strict tenant isolation & RBAC access bounds
-    const auth = await requirePropertyAccess(request, propertyId);
-    if (!auth.authorized) {
-      return auth.response || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const resolvedParams = await params;
+  const { propertyId } = propertyIdParamSchema.parse(resolvedParams);
 
-    const body = await request.json();
-    
-    // 2. Schema Zod Validation
-    const result = PropertyPaymentConfigSchema.safeParse(body);
-    if (!result.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: "Validation failed", 
-          details: result.error.flatten().fieldErrors 
-        },
-        { status: 400 }
-      );
-    }
+  const access = await requirePropertyAccess(request, propertyId);
+  if (!access.authorized) return access.response!;
 
-    const validated = result.data;
+  const body = await request.json();
+  const data = paymentConfigSchema.parse(body);
 
-    // 3. Execute atomic DB Transaction to ensure only ONE active provider is active initially
-    const config = await prisma.$transaction(async (tx) => {
-      // Find if we already have a record for this provider
-      const existingConfig = await tx.propertyPaymentConfig.findFirst({
-        where: {
-          propertyId,
-          provider: validated.provider
-        }
-      });
-
-      // Encrypt secrets if they are provided as updates
-      let encryptedGatewaySecret = existingConfig?.gatewaySecret || null;
-      let encryptedWebhookSecret = existingConfig?.webhookSecret || null;
-
-      // Only update secret if a non-masked new value is sent
-      if (validated.gatewaySecret && validated.gatewaySecret !== "••••••••••••••••") {
-        encryptedGatewaySecret = encrypt(validated.gatewaySecret);
-      }
-      if (validated.webhookSecret && validated.webhookSecret !== "••••••••••••••••") {
-        encryptedWebhookSecret = encrypt(validated.webhookSecret);
-      }
-
-      // If this config is set to active, automatically deactivate all other configs for this property
-      if (validated.isActive) {
-        await tx.propertyPaymentConfig.updateMany({
-          where: {
-            propertyId,
-            provider: { not: validated.provider }
-          },
-          data: {
-            isActive: false
-          }
-        });
-      }
-
-      let savedConfig;
-      if (existingConfig) {
-        // Update
-        savedConfig = await tx.propertyPaymentConfig.update({
-          where: { id: existingConfig.id },
-          data: {
-            upiId: validated.upiId || null,
-            merchantName: validated.merchantName || null,
-            bankName: validated.bankName || null,
-            gatewayKey: validated.gatewayKey || null,
-            gatewaySecret: encryptedGatewaySecret,
-            webhookSecret: encryptedWebhookSecret,
-            isActive: validated.isActive
-          }
-        });
-      } else {
-        // Create
-        savedConfig = await tx.propertyPaymentConfig.create({
-          data: {
-            propertyId,
-            provider: validated.provider,
-            upiId: validated.upiId || null,
-            merchantName: validated.merchantName || null,
-            bankName: validated.bankName || null,
-            gatewayKey: validated.gatewayKey || null,
-            gatewaySecret: encryptedGatewaySecret,
-            webhookSecret: encryptedWebhookSecret,
-            isActive: validated.isActive
-          }
-        });
-      }
-
-      return savedConfig;
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: `${validated.provider} configuration saved successfully.`,
-      configId: config.id
-    });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("PATCH payment settings failure:", message);
-    return NextResponse.json(
-      { success: false, error: message },
-      { status: 500 }
-    );
-  }
-}
+  const config = await propertyPaymentConfigService.upsertPaymentConfig(propertyId, data);
+  return successResponse(config, { status: 201 });
+});

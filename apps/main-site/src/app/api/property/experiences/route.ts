@@ -1,135 +1,83 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma as db } from "@/lib/database/prisma";
-import { requirePropertyAccess } from "@/lib/auth/rbac";
+import { NextRequest } from "next/server";
+import { requireRole, requirePropertyAccess } from "@/lib/auth/rbac";
+import { propertyExperienceService } from "@/lib/services/propertyExperienceService";
+import { withErrorHandler, AppError } from "@/lib/errors/handler";
+import { successResponse } from "@/lib/utils/apiResponse";
 import { z } from "zod";
 
-const ExperienceSchema = z.object({
-  propertyId: z.string().min(1),
-  title: z.string().min(1),
-  slug: z.string().min(1),
-  description: z.string(),
-  category: z.string(),
-  price: z.number().nonnegative(),
-  isComplimentary: z.boolean().default(false),
-  isFeatured: z.boolean().default(false),
-  icon: z.string().optional(),
-  coverImage: z.string().optional(),
-  duration: z.string().optional(),
-  maxGuests: z.number().int().positive().optional(),
-  requiresScheduling: z.boolean().default(false),
-  availabilityType: z.string().default("always"),
-  isActive: z.boolean().default(true),
-  sortOrder: z.number().int().default(0),
+const getExperiencesQuerySchema = z.object({
+  propertyId: z.string().min(1, "propertyId is required"),
 });
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const propertyId = searchParams.get("propertyId");
+export const GET = withErrorHandler(async (request: NextRequest) => {
+  const { searchParams } = new URL(request.url);
+  const { propertyId } = getExperiencesQuerySchema.parse({ propertyId: searchParams.get("propertyId") });
 
-    if (!propertyId) {
-      return NextResponse.json({ error: "propertyId is required" }, { status: 400 });
-    }
+  const experiences = await propertyExperienceService.getExperiences(propertyId);
+  return successResponse(experiences);
+});
 
-    // STRICT MULTI-TENANT ISOLATION CHECK
-    const auth = await requirePropertyAccess(request, propertyId);
-    if (!auth.authorized) return auth.response!;
+const experienceSchema = z.object({
+  propertyId: z.string().min(1, "propertyId is required"),
+  title: z.string().min(1, "title is required"),
+  description: z.string().min(1, "description is required"),
+  price: z.number().nonnegative(),
+  duration: z.string(),
+  images: z.array(z.string()).default([]),
+});
 
-    const experiences = await db.propertyExperience.findMany({
-      where: { propertyId },
-      orderBy: { sortOrder: 'asc' }
-    });
+export const POST = withErrorHandler(async (request: NextRequest) => {
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager"]);
+  if (!auth.authorized) return auth.response!;
 
-    return NextResponse.json(experiences);
-  } catch (error) {
-    console.error("GET Experiences Error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
+  const body = await request.json();
+  const data = experienceSchema.parse(body);
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const validation = ExperienceSchema.safeParse(body);
+  const access = await requirePropertyAccess(request, data.propertyId);
+  if (!access.authorized) return access.response!;
 
-    if (!validation.success) {
-      return NextResponse.json({ error: "Invalid data", details: validation.error.format() }, { status: 400 });
-    }
+  const experience = await propertyExperienceService.createExperience(data);
+  return successResponse(experience, { status: 201 });
+});
 
-    const data = validation.data;
+const updateExperienceSchema = experienceSchema.partial().extend({
+  id: z.string().min(1, "id is required"),
+});
 
-    // STRICT MULTI-TENANT ISOLATION CHECK on the requested propertyId
-    const auth = await requirePropertyAccess(request, data.propertyId);
-    if (!auth.authorized) return auth.response!;
+export const PATCH = withErrorHandler(async (request: NextRequest) => {
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager"]);
+  if (!auth.authorized) return auth.response!;
 
-    // Role check: Only partners/owners or managers or admins can modify experiences
-    if (!["admin", "super_admin", "owner", "partner", "manager"].includes(auth.role || "")) {
-      return NextResponse.json({ error: "Forbidden: Insufficient privileges" }, { status: 403 });
-    }
+  const body = await request.json();
+  const { id, ...updateData } = updateExperienceSchema.parse(body);
 
-    const experience = await db.propertyExperience.create({
-      data: {
-        ...data,
-      }
-    });
+  const exp = await propertyExperienceService.getExperienceById(id);
+  if (!exp) throw new AppError("Experience not found", 404, "NOT_FOUND");
 
-    return NextResponse.json(experience, { status: 201 });
-  } catch (error) {
-    console.error("Create Experience Error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
+  const access = await requirePropertyAccess(request, exp.propertyId);
+  if (!access.authorized) return access.response!;
 
-export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { id, ...updateData } = body;
+  const updated = await propertyExperienceService.updateExperience(id, updateData);
+  return successResponse(updated);
+});
 
-    if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+const deleteExperienceSchema = z.object({
+  id: z.string().min(1, "id is required"),
+});
 
-    const exp = await db.propertyExperience.findUnique({ where: { id } });
-    if (!exp) return NextResponse.json({ error: "Not found" }, { status: 404 });
+export const DELETE = withErrorHandler(async (request: NextRequest) => {
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager"]);
+  if (!auth.authorized) return auth.response!;
 
-    // STRICT MULTI-TENANT ISOLATION CHECK based on active experience propertyId
-    const auth = await requirePropertyAccess(request, exp.propertyId);
-    if (!auth.authorized) return auth.response!;
+  const { searchParams } = new URL(request.url);
+  const { id } = deleteExperienceSchema.parse({ id: searchParams.get("id") });
 
-    // Role check
-    if (!["admin", "super_admin", "owner", "partner", "manager"].includes(auth.role || "")) {
-      return NextResponse.json({ error: "Forbidden: Insufficient privileges" }, { status: 403 });
-    }
+  const exp = await propertyExperienceService.getExperienceById(id);
+  if (!exp) throw new AppError("Experience not found", 404, "NOT_FOUND");
 
-    const updated = await db.propertyExperience.update({ where: { id }, data: updateData });
-    return NextResponse.json(updated);
-  } catch (error) {
-    console.error("PATCH Experience Error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
+  const access = await requirePropertyAccess(request, exp.propertyId);
+  if (!access.authorized) return access.response!;
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-
-    if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
-
-    const exp = await db.propertyExperience.findUnique({ where: { id } });
-    if (!exp) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-    // STRICT MULTI-TENANT ISOLATION CHECK based on active experience propertyId
-    const auth = await requirePropertyAccess(request, exp.propertyId);
-    if (!auth.authorized) return auth.response!;
-
-    // Role check
-    if (!["admin", "super_admin", "owner", "partner", "manager"].includes(auth.role || "")) {
-      return NextResponse.json({ error: "Forbidden: Insufficient privileges" }, { status: 403 });
-    }
-
-    await db.propertyExperience.delete({ where: { id } });
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("DELETE Experience Error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
+  await propertyExperienceService.deleteExperience(id);
+  return successResponse({ success: true, deleted: id });
+});

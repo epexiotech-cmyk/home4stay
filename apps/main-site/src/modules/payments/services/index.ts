@@ -7,7 +7,8 @@ import { CashfreeProvider } from "./gateways/cashfree";
 import { PhonePeProvider } from "./gateways/phonepe";
 import { YesBankProvider } from "./gateways/yesbank";
 import { getPaymentProviderChain } from "./resolver";
-import { PaymentProviderType, PaymentStatus, PaymentTransaction } from "@prisma/client";
+import { PaymentProviderType, PaymentStatus, PaymentTransaction, BillingCycle } from "@prisma/client";
+import { PaymentRepository } from "../../../lib/repositories/paymentRepository";
 
 export class PaymentService {
   /**
@@ -157,9 +158,7 @@ export class PaymentService {
     adminUserId: string, 
     reviewNote?: string
   ): Promise<PaymentTransaction> {
-    const transaction = await prisma.paymentTransaction.findUnique({
-      where: { id: transactionId }
-    });
+    const transaction = await PaymentRepository.findTransactionById(transactionId);
 
     if (!transaction) {
       throw new Error(`Transaction with ID ${transactionId} not found`);
@@ -170,19 +169,20 @@ export class PaymentService {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      const txRecord = await tx.paymentTransaction.update({
-        where: { id: transactionId },
-        data: {
+      const txRecord = await PaymentRepository.updateTransaction(
+        transactionId,
+        {
           paymentStatus: PaymentStatus.APPROVED,
           adminReviewNote: reviewNote || "Manual UPI transfer confirmed.",
           reviewedBy: adminUserId,
           reviewedAt: new Date(),
           paidAt: new Date()
-        }
-      });
+        },
+        tx
+      );
 
-      await tx.paymentAuditLog.create({
-        data: {
+      await PaymentRepository.createAuditLog(
+        {
           transactionId,
           action: "MANUAL_UPI_APPROVED",
           oldStatus: transaction.paymentStatus,
@@ -192,8 +192,22 @@ export class PaymentService {
             reviewNote,
             utrNumber: transaction.utrNumber
           }
+        },
+        tx
+      );
+
+      // Auto-issue GST Tax Invoice atomically on approval
+      if (txRecord.subscriptionId) {
+        const { SubscriptionLifecycleService } = await import("./subscriptionLifecycle");
+        const { InvoiceService } = await import("@/lib/financial/invoiceService");
+        
+        await SubscriptionLifecycleService.activateSubscription(txRecord.subscriptionId, adminUserId);
+        try {
+          await InvoiceService.generateInvoiceForTransaction(transactionId);
+        } catch (invoiceErr) {
+          console.error("[INVOICE_GENERATION_HOOK_ERROR] Failed to auto-issue invoice:", invoiceErr);
         }
-      });
+      }
 
       return txRecord;
     });
@@ -209,9 +223,7 @@ export class PaymentService {
     adminUserId: string, 
     reviewNote?: string
   ): Promise<PaymentTransaction> {
-    const transaction = await prisma.paymentTransaction.findUnique({
-      where: { id: transactionId }
-    });
+    const transaction = await PaymentRepository.findTransactionById(transactionId);
 
     if (!transaction) {
       throw new Error(`Transaction with ID ${transactionId} not found`);
@@ -222,18 +234,19 @@ export class PaymentService {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      const txRecord = await tx.paymentTransaction.update({
-        where: { id: transactionId },
-        data: {
+      const txRecord = await PaymentRepository.updateTransaction(
+        transactionId,
+        {
           paymentStatus: PaymentStatus.REJECTED,
           adminReviewNote: reviewNote || "Manual UPI UTR verification failed.",
           reviewedBy: adminUserId,
           reviewedAt: new Date()
-        }
-      });
+        },
+        tx
+      );
 
-      await tx.paymentAuditLog.create({
-        data: {
+      await PaymentRepository.createAuditLog(
+        {
           transactionId,
           action: "MANUAL_UPI_REJECTED",
           oldStatus: transaction.paymentStatus,
@@ -243,8 +256,16 @@ export class PaymentService {
             reviewNote,
             utrNumber: transaction.utrNumber
           }
-        }
-      });
+        },
+        tx
+      );
+
+      if (txRecord.subscriptionId) {
+        await tx.propertySubscription.update({
+          where: { id: txRecord.subscriptionId },
+          data: { status: "INACTIVE" }
+        });
+      }
 
       return txRecord;
     });
@@ -403,5 +424,213 @@ export class PaymentService {
     });
 
     throw new Error(`Failed to initiate checkout via gateway chain. Last error: ${lastError?.message}`);
+  }
+
+  /**
+   * Orchestrates the business flow for processing incoming webhooks
+   * Ensures the database transactions are managed centrally.
+   */
+  static async processWebhook(params: {
+    transactionId: string;
+    status: PaymentStatus;
+    rawBody: any;
+    bankReference: string | null;
+    statusCode: string | undefined;
+    gatewayTransactionId: string;
+    settlementReference: string;
+  }) {
+    const { transactionId, status, rawBody, bankReference, statusCode, gatewayTransactionId, settlementReference } = params;
+    
+    const transaction = await PaymentRepository.findTransactionById(transactionId);
+    if (!transaction) throw new Error(`Transaction ${transactionId} not found`);
+
+    return await prisma.$transaction(async (tx) => {
+      // 1. Update transaction
+      const updatedTx = await PaymentRepository.updateTransaction(
+        transactionId,
+        {
+          paymentStatus: status,
+          paidAt: status === PaymentStatus.SUCCESS ? new Date() : null,
+          gatewayResponse: {
+            ...(transaction.gatewayResponse as Record<string, unknown> || {}),
+            webhookReceivedAt: new Date().toISOString(),
+            webhookPayload: rawBody
+          }
+        },
+        tx
+      );
+
+      // 2. Audit Log
+      await PaymentRepository.createAuditLog(
+        {
+          transactionId,
+          action: "WEBHOOK_PROCESSED",
+          oldStatus: transaction.paymentStatus,
+          newStatus: status,
+          performedBy: "webhook_v1",
+          metadata: { bankReference, statusCode }
+        },
+        tx
+      );
+
+      // 3. Reconciliation
+      const existingRecon = await PaymentRepository.findReconciliation(transactionId, tx);
+      const bankRef = bankReference || `bank_ref_${Date.now()}`;
+      const settlementRef = settlementReference || `settle_ref_${Date.now()}`;
+
+      if (existingRecon) {
+        const previousLogs = (existingRecon.callbackLogs as import("@prisma/client").Prisma.InputJsonValue[]) || [];
+        const newLogEntry = { timestamp: new Date().toISOString(), event: "webhook", status };
+        await PaymentRepository.updateReconciliation(
+          transactionId,
+          {
+            gatewayTransactionId: transaction.gatewayTransactionId || gatewayTransactionId,
+            bankReference: bankRef,
+            settlementReference: settlementRef,
+            reconciliationStatus: status === PaymentStatus.SUCCESS ? "MATCHED" : "MISMATCHED",
+            verificationState: status === PaymentStatus.SUCCESS ? "VERIFIED" : "FAILED",
+            mismatchReason: status !== PaymentStatus.SUCCESS ? "Payment Webhook reported FAILED status" : null,
+            callbackLogs: [...previousLogs, newLogEntry]
+          },
+          tx
+        );
+      } else {
+        const initialLog = { timestamp: new Date().toISOString(), event: "webhook_init", status };
+        await PaymentRepository.createReconciliation(
+          {
+            transactionId,
+            gatewayTransactionId: transaction.gatewayTransactionId || gatewayTransactionId,
+            bankReference: bankRef,
+            settlementReference: settlementRef,
+            reconciliationStatus: status === PaymentStatus.SUCCESS ? "MATCHED" : "MISMATCHED",
+            verificationState: status === PaymentStatus.SUCCESS ? "VERIFIED" : "FAILED",
+            mismatchReason: status !== PaymentStatus.SUCCESS ? "Payment Webhook reported FAILED status" : null,
+            callbackLogs: [initialLog]
+          },
+          tx
+        );
+      }
+
+      return updatedTx;
+    });
+  }
+
+  /**
+   * Orchestrates the manual UPI submission workflow.
+   */
+  static async processManualUpiSubmission(params: {
+    userId: string;
+    propertyId: string;
+    selectedPlanId: string;
+    billingCycle: BillingCycle;
+    utrNumber: string;
+    screenshot: File;
+    acceptedSubscriptionAgreementVersion: string;
+    ip: string;
+    userAgent: string;
+  }) {
+    const { userId, propertyId, selectedPlanId, billingCycle, utrNumber, screenshot, acceptedSubscriptionAgreementVersion, ip, userAgent } = params;
+
+    // Resolve active subscription agreement
+    const { LegalService } = await import("@/lib/legal/legalService");
+    const activeSub = await LegalService.getActiveDocument("SUBSCRIPTION_AGREEMENT");
+    let subAgreementDocId = "";
+    if (activeSub) {
+      if (activeSub.version !== acceptedSubscriptionAgreementVersion) {
+        throw new Error(`Outdated Subscription Agreement version accepted (${acceptedSubscriptionAgreementVersion}). Current active is ${activeSub.version}.`);
+      }
+      subAgreementDocId = activeSub.id;
+    } else {
+      const placeholderSub = await prisma.legalDocument.create({
+        data: {
+          documentType: "SUBSCRIPTION_AGREEMENT",
+          title: "Subscription Agreement",
+          slug: "subscription-agreement",
+          version: acceptedSubscriptionAgreementVersion || "1.0.0",
+          content: "Default Subscription Agreement. Please manage in Super Admin.",
+          isActive: true,
+          publishedAt: new Date()
+        }
+      });
+      subAgreementDocId = placeholderSub.id;
+    }
+
+    const property = await prisma.property.findUnique({ where: { id: propertyId } });
+    if (!property) throw new Error("Property not found");
+    if (property.ownerId !== userId) throw new Error("Forbidden: You do not own this property");
+
+    const duplicateUtr = await PaymentRepository.findDuplicateUtr(utrNumber, propertyId);
+    if (duplicateUtr) throw new Error("This UTR reference has already been submitted");
+
+    const pendingSubmission = await PaymentRepository.findPendingSubmission(propertyId, "manual-upi-provider-id"); // Simplified for now
+    if (pendingSubmission) throw new Error("You already have a pending payment approval for this property");
+
+    const provider = await prisma.paymentProvider.findFirst({
+      where: { providerType: PaymentProviderType.MANUAL_UPI, isEnabled: true }
+    });
+    if (!provider) throw new Error("Manual UPI provider is not active or configured");
+
+    const { storageDriver } = await import("@/lib/server/storageDriver");
+    const fileBuffer = Buffer.from(await screenshot.arrayBuffer());
+    const storedFilename = await storageDriver.uploadFile(fileBuffer, screenshot.name, screenshot.type);
+
+    const PLAN_RATES: Record<string, Record<string, number>> = {
+      basic: { MONTHLY: 999, QUARTERLY: 2499, YEARLY: 7999, LIFETIME: 19999 },
+      premium: { MONTHLY: 1999, QUARTERLY: 4999, YEARLY: 14999, LIFETIME: 39999 }
+    };
+    const planIdKey = selectedPlanId.toLowerCase();
+    const amount = PLAN_RATES[planIdKey]?.[billingCycle.toUpperCase()] || PLAN_RATES["basic"]?.[billingCycle.toUpperCase()] || 999;
+
+    return await prisma.$transaction(async (tx) => {
+      const subscription = await tx.propertySubscription.create({
+        data: {
+          propertyId,
+          selectedPlanId,
+          status: "PENDING_PAYMENT",
+          billingCycle: billingCycle,
+          amount,
+          currency: "INR",
+          createdBy: userId
+        }
+      });
+
+      const txRecord = await tx.paymentTransaction.create({
+        data: {
+          propertyId,
+          subscriptionId: subscription.id,
+          providerId: provider.id,
+          paymentStatus: PaymentStatus.PENDING_APPROVAL,
+          amount,
+          currency: "INR",
+          utrNumber,
+          paymentScreenshotUrl: storedFilename
+        }
+      });
+
+      await PaymentRepository.createAuditLog({
+        transactionId: txRecord.id,
+        action: "MANUAL_UPI_SUBMITTED",
+        newStatus: PaymentStatus.PENDING_APPROVAL,
+        performedBy: userId,
+        metadata: { selectedPlanId, billingCycle, utrNumber, screenshotFilename: storedFilename }
+      }, tx);
+
+      await tx.legalAcceptanceLog.create({
+        data: {
+          userId,
+          documentId: subAgreementDocId,
+          acceptedVersion: acceptedSubscriptionAgreementVersion,
+          ipAddress: ip,
+          userAgent,
+          metadata: { checkoutAcceptance: true }
+        }
+      });
+
+      return txRecord;
+    });
+  }
+
+  static async getUserTransactions(params: { userId: string, status?: PaymentStatus, limit: number, offset: number }) {
+    return await PaymentRepository.findUserTransactions(params.userId, params.status, params.limit, params.offset);
   }
 }

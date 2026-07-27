@@ -116,9 +116,9 @@ class PropertyThemePage extends StatelessWidget {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF0D5C7D).withOpacity(0.05),
+                                        color: const Color(0xFF0D5C7D).withValues(alpha: 0.05),
                                         borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: const Color(0xFF0D5C7D).withOpacity(0.2)),
+                                        border: Border.all(color: const Color(0xFF0D5C7D).withValues(alpha: 0.2)),
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -128,7 +128,7 @@ class PropertyThemePage extends StatelessWidget {
                                           Text(
                                             "Selected Theme: ",
                                             style: TextStyle(
-                                              color: const Color(0xFF1F2937).withOpacity(0.7),
+                                              color: const Color(0xFF1F2937).withValues(alpha: 0.7),
                                               fontSize: 14,
                                             ),
                                           ),
@@ -170,7 +170,7 @@ class PropertyThemePage extends StatelessWidget {
                             Text(
                               "Themes adjust portal visual appearance.",
                               style: TextStyle(
-                                color: const Color(0xFF1F2937).withOpacity(0.7),
+                                color: const Color(0xFF1F2937).withValues(alpha: 0.7),
                                 fontSize: dp(context, 12),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -304,7 +304,7 @@ class PropertyThemePage extends StatelessWidget {
               Text(
                 "Let AI analyze your property identity to recommend the perfect theme.",
                 style: TextStyle(
-                  color: const Color(0xFF1F2937).withOpacity(0.7),
+                  color: const Color(0xFF1F2937).withValues(alpha: 0.7),
                   fontSize: 14,
                 ),
               ),
@@ -327,7 +327,7 @@ class PropertyThemePage extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade300, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -399,14 +399,14 @@ class PropertyThemePage extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF0D5C7D).withOpacity(0.15),
+                    color: const Color(0xFF0D5C7D).withValues(alpha: 0.15),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   )
                 ]
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
@@ -442,7 +442,7 @@ class PropertyThemePage extends StatelessWidget {
               description,
               style: TextStyle(
                 fontSize: dp(context, 14),
-                color: const Color(0xFF1F2937).withOpacity(0.7),
+                color: const Color(0xFF1F2937).withValues(alpha: 0.7),
                 height: 1.4,
               ),
             ),
@@ -450,7 +450,7 @@ class PropertyThemePage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.1),
+                color: accentColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(

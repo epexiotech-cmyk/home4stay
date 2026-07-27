@@ -1,8 +1,8 @@
+import 'dart:developer' as developer;
 import 'package:home4stay/features/media_upload/domain/models/media_upload_batch.dart';
 import 'package:home4stay/features/media_upload/domain/models/media_upload_item.dart';
 import 'package:home4stay/features/media_upload/domain/queue/media_upload_queue.dart';
 import 'package:home4stay/features/media_upload/domain/validators/media_upload_validator.dart';
-import 'package:home4stay/features/media_upload/domain/exceptions/media_upload_exceptions.dart';
 
 abstract class MediaUploadServiceContract {
   MediaUploadBatch prepareUploads(String propertyDraftId, List<MediaUploadItem> items);
@@ -32,7 +32,7 @@ class MediaUploadService implements MediaUploadServiceContract {
         _queue.enqueue(item);
       } catch (e) {
         item.status = UploadStatus.failed;
-        print("Validation Failed for ${item.fileName}: $e");
+        developer.log("Validation Failed for ${item.fileName}: $e");
       }
     }
 

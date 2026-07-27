@@ -1,0 +1,608 @@
+ M .env.example
+ M .env.local
+ M .gitignore
+ M .vscode/launch.json
+ M .vscode/settings.json
+ M README.md
+ M apps/main-site/.gitignore
+ M apps/main-site/AGENTS.md
+ M apps/main-site/CLAUDE.md
+ M apps/main-site/README.md
+ M apps/main-site/RECOVERY_PLAN.md
+ M apps/main-site/eslint.config.mjs
+ M apps/main-site/next.config.ts
+MM apps/main-site/package.json
+ M apps/main-site/postcss.config.js
+MM apps/main-site/prisma/schema.prisma
+ M apps/main-site/prisma/seed-cms.ts
+ M apps/main-site/scratch/backfill_property_access.mjs
+ M apps/main-site/scratch/check_chars.js
+ M apps/main-site/scratch/check_chars_prisma.js
+ M apps/main-site/scratch/check_indexes.mjs
+ M apps/main-site/scratch/check_syntax.js
+ M apps/main-site/scratch/check_users.mjs
+ M apps/main-site/scratch/fix_auth_service.mjs
+ M apps/main-site/scratch/list_tables.mjs
+ M apps/main-site/scratch/penetration_test.mjs
+ M apps/main-site/scratch/run_penetration_test.mjs
+ M apps/main-site/scratch/seed_db.mjs
+ M apps/main-site/scratch/stress_test.mjs
+ M apps/main-site/scratch/test_auth_flow.mjs
+ M apps/main-site/scratch/test_login.mjs
+ M apps/main-site/scratch/test_resolver.ts
+ M apps/main-site/src/app/(marketing)/explore/page.tsx
+ M apps/main-site/src/app/(marketing)/layout.tsx
+ M apps/main-site/src/app/(marketing)/page.tsx
+ M apps/main-site/src/app/(marketing)/partner/contact/page.tsx
+ M apps/main-site/src/app/(marketing)/partner/demo/page.tsx
+ M apps/main-site/src/app/(marketing)/partner/page.tsx
+ M apps/main-site/src/app/(marketing)/partner/pricing/page.tsx
+ M apps/main-site/src/app/(marketing)/privacy/page.tsx
+ M apps/main-site/src/app/(marketing)/profile/change-password/page.tsx
+ M apps/main-site/src/app/(marketing)/profile/edit/page.tsx
+ M apps/main-site/src/app/(marketing)/profile/page.tsx
+ M apps/main-site/src/app/(marketing)/refund-policy/page.tsx
+ M apps/main-site/src/app/(marketing)/subscription-agreement/page.tsx
+ M apps/main-site/src/app/(marketing)/terms/page.tsx
+ M apps/main-site/src/app/(portal)/(auth)/admin/login/page.tsx
+ M apps/main-site/src/app/(portal)/(auth)/auth/forgot-password/page.tsx
+ M apps/main-site/src/app/(portal)/(auth)/auth/login/page.tsx
+ M apps/main-site/src/app/(portal)/(auth)/auth/register/page.tsx
+ M apps/main-site/src/app/(portal)/(auth)/auth/reset-password/page.tsx
+ M apps/main-site/src/app/(portal)/(auth)/layout.tsx
+ M apps/main-site/src/app/(portal)/(auth)/partner/login/page.tsx
+ M apps/main-site/src/app/(portal)/(auth)/partner/register/page.tsx
+ M apps/main-site/src/app/(portal)/admin/dashboard/page.tsx
+ M apps/main-site/src/app/(portal)/admin/layout.tsx
+ M apps/main-site/src/app/(portal)/admin/leads/page.tsx
+ M apps/main-site/src/app/(portal)/admin/properties/[slug]/images/page.tsx
+ M apps/main-site/src/app/(portal)/admin/properties/page.tsx
+ M apps/main-site/src/app/(portal)/admin/security/page.tsx
+ M apps/main-site/src/app/(portal)/partner/bookings/page.tsx
+ M apps/main-site/src/app/(portal)/partner/calendar/page.tsx
+ M apps/main-site/src/app/(portal)/partner/dashboard/billing/page.tsx
+ M apps/main-site/src/app/(portal)/partner/dashboard/billing/transactions/[id]/page.tsx
+ M apps/main-site/src/app/(portal)/partner/dashboard/page.tsx
+ M apps/main-site/src/app/(portal)/partner/dashboard/referrals/page.tsx
+ M apps/main-site/src/app/(portal)/partner/experiences/page.tsx
+ M apps/main-site/src/app/(portal)/partner/financials/page.tsx
+ M apps/main-site/src/app/(portal)/partner/guests/page.tsx
+ M apps/main-site/src/app/(portal)/partner/layout.tsx
+ M apps/main-site/src/app/(portal)/partner/meal-plans/page.tsx
+ M apps/main-site/src/app/(portal)/partner/notifications/page.tsx
+ M apps/main-site/src/app/(portal)/partner/onboarding/amenities/page.tsx
+ M apps/main-site/src/app/(portal)/partner/onboarding/experiences/page.tsx
+ M apps/main-site/src/app/(portal)/partner/onboarding/gallery/page.tsx
+ M apps/main-site/src/app/(portal)/partner/onboarding/launch/page.tsx
+ M apps/main-site/src/app/(portal)/partner/onboarding/layout.tsx
+ M apps/main-site/src/app/(portal)/partner/onboarding/page.tsx
+ M apps/main-site/src/app/(portal)/partner/onboarding/policies/page.tsx
+ M apps/main-site/src/app/(portal)/partner/onboarding/pricing/page.tsx
+ M apps/main-site/src/app/(portal)/partner/onboarding/property/page.tsx
+ M apps/main-site/src/app/(portal)/partner/onboarding/rooms/page.tsx
+ M apps/main-site/src/app/(portal)/partner/onboarding/theme/page.tsx
+ M apps/main-site/src/app/(portal)/partner/onboarding/welcome/page.tsx
+ M apps/main-site/src/app/(portal)/partner/operational-panel/page.tsx
+ M apps/main-site/src/app/(portal)/partner/promotions/page.tsx
+ M apps/main-site/src/app/(portal)/partner/properties/page.tsx
+ M apps/main-site/src/app/(portal)/partner/property-page-cms/page.tsx
+ M apps/main-site/src/app/(portal)/partner/reviews/page.tsx
+ M apps/main-site/src/app/(portal)/partner/rooms/page.tsx
+ M apps/main-site/src/app/(portal)/partner/staff/page.tsx
+ M apps/main-site/src/app/(portal)/partner/subscription/page.tsx
+ M apps/main-site/src/app/(portal)/super-admin/automation/page.tsx
+ M apps/main-site/src/app/(portal)/super-admin/finance/page.tsx
+ M apps/main-site/src/app/(portal)/super-admin/financial-settings/page.tsx
+ M apps/main-site/src/app/(portal)/super-admin/legal-documents/page.tsx
+ M apps/main-site/src/app/(portal)/super-admin/payment-settings/page.tsx
+ M apps/main-site/src/app/(portal)/super-admin/payments/page.tsx
+ M apps/main-site/src/app/(portal)/super-admin/referrals/page.tsx
+ M apps/main-site/src/app/(portal)/super-admin/subscription-plans/page.tsx
+ M apps/main-site/src/app/api/admin/audit-logs/route.ts
+ M apps/main-site/src/app/api/admin/finance/dashboard/route.ts
+ M apps/main-site/src/app/api/admin/finance/export/route.ts
+ M apps/main-site/src/app/api/admin/finance/reconcile/route.ts
+ M apps/main-site/src/app/api/admin/financial-settings/export/route.ts
+ M apps/main-site/src/app/api/admin/financial-settings/route.ts
+ M apps/main-site/src/app/api/admin/legal-documents/audit/route.ts
+ M apps/main-site/src/app/api/admin/legal-documents/route.ts
+ M apps/main-site/src/app/api/admin/payment-settings/providers/[id]/route.ts
+ M apps/main-site/src/app/api/admin/payment-settings/providers/qr-assets/[filename]/route.ts
+ M apps/main-site/src/app/api/admin/payment-settings/providers/route.ts
+ M apps/main-site/src/app/api/admin/payment-settings/providers/upload-qr/route.ts
+ M apps/main-site/src/app/api/admin/payments/[id]/approve/route.ts
+ M apps/main-site/src/app/api/admin/payments/[id]/reject/route.ts
+ M apps/main-site/src/app/api/admin/payments/audit-logs/route.ts
+ M apps/main-site/src/app/api/admin/payments/dashboard/route.ts
+ M apps/main-site/src/app/api/admin/payments/pending/route.ts
+ M apps/main-site/src/app/api/admin/payments/proofs/[filename]/route.ts
+ M apps/main-site/src/app/api/admin/payments/properties/[propertyId]/toggle-status/route.ts
+ M apps/main-site/src/app/api/admin/payments/subscriptions/[id]/cancel/route.ts
+ M apps/main-site/src/app/api/admin/payments/subscriptions/[id]/change-plan/route.ts
+ M apps/main-site/src/app/api/admin/payments/subscriptions/[id]/extend/route.ts
+ M apps/main-site/src/app/api/admin/payments/subscriptions/[id]/reactivate/route.ts
+ M apps/main-site/src/app/api/admin/payments/subscriptions/[id]/suspend/route.ts
+ M apps/main-site/src/app/api/admin/payments/subscriptions/route.ts
+ M apps/main-site/src/app/api/admin/referrals/route.ts
+ M apps/main-site/src/app/api/admin/sessions/route.ts
+ M apps/main-site/src/app/api/admin/subscription-plans/[id]/route.ts
+ M apps/main-site/src/app/api/admin/subscription-plans/route.ts
+ M apps/main-site/src/app/api/admin/suspicious-activity/route.ts
+ M apps/main-site/src/app/api/auth/change-password/route.ts
+ M apps/main-site/src/app/api/auth/forgot-password/route.ts
+ M apps/main-site/src/app/api/auth/legal-accept/route.ts
+ M apps/main-site/src/app/api/auth/legal-status/route.ts
+ M apps/main-site/src/app/api/auth/login/route.ts
+ M apps/main-site/src/app/api/auth/logout/route.ts
+ M apps/main-site/src/app/api/auth/me/route.ts
+ M apps/main-site/src/app/api/auth/partner/register/route.ts
+ M apps/main-site/src/app/api/auth/profile/image/route.ts
+ M apps/main-site/src/app/api/auth/profile/route.ts
+ M apps/main-site/src/app/api/auth/register/route.ts
+ M apps/main-site/src/app/api/auth/reset-password/route.ts
+ M apps/main-site/src/app/api/bookings/[bookingId]/approve-payment/route.ts
+ M apps/main-site/src/app/api/bookings/[bookingId]/invoice/download/route.ts
+ M apps/main-site/src/app/api/bookings/[bookingId]/payment-status/route.ts
+ M apps/main-site/src/app/api/bookings/[bookingId]/reject-payment/route.ts
+ M apps/main-site/src/app/api/bookings/[bookingId]/submit-payment/route.ts
+ M apps/main-site/src/app/api/bookings/route.ts
+ M apps/main-site/src/app/api/contact/route.ts
+ M apps/main-site/src/app/api/cron/cleanup-locks/route.ts
+ M apps/main-site/src/app/api/cron/cleanup/route.ts
+ M apps/main-site/src/app/api/cron/subscription-lifecycle/route.ts
+ M apps/main-site/src/app/api/health/route.ts
+ M apps/main-site/src/app/api/legal/active/route.ts
+ M apps/main-site/src/app/api/login/route.ts
+ M apps/main-site/src/app/api/logout/route.ts
+ M apps/main-site/src/app/api/media/[mediaId]/route.ts
+ M apps/main-site/src/app/api/media/upload/route.ts
+ M apps/main-site/src/app/api/notifications/route.ts
+ M apps/main-site/src/app/api/partner/ai/route.ts
+ M apps/main-site/src/app/api/partner/billing/dashboard/route.ts
+ M apps/main-site/src/app/api/partner/billing/proofs/[filename]/route.ts
+ M apps/main-site/src/app/api/partner/billing/transactions/[id]/route.ts
+ M apps/main-site/src/app/api/partner/calendar/route.ts
+ M apps/main-site/src/app/api/partner/dashboard/route.ts
+ M apps/main-site/src/app/api/partner/financials/route.ts
+ M apps/main-site/src/app/api/partner/media/route.ts
+ M apps/main-site/src/app/api/partner/onboarding/launch/route.ts
+ M apps/main-site/src/app/api/partner/onboarding/session/route.ts
+ M apps/main-site/src/app/api/partner/referrals/route.ts
+ M apps/main-site/src/app/api/partner/rooms/route.ts
+ M apps/main-site/src/app/api/payments/[id]/status/route.ts
+ M apps/main-site/src/app/api/payments/invoices/[id]/download/route.ts
+ M apps/main-site/src/app/api/payments/manual-upi/submit/route.ts
+ M apps/main-site/src/app/api/payments/my-transactions/route.ts
+ M apps/main-site/src/app/api/payments/webhooks/phonepe/route.ts
+ M apps/main-site/src/app/api/payments/webhooks/yesbank/route.ts
+AM apps/main-site/src/app/api/properties/[id]/route.ts
+ M apps/main-site/src/app/api/properties/public/[id]/route.ts
+AM apps/main-site/src/app/api/properties/route.ts
+ M apps/main-site/src/app/api/property/[propertyId]/cms/publish/route.ts
+ M apps/main-site/src/app/api/property/[propertyId]/cms/route.ts
+ M apps/main-site/src/app/api/property/[propertyId]/cms/section/[sectionId]/route.ts
+ M apps/main-site/src/app/api/property/[propertyId]/cms/section/route.ts
+ M apps/main-site/src/app/api/property/[propertyId]/media/route.ts
+ M apps/main-site/src/app/api/property/[propertyId]/payment-settings/route.ts
+ M apps/main-site/src/app/api/property/[propertyId]/public-payment-config/route.ts
+ M apps/main-site/src/app/api/property/cms/route.ts
+ M apps/main-site/src/app/api/property/experiences/[id]/route.ts
+ M apps/main-site/src/app/api/property/experiences/route.ts
+ M apps/main-site/src/app/api/property/image/route.ts
+ M apps/main-site/src/app/api/property/promotions/route.ts
+ M apps/main-site/src/app/api/property/promotions/validate-coupon/route.ts
+ M apps/main-site/src/app/api/property/reviews/route.ts
+ M apps/main-site/src/app/api/property/room/route.ts
+ M apps/main-site/src/app/api/property/route.ts
+ M apps/main-site/src/app/api/readiness/route.ts
+ M apps/main-site/src/app/api/ready/route.ts
+ M apps/main-site/src/app/api/realtime/events/route.ts
+ M apps/main-site/src/app/api/refresh/route.ts
+ M apps/main-site/src/app/booking/checkout/page.tsx
+ M apps/main-site/src/app/booking/documents/[bookingId]/page.tsx
+ M apps/main-site/src/app/booking/layout.tsx
+ M apps/main-site/src/app/globals.css
+ M apps/main-site/src/app/layout.tsx
+ M apps/main-site/src/app/loading.tsx
+ M apps/main-site/src/app/payments/checkout/page.tsx
+ M apps/main-site/src/app/property/[slug]/layout.tsx
+ M apps/main-site/src/app/property/[slug]/page.tsx
+ M apps/main-site/src/components/ContactForm.tsx
+ M apps/main-site/src/components/ExperienceForm.tsx
+ M apps/main-site/src/components/FilterPanel.tsx
+ M apps/main-site/src/components/Footer.tsx
+ M apps/main-site/src/components/ImageForm.tsx
+ M apps/main-site/src/components/LeadsList.tsx
+ M apps/main-site/src/components/LogoutButton.tsx
+ M apps/main-site/src/components/Navbar.original.tsx
+ M apps/main-site/src/components/Navbar.tsx
+ M apps/main-site/src/components/OptimizedImage.tsx
+ M apps/main-site/src/components/PropertyCard.tsx
+ M apps/main-site/src/components/PropertyForm.tsx
+ M apps/main-site/src/components/RoomForm.tsx
+ M apps/main-site/src/components/SearchBar.tsx
+ M apps/main-site/src/components/ThemeSwitcher.tsx
+ M apps/main-site/src/components/admin/cms/AmenitiesEditor.tsx
+ M apps/main-site/src/components/admin/cms/CarouselEditor.tsx
+ M apps/main-site/src/components/admin/cms/FAQEditor.tsx
+ M apps/main-site/src/components/admin/cms/GalleryEditor.tsx
+ M apps/main-site/src/components/admin/cms/HeroEditor.tsx
+ M apps/main-site/src/components/admin/cms/LivePreview.tsx
+ M apps/main-site/src/components/admin/cms/MediaLibraryModal.tsx
+ M apps/main-site/src/components/admin/cms/NarrativeEditor.tsx
+ M apps/main-site/src/components/admin/cms/PageStructureEditor.tsx
+ M apps/main-site/src/components/admin/cms/SectionRenderer.tsx
+ M apps/main-site/src/components/admin/cms/SeoEditor.tsx
+ M apps/main-site/src/components/admin/cms/TestimonialsEditor.tsx
+ M apps/main-site/src/components/admin/cms/UniversalSectionToolbar.tsx
+ M apps/main-site/src/components/admin/cms/types.ts
+ M apps/main-site/src/components/admin/cms/views/AmenitiesSectionView.tsx
+ M apps/main-site/src/components/admin/cms/views/CarouselSectionView.tsx
+ M apps/main-site/src/components/admin/cms/views/FAQSectionView.tsx
+ M apps/main-site/src/components/admin/cms/views/GallerySectionView.tsx
+ M apps/main-site/src/components/admin/cms/views/HeroSectionView.tsx
+ M apps/main-site/src/components/admin/cms/views/NarrativeSectionView.tsx
+ M apps/main-site/src/components/admin/cms/views/TestimonialsSectionView.tsx
+ M apps/main-site/src/components/auth/PasswordInput.tsx
+ M apps/main-site/src/components/auth/PasswordStrengthIndicator.tsx
+ M apps/main-site/src/components/auth/PhoneInput.tsx
+ M apps/main-site/src/components/booking/ConciergeUpsell.tsx
+ M apps/main-site/src/components/booking/FloatingBookingBar.tsx
+ M apps/main-site/src/components/calendar/BookingCard.tsx
+ M apps/main-site/src/components/calendar/CalendarToolbar.tsx
+ M apps/main-site/src/components/calendar/CustomDatePicker.tsx
+ M apps/main-site/src/components/calendar/CustomDropdown.tsx
+ M apps/main-site/src/components/calendar/DayView.tsx
+ M apps/main-site/src/components/calendar/MonthView.tsx
+ M apps/main-site/src/components/calendar/MonthYearSelector.tsx
+ M apps/main-site/src/components/calendar/WeekView.tsx
+ M apps/main-site/src/components/calendar/calendar-utils.ts
+ M apps/main-site/src/components/calendar/types.ts
+ M apps/main-site/src/components/calendar/useCalendarDates.ts
+ M apps/main-site/src/components/experiences/ExperienceLibrary.tsx
+ M apps/main-site/src/components/kyc/AadhaarOTPVerification.tsx
+ M apps/main-site/src/components/layouts/AdminLayout.tsx
+ M apps/main-site/src/components/layouts/PartnerLayout.tsx
+ M apps/main-site/src/components/onboarding/FormComponents.tsx
+ M apps/main-site/src/components/onboarding/PreviewRenderer.tsx
+ M apps/main-site/src/components/portal/ConciergePortal.tsx
+ M apps/main-site/src/components/portal/LegalWall.tsx
+ M apps/main-site/src/components/property/BookingCard.tsx
+ M apps/main-site/src/components/property/BrandedHero.tsx
+ M apps/main-site/src/components/property/ContactSection.tsx
+ M apps/main-site/src/components/property/CustomizeStaySection.tsx
+ M apps/main-site/src/components/property/Gallery.tsx
+ M apps/main-site/src/components/property/HostSection.tsx
+ M apps/main-site/src/components/property/MealPlans.tsx
+ M apps/main-site/src/components/property/MobileBookingBar.tsx
+ M apps/main-site/src/components/property/NarrativeCardStack.tsx
+ M apps/main-site/src/components/property/PolicyAndFAQSection.tsx
+ M apps/main-site/src/components/property/PromotionalBanner.tsx
+ M apps/main-site/src/components/property/ReviewsSection.tsx
+ M apps/main-site/src/components/property/RoomSelection.tsx
+ M apps/main-site/src/components/property/SleepingArrangements.tsx
+ M apps/main-site/src/components/property/StickyHeader.tsx
+ M apps/main-site/src/components/theme/ThemeProvider.tsx
+ M apps/main-site/src/components/ui/EmptyState.tsx
+ M apps/main-site/src/components/ui/Logo.tsx
+ M apps/main-site/src/components/ui/VerifiedBadge.tsx
+ M apps/main-site/src/config/propertyThemes.ts
+ M apps/main-site/src/context/AuthContext.tsx
+ M apps/main-site/src/context/BookingContext.tsx
+ M apps/main-site/src/context/OnboardingContext.tsx
+ M apps/main-site/src/context/ThemeContext.tsx
+ M apps/main-site/src/data/leads.json
+ M apps/main-site/src/lib/abuse/detector.ts
+ M apps/main-site/src/lib/ai/intelligence.ts
+ M apps/main-site/src/lib/auth/auth.service.ts
+ M apps/main-site/src/lib/auth/blacklist.ts
+ M apps/main-site/src/lib/auth/jwt.ts
+ M apps/main-site/src/lib/auth/lockout.ts
+ M apps/main-site/src/lib/auth/rbac.ts
+ M apps/main-site/src/lib/client/password.ts
+ M apps/main-site/src/lib/cms/hooks/useCmsMutations.ts
+ M apps/main-site/src/lib/cms/hooks/useCmsQuery.ts
+ M apps/main-site/src/lib/cms/sectionManifests.ts
+ M apps/main-site/src/lib/cms/sectionRegistry.ts
+ M apps/main-site/src/lib/colorUtils.ts
+ M apps/main-site/src/lib/database/backup.ts
+ M apps/main-site/src/lib/database/prisma.ts
+ M apps/main-site/src/lib/database/transactions.ts
+ M apps/main-site/src/lib/errors/handler.ts
+ M apps/main-site/src/lib/experiences-config.ts
+ M apps/main-site/src/lib/financial/accountingExportService.ts
+ M apps/main-site/src/lib/financial/financeService.ts
+ M apps/main-site/src/lib/financial/financialNumberingService.ts
+ M apps/main-site/src/lib/financial/gstEngine.ts
+ M apps/main-site/src/lib/financial/invoiceService.ts
+ M apps/main-site/src/lib/financial/subscriptionPdfGenerator.ts
+ M apps/main-site/src/lib/financial/taxValidator.ts
+ M apps/main-site/src/lib/getSubdomain.ts
+ M apps/main-site/src/lib/legal/legalService.ts
+ M apps/main-site/src/lib/legal/sanitizer.ts
+ M apps/main-site/src/lib/middleware/auth.ts
+ M apps/main-site/src/lib/middleware/rateLimit.ts
+ M apps/main-site/src/lib/middleware/security.ts
+ M apps/main-site/src/lib/mock/tenantData.ts
+ M apps/main-site/src/lib/models/user.ts
+ M apps/main-site/src/lib/observability/logger.ts
+ M apps/main-site/src/lib/onboarding/readiness.ts
+ M apps/main-site/src/lib/onboarding/validation.ts
+ M apps/main-site/src/lib/referral/referralService.ts
+ M apps/main-site/src/lib/repositories/audit.repository.ts
+AM apps/main-site/src/lib/repositories/propertyRepository.ts
+ M apps/main-site/src/lib/repositories/session.repository.ts
+ M apps/main-site/src/lib/repositories/user.repository.ts
+ M apps/main-site/src/lib/schema.sql
+ M apps/main-site/src/lib/security/config.ts
+ M apps/main-site/src/lib/security/csrf.ts
+ M apps/main-site/src/lib/security/idempotency.ts
+ M apps/main-site/src/lib/security/index.ts
+ M apps/main-site/src/lib/security/rate-limiter.ts
+ M apps/main-site/src/lib/security/rateLimiter.ts
+ M apps/main-site/src/lib/security/rbac.ts
+ M apps/main-site/src/lib/security/requestId.ts
+ M apps/main-site/src/lib/seed_user_safe.mjs
+ M apps/main-site/src/lib/server/audit.ts
+ M apps/main-site/src/lib/server/cache.ts
+ M apps/main-site/src/lib/server/db.ts
+ M apps/main-site/src/lib/server/email.ts
+ M apps/main-site/src/lib/server/encryption.ts
+ M apps/main-site/src/lib/server/password.ts
+ M apps/main-site/src/lib/server/redis.ts
+ M apps/main-site/src/lib/server/session-manager.ts
+ M apps/main-site/src/lib/server/storageDriver.ts
+ M apps/main-site/src/lib/server/transactionalEmail.ts
+AM apps/main-site/src/lib/services/propertyService.ts
+ M apps/main-site/src/lib/startup/checkServices.ts
+ M apps/main-site/src/lib/tenant/contextResolver.ts
+ M apps/main-site/src/lib/tenant/tenantUtils.ts
+AM apps/main-site/src/lib/types/property.dto.ts
+ M apps/main-site/src/lib/utils.ts
+ M apps/main-site/src/lib/utils/domains.ts
+ M apps/main-site/src/lib/utils/reliability.ts
+ M apps/main-site/src/lib/utils/soundManager.ts
+AM apps/main-site/src/lib/validators/property.validators.ts
+ M apps/main-site/src/middleware.ts.bak
+ M apps/main-site/src/middleware.ts.disabled
+ M apps/main-site/src/modules/payments/providers/smartUpi.ts
+ M apps/main-site/src/modules/payments/services/auditLogService.ts
+ M apps/main-site/src/modules/payments/services/bookingEngine.ts
+ M apps/main-site/src/modules/payments/services/emailQueue.ts
+ M apps/main-site/src/modules/payments/services/entitlements.ts
+ M apps/main-site/src/modules/payments/services/eventBroadcaster.ts
+ M apps/main-site/src/modules/payments/services/eventEmitter.ts
+ M apps/main-site/src/modules/payments/services/gateways/cashfree.ts
+ M apps/main-site/src/modules/payments/services/gateways/phonepe.ts
+ M apps/main-site/src/modules/payments/services/gateways/razorpay.ts
+ M apps/main-site/src/modules/payments/services/gateways/stripe.ts
+ M apps/main-site/src/modules/payments/services/gateways/yesbank.ts
+ M apps/main-site/src/modules/payments/services/index.ts
+ M apps/main-site/src/modules/payments/services/interfaces.ts
+ M apps/main-site/src/modules/payments/services/inventoryLock.ts
+ M apps/main-site/src/modules/payments/services/invoiceNumberingService.ts
+ M apps/main-site/src/modules/payments/services/invoicePdfGenerator.ts
+ M apps/main-site/src/modules/payments/services/invoiceStorageService.ts
+ M apps/main-site/src/modules/payments/services/manual-upi/provider.ts
+ M apps/main-site/src/modules/payments/services/notificationService.ts
+ M apps/main-site/src/modules/payments/services/resolver.ts
+ M apps/main-site/src/modules/payments/services/subscriptionLifecycle.ts
+ M apps/main-site/src/modules/payments/services/webhooks/index.ts
+ M apps/main-site/src/modules/payments/types/index.ts
+ M apps/main-site/src/modules/payments/utils/crypto.ts
+ M apps/main-site/src/modules/payments/utils/qr.ts
+ M apps/main-site/src/modules/payments/validators/index.ts
+ M apps/main-site/src/properties-data/index.ts
+ M apps/main-site/src/properties-data/package.json
+ M apps/main-site/src/properties-data/property.json
+ M apps/main-site/src/properties-data/types.ts
+ M apps/main-site/src/proxy.ts
+ M apps/main-site/src/proxy.ts.bak
+ M apps/main-site/tailwind.config.js
+ M apps/main-site/test-onboarding.js
+ M apps/main-site/tsconfig.json
+ M apps/mobile-app/.gitignore
+ M apps/mobile-app/README.md
+ M apps/mobile-app/analysis_options.yaml
+ M apps/mobile-app/lib/core/common_imports.dart
+ M apps/mobile-app/lib/core/theme/app_theme.dart
+ M apps/mobile-app/lib/dependency_injection.dart
+ M apps/mobile-app/lib/features/media_upload/domain/services/media_upload_service.dart
+ M apps/mobile-app/lib/features/onboarding/controllers/onboarding_wizard_controller.dart
+ M apps/mobile-app/lib/features/onboarding/data/api/services/property_api_service.dart
+ M apps/mobile-app/lib/features/onboarding/domain/services/draft_auto_save_service.dart
+ M apps/mobile-app/lib/features/onboarding/domain/services/property_creation_service.dart
+ M apps/mobile-app/lib/pages/amenities/amenities_controller.dart
+ M apps/mobile-app/lib/pages/amenities/amenities_page.dart
+ M apps/mobile-app/lib/pages/experiences/experiences_controller.dart
+ M apps/mobile-app/lib/pages/experiences/experiences_page.dart
+ M apps/mobile-app/lib/pages/launch_readiness/launch_readiness_controller.dart
+ M apps/mobile-app/lib/pages/launch_readiness/launch_readiness_page.dart
+ M apps/mobile-app/lib/pages/media_gallery/media_gallery_page.dart
+ M apps/mobile-app/lib/pages/policies/policies_controller.dart
+ M apps/mobile-app/lib/pages/policies/policies_page.dart
+ M apps/mobile-app/lib/pages/pricing_engine/pricing_engine_controller.dart
+ M apps/mobile-app/lib/pages/pricing_engine/pricing_engine_page.dart
+ M apps/mobile-app/lib/pages/property_identity/property_identity_page.dart
+ M apps/mobile-app/lib/pages/property_launch_success/property_launch_success_page.dart
+ M apps/mobile-app/lib/pages/property_theme/property_theme_page.dart
+ M apps/mobile-app/lib/pages/register/register_binding.dart
+ M apps/mobile-app/lib/pages/register/register_controller.dart
+ M apps/mobile-app/lib/pages/register/register_screen.dart
+ M apps/mobile-app/lib/pages/rooms_inventory/rooms_inventory_page.dart
+ M apps/mobile-app/lib/pages/splash/splash_binding.dart
+ M apps/mobile-app/lib/pages/splash/splash_controller.dart
+ M apps/mobile-app/lib/pages/splash/splash_page.dart
+ M apps/mobile-app/lib/pages/welcome/welcome_controller.dart
+ M apps/mobile-app/lib/pages/welcome/welcome_page.dart
+ M apps/mobile-app/lib/pages/welcome/widget/feature_card.dart
+ M apps/mobile-app/lib/utils/colors.dart
+ M apps/mobile-app/lib/utils/responsive.dart
+ M apps/mobile-app/lib/utils/validation_utils.dart
+ M apps/mobile-app/lib/widgets/custom_appbar.dart
+ M apps/mobile-app/lib/widgets/custom_text.dart
+ M apps/mobile-app/lib/widgets/custom_textfield.dart
+ M apps/mobile-app/pubspec.yaml
+ M apps/mobile-app/web/index.html
+ M apps/mobile-app/web/manifest.json
+ M apps/mobile-app/windows/.gitignore
+ M apps/mobile-app/windows/CMakeLists.txt
+ M apps/mobile-app/windows/flutter/CMakeLists.txt
+ M apps/mobile-app/windows/runner/CMakeLists.txt
+ M apps/mobile-app/windows/runner/Runner.rc
+ M apps/mobile-app/windows/runner/flutter_window.cpp
+ M apps/mobile-app/windows/runner/flutter_window.h
+ M apps/mobile-app/windows/runner/main.cpp
+ M apps/mobile-app/windows/runner/resource.h
+ M apps/mobile-app/windows/runner/runner.exe.manifest
+ M apps/mobile-app/windows/runner/utils.cpp
+ M apps/mobile-app/windows/runner/utils.h
+ M apps/mobile-app/windows/runner/win32_window.cpp
+ M apps/mobile-app/windows/runner/win32_window.h
+ M apps/property-site/.gitignore
+ M apps/property-site/AGENTS.md
+ M apps/property-site/CLAUDE.md
+ M apps/property-site/README.md
+ M apps/property-site/eslint.config.mjs
+ M apps/property-site/next.config.ts
+ M apps/property-site/package.json
+ M apps/property-site/postcss.config.mjs
+ M apps/property-site/src/app/[slug]/about/page.tsx
+ M apps/property-site/src/app/[slug]/booking/page.tsx
+ M apps/property-site/src/app/[slug]/contact/page.tsx
+ M apps/property-site/src/app/[slug]/layout.tsx
+ M apps/property-site/src/app/[slug]/page.tsx
+ M apps/property-site/src/app/[slug]/rooms/page.tsx
+ M apps/property-site/src/app/globals.css
+ M apps/property-site/src/app/layout.tsx
+ M apps/property-site/src/app/page.tsx
+ M apps/property-site/src/components/BookingForm.tsx
+ M apps/property-site/src/components/RoomsList.tsx
+ M apps/property-site/src/data/property.json
+ M apps/property-site/src/lib/db.ts
+ M apps/property-site/src/lib/getProperty.ts
+ M apps/property-site/src/types/property.ts
+ M apps/property-site/tailwind.config.ts
+ M apps/property-site/tsconfig.json
+ M docs/api-contract.md
+ M docs/db-design.md
+ M docs/product-flow.md
+ M done_so_far.md
+MM package-lock.json
+ M package.json
+ M packages/data/index.ts
+ M packages/data/package.json
+ M packages/data/property.json
+ M packages/data/types.ts
+ M packages/ui/Button.tsx
+ M packages/ui/Card.tsx
+ M packages/ui/Input.tsx
+ M packages/ui/index.ts
+ M packages/ui/package.json
+ M packages/ui/utils/cn.ts
+ M scratch/test-jwt.js
+ M scripts/generate-testing.js
+ M scripts/migrate-payments.js
+ M scripts/migrate_reset_tokens.mjs
+ M scripts/open-browser.js
+ M scripts/seed_all_roles.mjs
+ M scripts/start-dev.js
+ M scripts/status-dev.js
+ M scripts/stop-dev.js
+ M scripts/test-ai-feedback.mjs
+ M scripts/test-financial-compliance.mjs
+ M scripts/test-financial-reconciliation.mjs
+ M scripts/test-gateway-preparedness.mjs
+ M scripts/test-launch-readiness.mjs
+ M scripts/test-legal-compliance.mjs
+ M scripts/test-manual-upi-flow.mjs
+ M scripts/test-payment-foundation.mjs
+ M scripts/test-payment-settings.mjs
+ M scripts/test-prisma.js
+ M scripts/test-referral-rewards.mjs
+ M scripts/test-subscription-lifecycle.mjs
+ M scripts/test-subscription-plans.mjs
+ M test_user_id.md
+ M testing.md
+?? apps/main-site/.dockerignore
+?? apps/main-site/.github/
+?? apps/main-site/Dockerfile
+?? apps/main-site/docker-compose.prod.yml
+?? apps/main-site/docker-compose.yml
+?? apps/main-site/src/app/api/property/room/[roomId]/
+?? apps/main-site/src/lib/repositories/adminRepository.ts
+?? apps/main-site/src/lib/repositories/bookingRepository.ts
+?? apps/main-site/src/lib/repositories/guestRepository.ts
+?? apps/main-site/src/lib/repositories/mediaRepository.ts
+?? apps/main-site/src/lib/repositories/notificationRepository.ts
+?? apps/main-site/src/lib/repositories/partnerRepository.ts
+?? apps/main-site/src/lib/repositories/paymentRepository.ts
+?? apps/main-site/src/lib/repositories/propertyCmsRepository.ts
+?? apps/main-site/src/lib/repositories/propertyExperienceRepository.ts
+?? apps/main-site/src/lib/repositories/propertyOfferRepository.ts
+?? apps/main-site/src/lib/repositories/propertyReviewRepository.ts
+?? apps/main-site/src/lib/repositories/propertyRoomInventoryRepository.ts
+?? apps/main-site/src/lib/repositories/propertyRoomRepository.ts
+?? apps/main-site/src/lib/services/adminService.ts
+?? apps/main-site/src/lib/services/bookingService.ts
+?? apps/main-site/src/lib/services/mediaService.ts
+?? apps/main-site/src/lib/services/notificationService.ts
+?? apps/main-site/src/lib/services/partnerDashboardService.ts
+?? apps/main-site/src/lib/services/partnerMediaService.ts
+?? apps/main-site/src/lib/services/partnerService.ts
+?? apps/main-site/src/lib/services/propertyCmsService.ts
+?? apps/main-site/src/lib/services/propertyExperienceService.ts
+?? apps/main-site/src/lib/services/propertyInventoryService.ts
+?? apps/main-site/src/lib/services/propertyMediaService.ts
+?? apps/main-site/src/lib/services/propertyPaymentConfigService.ts
+?? apps/main-site/src/lib/services/propertyPromotionService.ts
+?? apps/main-site/src/lib/services/propertyReviewService.ts
+?? apps/main-site/src/lib/services/propertyRoomService.ts
+?? apps/main-site/src/lib/services/realtimeService.ts
+?? apps/main-site/src/lib/services/systemHealthService.ts
+?? apps/main-site/src/lib/types/auth.dto.ts
+?? apps/main-site/src/lib/types/booking.dto.ts
+?? apps/main-site/src/lib/types/room.dto.ts
+?? apps/main-site/src/lib/utils/apiResponse.ts
+?? apps/main-site/src/lib/utils/env.ts
+?? apps/main-site/src/lib/validators/auth.validators.ts
+?? apps/main-site/src/lib/validators/booking.validators.ts
+?? apps/main-site/src/modules/payments/services/bookingDocumentService.ts
+?? apps/main-site/src/modules/payments/services/bookingNotificationService.ts
+?? apps/main-site/src/modules/payments/types/payment.dto.ts
+?? apps/main-site/src/modules/payments/validators/payment.validators.ts
+?? audit.js
+?? check_deps.sh
+?? db_audit.js
+?? db_verify.js
+?? docs/SETUP_NEW_MACHINE.md
+?? docs/architecture/
+?? docs/database_deep_audit.md
+?? docs/database_initialization_plan.md
+?? docs/database_verification_report.md
+?? docs/development_environment_audit.md
+?? docs/environment_fix_plan.md
+?? docs/environment_verification_report.md
+?? docs/frontend_audit_report.md
+?? docs/frontend_deep_audit.md
+?? docs/integration_audit.md
+?? docs/nextjs_lockfile_audit.md
+?? docs/project_master_status_report.md
+?? docs/property_architecture_verification.md
+?? docs/property_management_audit.md
+?? docs/property_management_implementation_plan.md
+?? docs/redis_connectivity_audit.md
+?? docs/room_management_audit.md
+?? docs/room_management_implementation_plan.md
+?? docs/sprint_1_implementation_plan.md
+?? generate_prisma.sh
+?? install_deps.sh
+?? install_nvm.sh
+?? install_pnpm.sh
+?? integration_audit.js
+?? peek_pages.sh
+?? reset.sql
+?? scratch/clean_wsl_build.sh
+?? scratch/fix_lints.js
+?? start_dev.sh
+?? windows_status.txt

@@ -1,103 +1,59 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/database/prisma";
-import { requirePropertyAccess } from "@/lib/auth/rbac";
+import { NextRequest } from "next/server";
+import { propertyExperienceService } from "@/lib/services/propertyExperienceService";
+import { requireRole, requirePropertyAccess } from "@/lib/auth/rbac";
+import { withErrorHandler, AppError } from "@/lib/errors/handler";
+import { successResponse } from "@/lib/utils/apiResponse";
 import { z } from "zod";
 
-const UpdateExperienceSchema = z.object({
-  title: z.string().min(1).optional(),
-  slug: z.string().min(1).optional(),
-  description: z.string().optional(),
-  category: z.string().optional(),
+const updateExperienceSchema = z.object({
+  title: z.string().min(1, "title is required").optional(),
+  description: z.string().min(1, "description is required").optional(),
   price: z.number().nonnegative().optional(),
-  isComplimentary: z.boolean().optional(),
-  isFeatured: z.boolean().optional(),
-  icon: z.string().optional(),
-  coverImage: z.string().optional(),
   duration: z.string().optional(),
-  maxGuests: z.number().int().positive().optional(),
-  requiresScheduling: z.boolean().optional(),
-  availabilityType: z.string().optional(),
-  customAvailability: z.any().optional(),
-  isActive: z.boolean().optional(),
-  sortOrder: z.number().int().optional(),
+  images: z.array(z.string()).optional(),
 });
 
-export async function PATCH(
+export const PATCH = withErrorHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
+) => {
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager"]);
+  if (!auth.authorized) return auth.response!;
 
-    // 1. Fetch existing experience to check properties mapping
-    const existing = await prisma.propertyExperience.findUnique({
-      where: { id }
-    });
+  const { id } = await params;
+  const existing = await propertyExperienceService.getExperienceById(id);
 
-    if (!existing) {
-      return NextResponse.json({ error: "Experience not found" }, { status: 404 });
-    }
-
-    // 2. STRICT TENANT ISOLATION CHECK
-    const auth = await requirePropertyAccess(request, existing.propertyId);
-    if (!auth.authorized) return auth.response!;
-
-    // 3. Role check: Only partners/owners, managers, or admins can update experiences
-    if (!["admin", "super_admin", "owner", "partner", "manager"].includes(auth.role || "")) {
-      return NextResponse.json({ error: "Forbidden: Insufficient privileges" }, { status: 403 });
-    }
-
-    const body = await request.json();
-    const validation = UpdateExperienceSchema.safeParse(body);
-
-    if (!validation.success) {
-      return NextResponse.json({ error: "Invalid data", details: validation.error.format() }, { status: 400 });
-    }
-
-    const updated = await prisma.propertyExperience.update({
-      where: { id },
-      data: validation.data,
-    });
-
-    return NextResponse.json(updated);
-  } catch (error) {
-    console.error("Update Experience Error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (!existing) {
+    throw new AppError("Experience not found", 404, "NOT_FOUND");
   }
-}
 
-export async function DELETE(
+  const access = await requirePropertyAccess(request, existing.propertyId);
+  if (!access.authorized) return access.response!;
+
+  const body = await request.json();
+  const validationData = updateExperienceSchema.parse(body);
+
+  const updated = await propertyExperienceService.updateExperience(id, validationData);
+  return successResponse(updated);
+});
+
+export const DELETE = withErrorHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
+) => {
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager"]);
+  if (!auth.authorized) return auth.response!;
 
-    // 1. Fetch existing experience
-    const existing = await prisma.propertyExperience.findUnique({
-      where: { id }
-    });
+  const { id } = await params;
+  const existing = await propertyExperienceService.getExperienceById(id);
 
-    if (!existing) {
-      return NextResponse.json({ error: "Experience not found" }, { status: 404 });
-    }
-
-    // 2. STRICT TENANT ISOLATION CHECK
-    const auth = await requirePropertyAccess(request, existing.propertyId);
-    if (!auth.authorized) return auth.response!;
-
-    // 3. Role check: Only partners/owners, managers, or admins can delete experiences
-    if (!["admin", "super_admin", "owner", "partner", "manager"].includes(auth.role || "")) {
-      return NextResponse.json({ error: "Forbidden: Insufficient privileges" }, { status: 403 });
-    }
-
-    await prisma.propertyExperience.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Delete Experience Error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  if (!existing) {
+    throw new AppError("Experience not found", 404, "NOT_FOUND");
   }
-}
+
+  const access = await requirePropertyAccess(request, existing.propertyId);
+  if (!access.authorized) return access.response!;
+
+  await propertyExperienceService.deleteExperience(id);
+  return successResponse({ success: true, deleted: id });
+});
