@@ -1,21 +1,8 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/database/prisma";
+import { SystemHealthService } from "@/lib/services/systemHealthService";
+import { successResponse } from "@/lib/utils/apiResponse";
+import { withErrorHandler } from "@/lib/errors/handler";
 
-export async function GET() {
-  try {
-    // A quick lightweight query check to ensure the engine is fully initialized and operational
-    await prisma.$queryRaw`SELECT 1`;
-    
-    return NextResponse.json({
-      ready: true,
-      timestamp: new Date().toISOString()
-    }, { status: 200 });
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    console.error("❌ Readiness check failure:", errorMessage);
-    return NextResponse.json({
-      ready: false,
-      error: "Service is booting or connection pools are exhausted."
-    }, { status: 503 });
-  }
-}
+export const GET = withErrorHandler(async () => {
+  const result = await SystemHealthService.getReadinessStatus();
+  return successResponse(result, { status: 200 });
+});

@@ -1,45 +1,63 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const utils = require('./dev-utils');
 
-const pidFile = path.join(__dirname, '../.dev-pids.json');
 const PORTS = [3000, 3001];
+const APPS = { 3000: 'main-site', 3001: 'property-site' };
 
-console.log('\n🔍 Home4Stay Dev Status\n' + '='.repeat(30));
+console.log('\n🔍 Home4Stay Dev Status\n' + '='.repeat(50));
 
-// 1. Check Tracked Processes
-if (fs.existsSync(pidFile)) {
-  try {
-    const data = JSON.parse(fs.readFileSync(pidFile));
-    const processes = data.processes || [];
-    
-    if (processes.length > 0) {
-      console.log('📡 Tracked Processes:');
-      processes.forEach(proc => {
-        let status = '❌ DEAD';
-        try {
-          process.kill(proc.pid, 0);
-          status = '✅ ALIVE';
-        } catch (e) {}
-        console.log(`- ${proc.name.padEnd(12)} [PID: ${proc.pid.toString().padEnd(6)}] Status: ${status}`);
-      });
-    } else {
-      console.log('📡 No tracked processes running.');
-    }
-  } catch (e) {
-    console.error('❌ Error reading PID file');
-  }
-}
+const trackedPids = utils.getTrackedPids();
 
-// 2. Check Ports
-console.log('\n🚪 Port Status:');
-PORTS.forEach(port => {
-  let inUse = '🟢 Free';
-  try {
-    execSync(`netstat -ano | findstr :${port}`, { stdio: 'ignore' });
-    inUse = '🔴 IN USE';
-  } catch (e) {}
-  console.log(`- Port ${port}: ${inUse}`);
+const trackedMap = {};
+trackedPids.forEach(p => {
+  trackedMap[p.name] = p;
 });
 
-console.log('\n' + '='.repeat(30) + '\n');
+PORTS.forEach(port => {
+  const appName = APPS[port];
+  const trackedProc = trackedMap[appName];
+  const occupyingPids = utils.getPidsUsingPort(port);
+  
+  let isTrackedAlive = false;
+  if (trackedProc) {
+    isTrackedAlive = utils.isProcessAlive(trackedProc.pid);
+  }
+  
+  let state = '';
+  
+  if (trackedProc && isTrackedAlive) {
+    if (occupyingPids.length > 0) {
+      state = `✅ Running (Tracked PID: ${trackedProc.pid}, Port PID: ${occupyingPids.join(', ')})`;
+    } else {
+      state = `⚠ PID Alive but Port Closed (Tracked PID: ${trackedProc.pid})`;
+    }
+  } else if (trackedProc && !isTrackedAlive) {
+    if (occupyingPids.length > 0) {
+      state = `⚠ Stale PID (${trackedProc.pid} DEAD) | ⚠ Port Occupied without tracked PID (${occupyingPids.join(', ')})`;
+    } else {
+      state = `⚠ Stale PID (Tracked PID: ${trackedProc.pid}, DEAD)`;
+    }
+  } else {
+    // No tracked process for this app
+    if (occupyingPids.length > 0) {
+      state = `⚠ Port Occupied without tracked PID (PID: ${occupyingPids.join(', ')})`;
+    } else {
+      state = `🛑 Stopped`;
+    }
+  }
+  
+  console.log(`- ${appName.padEnd(15)} [Port ${port}]:\n  ${state}\n`);
+});
+
+// Check if any tracked process is not associated with our main ports
+trackedPids.forEach(p => {
+  if (!Object.values(APPS).includes(p.name)) {
+    const alive = utils.isProcessAlive(p.pid);
+    if (alive) {
+      console.log(`- ${p.name.padEnd(15)} [Unknown Port]:\n  ✅ Running (Tracked PID: ${p.pid})\n`);
+    } else {
+      console.log(`- ${p.name.padEnd(15)} [Unknown Port]:\n  ⚠ Stale PID (DEAD)\n`);
+    }
+  }
+});
+
+console.log('='.repeat(50) + '\n');

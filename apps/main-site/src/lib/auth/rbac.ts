@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "./jwt";
-import { prisma } from "../database/prisma";
 import { isJtiRevoked } from "./blacklist";
+import { SessionRepository } from "../repositories/session.repository";
+import { UserRepository } from "../repositories/user.repository";
+import { PropertyRepository } from "../repositories/propertyRepository";
 
 export interface AuthResult {
   authorized: boolean;
@@ -13,6 +15,10 @@ export interface AuthResult {
   subdomain?: string;
   sessionToken?: string;
 }
+
+const sessionRepository = new SessionRepository();
+const userRepository = new UserRepository();
+const propertyRepository = new PropertyRepository();
 
 /**
  * requireAuth
@@ -57,9 +63,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
   }
 
   // STRICT SESSION ENFORCEMENT: Only active DB sessions are permitted to query protected APIs
-  const session = await prisma.session.findUnique({
-    where: { sessionToken }
-  });
+  const session = await sessionRepository.findBySessionToken(sessionToken);
 
   if (!session || !session.isActive) {
     console.warn(`[SECURITY] Suspicious token access: Token with session ${sessionToken} is active but has no active DB session.`);
@@ -123,12 +127,7 @@ export async function requirePropertyAccess(request: NextRequest, targetProperty
   }
 
   // Strict property query: user must be explicitly assigned to the target property in the junction table
-  const access = await prisma.propertyUserAccess.findFirst({
-    where: {
-      userId: auth.userId,
-      propertyId: targetPropertyId
-    }
-  });
+  const access = await userRepository.checkPropertyAccess(auth.userId!, targetPropertyId);
 
   if (!access) {
     console.warn(`[SECURITY ALERT] Tenant isolation violation: User ${auth.userId} (${auth.role}) attempted unauthorized access to property ${targetPropertyId}`);
@@ -157,22 +156,14 @@ export async function requireOwnership(request: NextRequest, targetPropertyId: s
   }
 
   // Primary Check: PropertyUserAccess table with role === 'owner'
-  const access = await prisma.propertyUserAccess.findFirst({
-    where: {
-      userId: auth.userId,
-      propertyId: targetPropertyId,
-      role: "owner"
-    }
-  });
+  const access = await userRepository.checkPropertyOwnership(auth.userId!, targetPropertyId);
 
   if (access) {
     return auth;
   }
 
   // Backup/Fallback Check: property.owner_id column for complete backward compatibility
-  const property = await prisma.property.findUnique({
-    where: { id: targetPropertyId }
-  });
+  const property = await propertyRepository.findById(targetPropertyId);
 
   if (property && property.ownerId === auth.userId) {
     return auth;

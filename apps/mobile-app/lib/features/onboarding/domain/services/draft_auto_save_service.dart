@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:home4stay/features/onboarding/domain/models/property_draft_model.dart';
 import 'package:home4stay/features/onboarding/domain/services/draft_storage_service.dart';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 class DraftAutoSaveService {
   final DraftStorageService _storageService = DraftStorageService();
@@ -16,9 +17,9 @@ class DraftAutoSaveService {
       try {
         final jsonString = jsonEncode(draft.toJson());
         await _storageService.saveDraft(jsonString);
-        print("Auto-save completed.");
+        developer.log("Auto-save completed.");
       } catch (e) {
-        print("Auto-save failed: $e");
+        developer.log("Auto-save failed: $e");
       }
     });
   }
@@ -29,7 +30,7 @@ class DraftAutoSaveService {
       final jsonString = jsonEncode(draft.toJson());
       await _storageService.saveDraft(jsonString);
     } catch (e) {
-      print("Manual save failed: $e");
+      developer.log("Manual save failed: $e");
     }
   }
 }

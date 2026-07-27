@@ -1,44 +1,69 @@
 const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const utils = require('./dev-utils');
 
-const pidFile = path.join(__dirname, '../.dev-pids.json');
 const appName = process.argv[2] || 'main-site';
+const targetPort = appName === 'property-site' ? 3001 : 3000;
 
-// Initialize PID file if missing
-if (!fs.existsSync(pidFile)) {
-  fs.writeFileSync(pidFile, JSON.stringify({ processes: [] }));
-}
+function startDev() {
+  const occupyingPids = utils.getPidsUsingPort(targetPort);
 
-// Start the process
-const isWin = process.platform === 'win32';
-const command = isWin ? 'cmd.exe' : 'npm';
-const args = isWin 
-  ? ['/c', 'npm', 'run', 'dev', `--workspace=${appName}`] 
-  : ['run', 'dev', `--workspace=${appName}`];
+  if (occupyingPids.length > 0) {
+    const trackedPids = utils.getTrackedPids();
+    const trackedApp = trackedPids.find(p => p.name === appName);
+    const isTrackedAppAlive = trackedApp ? utils.isProcessAlive(trackedApp.pid) : false;
 
-const child = spawn(command, args, {
-  stdio: 'inherit',
-  shell: false
-});
+    if (isTrackedAppAlive) {
+      console.log(`ℹ️ ${appName} is already running.`);
+      return; 
+    } else {
+      console.error(`⚠ Port ${targetPort} is occupied by unknown PID(s): ${occupyingPids.join(', ')}.`);
+      console.error(`Please free the port manually and try again.`);
+      process.exitCode = 1;
+      return;
+    }
+  }
 
-// Update PID file
-try {
-  const data = JSON.parse(fs.readFileSync(pidFile));
-  
-  // Prevent duplicates for the same app name
-  data.processes = data.processes.filter(p => p.name !== appName);
-  
-  data.processes.push({
+  const command = utils.isWin ? 'cmd.exe' : 'npm';
+  const args = utils.isWin 
+    ? ['/c', 'npm', 'run', 'dev', `--workspace=apps/${appName}`] 
+    : ['run', 'dev', `--workspace=apps/${appName}`];
+
+  const child = spawn(command, args, {
+    stdio: 'inherit',
+    shell: false
+  });
+
+  utils.addTrackedPid({
     name: appName,
     pid: child.pid,
     startTime: new Date().toISOString()
   });
 
-  fs.writeFileSync(pidFile, JSON.stringify(data, null, 2));
   console.log(`✅ Started ${appName} (PID: ${child.pid})`);
-} catch (e) {
-  console.error('❌ Error updating PID file:', e.message);
+
+  let isCleaningUp = false;
+  const cleanup = () => {
+    if (isCleaningUp) return;
+    isCleaningUp = true;
+    console.log(`\n🛑 Cleaning up ${appName}...`);
+    
+    if (utils.isProcessAlive(child.pid)) {
+      utils.killProcess(child.pid);
+    }
+    
+    utils.removeTrackedPid(child.pid);
+  };
+
+  process.on('SIGINT', () => { cleanup(); process.exit(); });
+  process.on('SIGTERM', () => { cleanup(); process.exit(); });
+
+  child.on('exit', (code) => {
+    if (!isCleaningUp) {
+      isCleaningUp = true;
+      utils.removeTrackedPid(child.pid);
+    }
+    process.exitCode = code || 0;
+  });
 }
 
-// Process will persist in file; stop/status will check liveness
+startDev();

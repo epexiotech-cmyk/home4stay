@@ -1,31 +1,15 @@
 import { prisma } from "@/lib/database/prisma";
-
-export interface CreateSessionDto {
-  userId: string;
-  sessionToken: string;
-  refreshTokenHash: string;
-  ipAddress?: string | null;
-  userAgent?: string | null;
-  expiresAt: Date;
-}
+import { Prisma } from "@prisma/client";
 
 export class SessionRepository {
   /**
    * Persist a new session in the sessions table.
    */
-  async create(data: CreateSessionDto) {
+  async create(data: Prisma.SessionCreateInput) {
     try {
-      console.log(`[SessionRepository] Persisting session for user ${data.userId}...`);
+      console.log(`[SessionRepository] Persisting session for user...`);
       return await prisma.session.create({
-        data: {
-          userId: data.userId,
-          sessionToken: data.sessionToken,
-          refreshTokenHash: data.refreshTokenHash,
-          ipAddress: data.ipAddress || null,
-          userAgent: data.userAgent || null,
-          expiresAt: data.expiresAt,
-          isActive: true
-        }
+        data
       });
     } catch (error) {
       console.error("[SessionRepository] Failed to create session in database:", error);
@@ -73,7 +57,7 @@ export class SessionRepository {
       });
     } catch (error) {
       console.error("[SessionRepository] Failed to deactivate session:", error);
-      return null;
+      throw error;
     }
   }
 
@@ -89,7 +73,34 @@ export class SessionRepository {
       });
     } catch (error) {
       console.error("[SessionRepository] Failed to deactivate all sessions for user:", error);
-      return null;
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch all active sessions (e.g. for Admin Dashboard).
+   */
+  async findActiveSessions() {
+    try {
+      return await prisma.session.findMany({
+        where: {
+          isActive: true,
+          expiresAt: { gt: new Date() }
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              role: true
+            }
+          }
+        },
+        orderBy: { createdAt: "desc" }
+      });
+    } catch (error) {
+      console.error("[SessionRepository] Failed to find active sessions:", error);
+      throw error;
     }
   }
 }

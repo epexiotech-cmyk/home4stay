@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:home4stay/features/onboarding/controllers/onboarding_wizard_controller.dart';
 import 'package:home4stay/features/onboarding/domain/models/property_draft_model.dart';
 import 'package:home4stay/features/onboarding/data/api/validators/property_api_validator.dart';
@@ -41,7 +42,7 @@ class PropertyCreationService {
     // 4. Execute Mock API Call
     CreatePropertyResponse response = await _apiService.createProperty(requestDto);
     
-    print("Mock API Success: ${response.propertyId} at ${response.createdAt}");
+    developer.log("Mock API Success: ${response.propertyId} at ${response.createdAt}");
 
     return draft;
   }

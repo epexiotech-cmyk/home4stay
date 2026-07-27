@@ -139,7 +139,7 @@ class PoliciesPage extends StatelessWidget {
                               child: Text(
                                 "Clear policies reduce guest disputes and increase trust.",
                                 style: TextStyle(
-                                  color: const Color(0xFF1F2937).withOpacity(0.7),
+                                  color: const Color(0xFF1F2937).withValues(alpha: 0.7),
                                   fontSize: dp(context, 12),
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -170,10 +170,10 @@ class PoliciesPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.WHITE,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF0D5C7D).withOpacity(0.2), width: 1),
+        border: Border.all(color: const Color(0xFF0D5C7D).withValues(alpha: 0.2), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -251,7 +251,7 @@ class PoliciesPage extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: const Color(0xFF1F2937).withOpacity(0.6),
+            color: const Color(0xFF1F2937).withValues(alpha: 0.6),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -373,7 +373,9 @@ class PoliciesPage extends StatelessWidget {
           return RadioListTile<String>(
             title: Text(opt, style: const TextStyle(fontWeight: FontWeight.w600)),
             value: opt,
+            // ignore: deprecated_member_use
             groupValue: controller.selectedCancellation,
+            // ignore: deprecated_member_use
             onChanged: (val) => controller.setCancellation(val!),
             contentPadding: EdgeInsets.zero,
             activeColor: const Color(0xFF0D5C7D),
@@ -397,7 +399,7 @@ class PoliciesPage extends StatelessWidget {
               Switch(
                 value: controller.childrenAllowed,
                 onChanged: (val) => controller.toggleChildrenAllowed(val),
-                activeColor: const Color(0xFF0D5C7D),
+                activeThumbColor: const Color(0xFF0D5C7D),
               ),
             ],
           ),
@@ -449,7 +451,7 @@ class PoliciesPage extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(0xFF0D5C7D),
+            activeThumbColor: const Color(0xFF0D5C7D),
           ),
         ],
       ),
@@ -470,7 +472,7 @@ class PoliciesPage extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade200, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -484,7 +486,7 @@ class PoliciesPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D5C7D).withOpacity(0.1),
+                  color: const Color(0xFF0D5C7D).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: const Color(0xFF0D5C7D), size: 24),
@@ -507,7 +509,7 @@ class PoliciesPage extends StatelessWidget {
                       description,
                       style: TextStyle(
                         fontSize: 12,
-                        color: const Color(0xFF1F2937).withOpacity(0.6),
+                        color: const Color(0xFF1F2937).withValues(alpha: 0.6),
                       ),
                     ),
                   ],

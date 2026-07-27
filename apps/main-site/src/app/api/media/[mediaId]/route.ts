@@ -1,42 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/database/prisma";
+import { NextRequest } from "next/server";
 import { requirePropertyAccess } from "@/lib/auth/rbac";
+import { MediaService } from "@/lib/services/mediaService";
+import { successResponse } from "@/lib/utils/apiResponse";
+import { withErrorHandler, AppError } from "@/lib/errors/handler";
 
 interface ContextProps {
   params: Promise<{ mediaId: string }>;
 }
 
-export async function DELETE(request: NextRequest, { params }: ContextProps) {
-  try {
-    const resolvedParams = await params;
-    const { mediaId } = resolvedParams;
+export const DELETE = withErrorHandler(async (request: NextRequest, { params }: ContextProps) => {
+  const resolvedParams = await params;
+  const { mediaId } = resolvedParams;
 
-    // 1. Fetch asset first to resolve property context
-    const asset = await prisma.mediaAsset.findUnique({
-      where: { id: mediaId }
-    });
-
-    if (!asset) {
-      return NextResponse.json({ error: "Media asset not found" }, { status: 404 });
-    }
-
-    // 2. STRICT TENANT ISOLATION CHECK against PostgreSQL junction table
-    const auth = await requirePropertyAccess(request, asset.propertyId);
-    if (!auth.authorized) return auth.response!;
-
-    // 3. Role check: Only partners/owners, managers, or admins can delete media assets
-    if (!["admin", "super_admin", "owner", "partner", "manager"].includes(auth.role || "")) {
-      return NextResponse.json({ error: "Forbidden: Insufficient privileges" }, { status: 403 });
-    }
-
-    // Purge target record
-    await prisma.mediaAsset.delete({
-      where: { id: mediaId },
-    });
-
-    return NextResponse.json({ success: true, deletedId: mediaId }, { status: 200 });
-  } catch (error) {
-    console.error("Purging media asset failed:", error);
-    return NextResponse.json({ error: "Storage file purging instruction sequence failed." }, { status: 500 });
+  const asset = await MediaService.findById(mediaId);
+  if (!asset) {
+    throw new AppError("Media asset not found", 404, "NOT_FOUND");
   }
-}
+
+  // 2. STRICT TENANT ISOLATION CHECK against PostgreSQL junction table
+  const auth = await requirePropertyAccess(request, asset.propertyId);
+  if (!auth.authorized) return auth.response!;
+
+  // 3. Role check: Only partners/owners, managers, or admins can delete media assets
+  if (!["admin", "super_admin", "owner", "partner", "manager"].includes(auth.role || "")) {
+    throw new AppError("Forbidden: Insufficient privileges", 403, "FORBIDDEN");
+  }
+
+  const result = await MediaService.deleteMedia(mediaId);
+
+  return successResponse({ deletedId: result.deletedId });
+});

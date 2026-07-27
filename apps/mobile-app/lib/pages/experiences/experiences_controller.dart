@@ -1,7 +1,6 @@
 import 'package:home4stay/core/common_imports.dart';
 import 'package:home4stay/pages/experiences/models/experience_model.dart';
 import 'package:home4stay/features/onboarding/controllers/onboarding_wizard_controller.dart';
-import 'package:flutter/material.dart';
 
 class ExperiencesController extends GetxController {
   final customExperienceController = TextEditingController();
@@ -56,7 +55,9 @@ class ExperiencesController extends GetxController {
       } catch (e) {
         try {
           result.add(customExperiences.firstWhere((c) => c.id == id));
-        } catch (e) {}
+        } catch (e) {
+          // Ignore if not found in custom
+        }
       }
     }
     return result;

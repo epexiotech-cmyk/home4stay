@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:get/get.dart';
 import 'package:home4stay/features/onboarding/models/onboarding_models.dart';
 import 'package:home4stay/features/onboarding/domain/services/draft_auto_save_service.dart';
@@ -23,7 +24,7 @@ class OnboardingWizardController extends GetxController {
       PropertyDraft draft = OnboardingWizardMapper.mapToDraft(this);
       _autoSaveService.triggerSave(draft);
     } catch (e) {
-      print("Auto save trigger failed: $e");
+      developer.log("Auto save trigger failed: $e");
     }
   }
 
@@ -32,7 +33,7 @@ class OnboardingWizardController extends GetxController {
       PropertyDraft draft = OnboardingWizardMapper.mapToDraft(this);
       await _autoSaveService.saveImmediately(draft);
     } catch (e) {
-      print("Manual save failed: $e");
+      developer.log("Manual save failed: $e");
     }
   }
 
@@ -95,7 +96,7 @@ class OnboardingWizardController extends GetxController {
       
       update();
     } catch (e) {
-      print("Restore failed: $e");
+      developer.log("Restore failed: $e");
     }
   }
 

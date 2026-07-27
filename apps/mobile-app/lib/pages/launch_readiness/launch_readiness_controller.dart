@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'package:home4stay/core/common_imports.dart';
 import 'package:home4stay/features/onboarding/controllers/onboarding_wizard_controller.dart';
 import 'package:home4stay/features/onboarding/domain/services/property_creation_service.dart';
+
 import 'package:home4stay/features/onboarding/domain/models/property_draft_model.dart';
 import 'package:home4stay/features/launch_workflow/domain/services/property_launch_orchestrator.dart';
 import 'package:home4stay/features/launch_workflow/domain/models/property_launch_workflow.dart';
-import 'package:flutter/material.dart';
 
 class LaunchReadinessController extends GetxController {
   late OnboardingWizardController global;
@@ -116,7 +116,6 @@ class LaunchReadinessController extends GetxController {
     return const Color(0xFFEF4444); // Error
   }
 
-  final PropertyCreationService _service = PropertyCreationService();
 
   void launchProperty() async {
     final orchestrator = PropertyLaunchOrchestrator();

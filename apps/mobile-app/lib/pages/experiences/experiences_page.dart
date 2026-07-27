@@ -153,7 +153,7 @@ class ExperiencesPage extends StatelessWidget {
                               child: Text(
                                 "Experiences increase guest engagement and booking value.",
                                 style: TextStyle(
-                                  color: const Color(0xFF1F2937).withOpacity(0.7),
+                                  color: const Color(0xFF1F2937).withValues(alpha: 0.7),
                                   fontSize: dp(context, 12),
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -182,7 +182,7 @@ class ExperiencesPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -204,7 +204,7 @@ class ExperiencesPage extends StatelessWidget {
             "e.g. 'Private Helicopter Tour', 'Desert Safari', 'Luxury Cruise Dinner'",
             style: TextStyle(
               fontSize: 14,
-              color: const Color(0xFF1F2937).withOpacity(0.7),
+              color: const Color(0xFF1F2937).withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 24),
@@ -262,9 +262,9 @@ class ExperiencesPage extends StatelessWidget {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0D5C7D).withOpacity(0.05),
+                      color: const Color(0xFF0D5C7D).withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF0D5C7D).withOpacity(0.2)),
+                      border: Border.all(color: const Color(0xFF0D5C7D).withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -356,7 +356,7 @@ class ExperiencesPage extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0D5C7D).withOpacity(0.02) : AppColors.WHITE,
+          color: isSelected ? const Color(0xFF0D5C7D).withValues(alpha: 0.02) : AppColors.WHITE,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? const Color(0xFF0D5C7D) : Colors.grey.shade200,
@@ -365,7 +365,7 @@ class ExperiencesPage extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF0D5C7D).withOpacity(0.1),
+                    color: const Color(0xFF0D5C7D).withValues(alpha: 0.1),
                     blurRadius: 15,
                     offset: const Offset(0, 4),
                   )
@@ -381,7 +381,7 @@ class ExperiencesPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF0D5C7D).withOpacity(0.1) : Colors.grey.shade50,
+                    color: isSelected ? const Color(0xFF0D5C7D).withValues(alpha: 0.1) : Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -412,7 +412,7 @@ class ExperiencesPage extends StatelessWidget {
               exp.description,
               style: TextStyle(
                 fontSize: 12,
-                color: const Color(0xFF1F2937).withOpacity(0.6),
+                color: const Color(0xFF1F2937).withValues(alpha: 0.6),
                 height: 1.4,
               ),
             ),
@@ -428,9 +428,9 @@ class ExperiencesPage extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(40),
         decoration: BoxDecoration(
-          color: const Color(0xFF0D5C7D).withOpacity(0.05),
+          color: const Color(0xFF0D5C7D).withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF0D5C7D).withOpacity(0.1)),
+          border: Border.all(color: const Color(0xFF0D5C7D).withValues(alpha: 0.1)),
         ),
         child: Column(
           children: [
@@ -451,10 +451,10 @@ class ExperiencesPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.WHITE,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF0D5C7D).withOpacity(0.2), width: 1),
+        border: Border.all(color: const Color(0xFF0D5C7D).withValues(alpha: 0.2), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -499,7 +499,7 @@ class ExperiencesPage extends StatelessWidget {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF16A34A).withOpacity(0.1),
+                  color: const Color(0xFF16A34A).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -538,7 +538,7 @@ class ExperiencesPage extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: const Color(0xFF1F2937).withOpacity(0.6),
+            color: const Color(0xFF1F2937).withValues(alpha: 0.6),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -606,7 +606,7 @@ class ExperiencesPage extends StatelessWidget {
             ? []
             : [
                 BoxShadow(
-                  color: const Color(0xFF0D5C7D).withOpacity(0.1),
+                  color: const Color(0xFF0D5C7D).withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 )

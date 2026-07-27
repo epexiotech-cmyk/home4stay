@@ -115,7 +115,8 @@ export default function PreviewRenderer({ viewport }: PreviewRendererProps) {
   const { draftData } = useOnboarding();
 
   // Safeguard raw context values to prevent runtime hydration crashings
-  const property = useMemo(() => draftData.property || { title: "", location: "", description: "", slug: "" }, [draftData.property]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const property: any = useMemo(() => draftData.property || { title: "", location: "", description: "", tagline: "", slug: "" }, [draftData.property]);
   const themeConfig = useMemo(() => draftData.theme || { themeId: "coastal" }, [draftData.theme]);
   const rooms = useMemo(() => draftData.rooms || { roomName: "Royal Heritage Suite", price: 12500 }, [draftData.rooms]);
   const amenities = useMemo(() => draftData.amenities || [], [draftData.amenities]);

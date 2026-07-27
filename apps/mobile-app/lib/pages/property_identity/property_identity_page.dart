@@ -119,7 +119,7 @@ class PropertyIdentityPage extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(20),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.05),
+                                          color: Colors.black.withValues(alpha: 0.05),
                                           blurRadius: 10,
                                           offset: const Offset(0, 4),
                                         ),
@@ -209,7 +209,7 @@ class PropertyIdentityPage extends StatelessWidget {
                             Text(
                               "Live binding active",
                               style: TextStyle(
-                                color: const Color(0xFF1F2937).withOpacity(0.7),
+                                color: const Color(0xFF1F2937).withValues(alpha: 0.7),
                                 fontSize: dp(context, 12),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -310,7 +310,7 @@ class PropertyIdentityPage extends StatelessWidget {
             Text(
               "Not sure what to write?\nOur hospitality assistant will compose an emotionally engaging luxury description and brand tagline instantly.",
               style: TextStyle(
-                color: const Color(0xFF1F2937).withOpacity(0.7),
+                color: const Color(0xFF1F2937).withValues(alpha: 0.7),
                 fontSize: 14,
                 height: 1.5,
               ),
@@ -319,7 +319,7 @@ class PropertyIdentityPage extends StatelessWidget {
 
             _buildLabel("Atmospheric Vibe Preset"),
             DropdownButtonFormField<String>(
-              value: controller.selectedVibe,
+              initialValue: controller.selectedVibe,
               hint: Text(
                 "Select Vibe",
                 style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
@@ -498,7 +498,7 @@ Widget _buildLivePreviewSection(
       Text(
         "See how your hospitality identity will appear to future guests.",
         style: TextStyle(
-          color: const Color(0xFF1F2937).withOpacity(0.7),
+          color: const Color(0xFF1F2937).withValues(alpha: 0.7),
           fontSize: 14,
         ),
       ),
@@ -511,7 +511,7 @@ Widget _buildLivePreviewSection(
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -569,8 +569,8 @@ Widget _buildLivePreviewSection(
                 ),
                 decoration: BoxDecoration(
                   color: isReady
-                      ? const Color(0xFF16A34A).withOpacity(0.1)
-                      : Colors.amber.withOpacity(0.1),
+                      ? const Color(0xFF16A34A).withValues(alpha: 0.1)
+                      : Colors.amber.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(

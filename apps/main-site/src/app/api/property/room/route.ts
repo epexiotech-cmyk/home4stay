@@ -1,113 +1,74 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth/rbac";
-import { prisma as db } from "@/lib/database/prisma";
+import { NextRequest } from "next/server";
+import { propertyRoomService } from "@/lib/services/propertyRoomService";
+import { requireRole, requirePropertyAccess } from "@/lib/auth/rbac";
+import { withErrorHandler } from "@/lib/errors/handler";
+import { successResponse } from "@/lib/utils/apiResponse";
 import { z } from "zod";
+import { propertyRoomSchema } from "@/lib/validators/property.validators";
 
-const RoomSchema = z.object({
-  propertyId: z.string().min(1),
-  name: z.string().min(1),
-  price: z.number().positive(),
-  capacity: z.string().min(1),
-  view: z.string().min(1),
-  isActive: z.boolean().default(true),
+const getRoomsQuerySchema = z.object({
+  propertyId: z.string().min(1, "propertyId is required"),
 });
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const propertyId = searchParams.get("propertyId");
+const createRoomSchema = propertyRoomSchema;
 
-    if (!propertyId) {
-      return NextResponse.json({ error: "propertyId is required" }, { status: 400 });
-    }
+const updateRoomSchema = z.object({
+  id: z.string().min(1, "Missing ID"),
+}).passthrough();
 
-    const { role, propertyId: sessionPropertyId } = await requireRole(request, ["admin", "super_admin", "owner", "partner", "manager", "customer"]);
-    
-    if (role !== "admin" && role !== "super_admin" && role !== "customer") {
-      if (propertyId !== sessionPropertyId) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      }
-    }
+const deleteRoomQuerySchema = z.object({
+  id: z.string().min(1, "Missing ID"),
+});
 
-    const rooms = await db.room.findMany({
-      where: { propertyId }
-    });
+export const GET = withErrorHandler(async (request: NextRequest) => {
+  const { searchParams } = new URL(request.url);
+  const { propertyId } = getRoomsQuerySchema.parse({ propertyId: searchParams.get("propertyId") });
 
-    return NextResponse.json(rooms);
-  } catch {
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  // We allow customers to view rooms, but owners/managers require explicit property access validation
+  const roleCheck = await requireRole(request, ["admin", "super_admin", "owner", "partner", "manager", "customer"]);
+  if (!roleCheck.authorized) return roleCheck.response!;
+  
+  if (roleCheck.role !== "customer") {
+    const access = await requirePropertyAccess(request, propertyId);
+    if (!access.authorized) return access.response!;
   }
-}
 
-export async function POST(request: NextRequest) {
-  try {
-    const { authorized, role, propertyId: sessionPropertyId, response } = await requireRole(request, ["admin", "super_admin", "owner", "partner"]);
-    if (!authorized) return response || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const rooms = await propertyRoomService.getRooms(propertyId);
+  return successResponse(rooms);
+});
 
-    const body = await request.json();
-    const validation = RoomSchema.safeParse(body);
+export const POST = withErrorHandler(async (request: NextRequest) => {
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "partner", "manager"]);
+  if (!auth.authorized) return auth.response!;
 
-    if (!validation.success) {
-      return NextResponse.json({ error: "Invalid data", details: validation.error.format() }, { status: 400 });
-    }
+  const body = await request.json();
+  const data = createRoomSchema.parse(body);
 
-    const data = validation.data;
+  const access = await requirePropertyAccess(request, data.propertyId);
+  if (!access.authorized) return access.response!;
 
-    if (role !== "admin" && role !== "super_admin" && data.propertyId !== sessionPropertyId) {
-      return NextResponse.json({ error: "Forbidden: Cross-tenant room creation" }, { status: 403 });
-    }
+  const room = await propertyRoomService.createRoom(data as any);
+  return successResponse(room, { status: 201 });
+});
 
-    const room = await db.room.create({ data });
-    return NextResponse.json(room, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
-  }
-}
+export const PATCH = withErrorHandler(async (request: NextRequest) => {
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "partner", "manager"]);
+  if (!auth.authorized) return auth.response!;
 
-export async function PATCH(request: NextRequest) {
-  try {
-    const { authorized, role, propertyId: sessionPropertyId, response } = await requireRole(request, ["admin", "super_admin", "owner", "partner"]);
-    if (!authorized) return response || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const body = await request.json();
+  const { id, ...updateData } = updateRoomSchema.parse(body);
 
-    const body = await request.json();
-    const { id, ...updateData } = body;
+  const updatedRoom = await propertyRoomService.updateRoom(id, updateData as any);
+  return successResponse(updatedRoom);
+});
 
-    if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+export const DELETE = withErrorHandler(async (request: NextRequest) => {
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "partner"]);
+  if (!auth.authorized) return auth.response!;
 
-    const room = await db.room.findUnique({ where: { id } });
-    if (!room) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const { searchParams } = new URL(request.url);
+  const { id } = deleteRoomQuerySchema.parse({ id: searchParams.get("id") });
 
-    if (role !== "admin" && role !== "super_admin" && room.propertyId !== sessionPropertyId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const updated = await db.room.update({ where: { id }, data: updateData });
-    return NextResponse.json(updated);
-  } catch {
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    const { authorized, role, propertyId: sessionPropertyId, response } = await requireRole(request, ["admin", "super_admin", "owner", "partner"]);
-    if (!authorized) return response || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-
-    if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
-
-    const room = await db.room.findUnique({ where: { id } });
-    if (!room) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-    if (role !== "admin" && role !== "super_admin" && room.propertyId !== sessionPropertyId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    await db.room.delete({ where: { id } });
-    return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
-  }
-}
+  await propertyRoomService.deleteRoom(id);
+  return successResponse({ success: true, deletedId: id });
+});

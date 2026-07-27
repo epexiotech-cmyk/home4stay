@@ -1,37 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireRole } from "@/lib/auth/rbac";
 import { bookingEngine } from "@/modules/payments/services/bookingEngine";
+import { withErrorHandler, AppError } from "@/lib/errors/handler";
 
-export async function POST(
+export const POST = withErrorHandler(async (
   request: NextRequest,
   props: { params: Promise<{ bookingId: string }> }
-) {
-  try {
-    const { bookingId } = await props.params;
+) => {
+  const { bookingId } = await props.params;
 
-    // 1. Authenticate and authorize the user
-    const { authorized, userId, response } = await requireRole(request, [
-      "admin", "super_admin", "owner", "partner", "manager", "receptionist", "billing"
-    ]);
-    if (!authorized || !userId) {
-      return response || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // 2. Delegate state transition and ledger recording to central booking engine
-    const result = await bookingEngine.confirmBooking(bookingId, userId);
-
-    if (!result.success) {
-      return NextResponse.json({ success: false, error: result.message }, { status: 400 });
-    }
-
-    return NextResponse.json({
-      success: true,
-      bookingId,
-      invoiceNumber: result.invoiceNumber
-    });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("Booking approve-payment API failure:", message);
-    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+  // 1. Authenticate and authorize the user
+  const { authorized, userId, response } = await requireRole(request, [
+    "admin", "super_admin", "owner", "partner", "manager", "receptionist", "billing"
+  ]);
+  
+  if (!authorized || !userId) {
+    return response as any;
   }
-}
+
+  // 2. Delegate state transition and ledger recording to central booking engine
+  const result = await bookingEngine.confirmBooking(bookingId, userId);
+
+  if (!result.success) {
+    throw new AppError(result.message, 400, "CONFIRMATION_FAILED");
+  }
+
+  const { successResponse: apiSuccessResponse } = await import("@/lib/utils/apiResponse");
+
+  return apiSuccessResponse({
+    success: true,
+    bookingId,
+    invoiceNumber: result.invoiceNumber
+  });
+});

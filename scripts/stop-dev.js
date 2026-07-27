@@ -1,75 +1,74 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const utils = require('./dev-utils');
 
-const pidFile = path.join(__dirname, '../.dev-pids.json');
 const PORTS = [3000, 3001];
 
-console.log('🛑 Shutting down dev environment safely...');
+async function stopDev() {
+  console.log('🛑 Shutting down dev environment safely...');
 
-if (fs.existsSync(pidFile)) {
-  try {
-    const data = JSON.parse(fs.readFileSync(pidFile));
-    const processes = data.processes || [];
+  const processes = utils.getTrackedPids();
+  if (processes.length === 0) {
+    console.log('✓ Nothing running.');
+  } else {
+    for (const proc of processes) {
+      if (utils.isProcessAlive(proc.pid)) {
+        utils.killProcess(proc.pid);
+      }
+    }
 
-    if (processes.length > 0) {
-      console.log(`📡 Found ${processes.length} tracked processes.`);
+    let allDead = false;
+    for (let i = 0; i < 5; i++) {
+      allDead = true;
       for (const proc of processes) {
-        try {
-          // Check if alive
-          process.kill(proc.pid, 0);
-          console.log(`🎯 Killing ${proc.name} (PID: ${proc.pid})`);
-          
-          // Force kill tree
-          execSync(`taskkill /F /PID ${proc.pid} /T`, { stdio: 'ignore' });
-          
-          // Verify death with retry
-          let retries = 5;
-          while (retries > 0) {
-            try {
-              process.kill(proc.pid, 0);
-              retries--;
-              execSync('timeout /t 1', { stdio: 'ignore' }); // Wait 1s
-            } catch (e) {
-              console.log(`✅ ${proc.name} (PID: ${proc.pid}) stopped.`);
-              break;
-            }
-          }
-        } catch (e) {
-          console.log(`🧹 ${proc.name} (PID: ${proc.pid}) already stopped.`);
+        if (utils.isProcessAlive(proc.pid)) {
+          allDead = false;
         }
       }
-    } else {
-      console.log('ℹ️ No active dev processes found in tracking file.');
+      if (allDead) break;
+      await utils.sleep(1000);
     }
     
-    // Reset file ONLY AFTER ATTEMPTING ALL KILLS
-    fs.writeFileSync(pidFile, JSON.stringify({ processes: [] }, null, 2));
-  } catch (e) {
-    console.error('❌ Error processing PID file:', e.message);
+    processes.forEach(proc => {
+      if (!utils.isProcessAlive(proc.pid)) {
+        console.log(`✓ ${proc.name} stopped.`);
+      } else {
+        console.log(`✗ Failed to terminate ${proc.name} (PID: ${proc.pid}).`);
+      }
+    });
+  }
+
+  for (const port of PORTS) {
+    let occupyingPids = utils.getPidsUsingPort(port);
+    if (occupyingPids.length > 0) {
+      console.log(`⚠ Port ${port} occupied by PID(s): ${occupyingPids.join(', ')}. Terminating...`);
+      for (const pid of occupyingPids) {
+        if (utils.isProcessAlive(pid)) utils.killProcess(pid);
+      }
+    }
+  }
+
+  await utils.sleep(1000);
+  let anyPortOccupied = false;
+  for (const port of PORTS) {
+    const occupying = utils.getPidsUsingPort(port);
+    if (occupying.length > 0) {
+      console.log(`✗ Failed to free port ${port}. Still occupied by PID(s): ${occupying.join(', ')}`);
+      anyPortOccupied = true;
+    }
+  }
+
+  utils.clearTrackedPids();
+  
+  if (!anyPortOccupied && processes.every(p => !utils.isProcessAlive(p.pid))) {
+    if (processes.length > 0) {
+      console.log('✨ All clear!');
+    }
+  } else {
+    process.exitCode = 1;
+    console.log('⚠ Shutdown completed with warnings.');
   }
 }
 
-// Port-based cleanup (final sweep)
-console.log('🧹 Clearing target ports...');
-PORTS.forEach(port => {
-  try {
-    const stdout = execSync(`netstat -ano | findstr :${port}`).toString();
-    const lines = stdout.split('\n').filter(l => l.trim().length > 0);
-    
-    if (lines.length > 0) {
-      lines.forEach(line => {
-        const parts = line.trim().split(/\s+/);
-        const pid = parts[parts.length - 1];
-        if (pid && !isNaN(pid) && pid !== '0') {
-          try {
-            execSync(`taskkill /F /PID ${pid} /T`, { stdio: 'ignore' });
-            console.log(`🔓 Freed port ${port} (PID: ${pid})`);
-          } catch (e) {}
-        }
-      });
-    }
-  } catch (e) {}
+stopDev().catch(err => {
+  console.error('✗ Error during shutdown:', err);
+  process.exitCode = 1;
 });
-
-console.log('✨ All clear!');

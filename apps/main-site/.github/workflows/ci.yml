@@ -1,0 +1,44 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'apps/main-site/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ./apps/main-site
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ./apps/main-site
+        run: npx prisma generate
+
+      - name: Type Check
+        working-directory: ./apps/main-site
+        run: npx tsc --noEmit
+
+      - name: Linting
+        working-directory: ./apps/main-site
+        run: npm run lint
+
+      - name: Production Build Verification
+        working-directory: ./apps/main-site
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build

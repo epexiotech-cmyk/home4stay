@@ -1,74 +1,50 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "../../../../../../lib/auth/rbac";
-import { prisma } from "../../../../../../lib/database/prisma";
-import { PaymentService } from "../../../../../../modules/payments/services/index";
-import { PaymentStatus, SubscriptionStatus } from "@prisma/client";
+import { NextRequest } from "next/server";
+import { requireAuth } from "@/lib/auth/rbac";
+import { PaymentService } from "@/modules/payments/services/index";
+import { successResponse } from "@/lib/utils/apiResponse";
+import { withErrorHandler } from "@/lib/errors/handler";
+import { reviewPaymentSchema } from "@/modules/payments/validators/payment.validators";
 
-export async function POST(
+async function handleRejectPayment(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id: transactionId } = await params;
+  const { id: transactionId } = await params;
 
-    // 1. Authenticate caller (Must be platform Admin or Super Admin)
-    const auth = await requireAuth(request);
-    if (!auth.authorized || !auth.userId) {
-      return NextResponse.json({ error: "Unauthorized: Missing active session" }, { status: 401 });
-    }
-
-    if (auth.role !== "admin" && auth.role !== "super_admin") {
-      return NextResponse.json({ error: "Forbidden: Administrative access required" }, { status: 403 });
-    }
-
-    // 2. Parse rejection reason
-    let reason = "Manual UPI UTR verification failed.";
-    try {
-      const body = await request.json();
-      if (body.reason && body.reason.trim()) {
-        reason = body.reason.trim();
-      }
-    } catch {
-      // Body might be empty, use default reason
-    }
-
-    // 3. Locate Transaction record
-    const transaction = await prisma.paymentTransaction.findUnique({
-      where: { id: transactionId }
-    });
-
-    if (!transaction) {
-      return NextResponse.json({ error: "Payment transaction not found" }, { status: 404 });
-    }
-
-    if (transaction.paymentStatus !== PaymentStatus.PENDING_APPROVAL) {
-      return NextResponse.json({ error: `Cannot reject transaction. Current status is ${transaction.paymentStatus}` }, { status: 400 });
-    }
-
-    // 4. Process transaction rejection
-    const rejectedTx = await PaymentService.rejectManualUpiPayment(
-      transactionId,
-      auth.userId,
-      reason
-    );
-
-    // 5. Update subscription to INACTIVE
-    if (rejectedTx.subscriptionId) {
-      await prisma.propertySubscription.update({
-        where: { id: rejectedTx.subscriptionId },
-        data: { status: SubscriptionStatus.INACTIVE }
-      });
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: "UPI transaction rejected successfully",
-      status: rejectedTx.paymentStatus
-    });
-
-  } catch (error) {
-    console.error("[ADMIN_PAYMENT_REJECT] Error:", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+  // 1. Authenticate caller (Must be platform Admin or Super Admin)
+  const auth = await requireAuth(request);
+  if (!auth.authorized || !auth.userId) {
+    throw new Error("Unauthorized: Missing active session");
   }
+
+  if (auth.role !== "admin" && auth.role !== "super_admin") {
+    throw new Error("Forbidden: Administrative access required");
+  }
+
+  // 2. Parse rejection reason using centralized DTO validator
+  let reason = "Manual UPI UTR verification failed.";
+  try {
+    const rawBody = await request.json();
+    const dto = reviewPaymentSchema.parse(rawBody);
+    if (dto.reviewNote && dto.reviewNote.trim()) {
+      reason = dto.reviewNote.trim();
+    }
+  } catch {
+    // Body might be empty, use default reason
+  }
+
+  // 4. Process transaction rejection
+  const rejectedTx = await PaymentService.rejectManualUpiPayment(
+    transactionId,
+    auth.userId,
+    reason
+  );
+
+  return successResponse({
+    success: true,
+    message: "UPI transaction rejected successfully",
+    status: rejectedTx.paymentStatus
+  });
 }
+
+export const POST = withErrorHandler(handleRejectPayment);

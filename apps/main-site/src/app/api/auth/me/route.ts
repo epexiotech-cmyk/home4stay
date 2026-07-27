@@ -1,46 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserById } from "@/lib/models/user";
 import { requireRole } from "@/lib/auth/rbac";
+import { AuthService } from "@/lib/auth/auth.service";
+import { withErrorHandler } from "@/lib/errors/handler";
+import { successResponse } from "@/lib/utils/apiResponse";
 
-export async function GET(request: NextRequest) {
-  try {
-    // 1. Authenticate (any role allowed)
-    const { authorized, userId, propertyId } = await requireRole(request, ["admin", "super_admin", "partner", "owner", "manager", "customer"]);
-    
-    if (!authorized) {
-      return NextResponse.json({ user: null });
-    }
+const authService = new AuthService();
 
-    // 2. Find user by ID
-    const user = await findUserById(userId!);
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    // 3. Return user data (securely)
-    return NextResponse.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        city: user.city,
-        image_url: user.image_url,
-        created_at: user.created_at,
-        propertyId: propertyId // Pass this through to the frontend
-      }
-    });
-
-  } catch (error) {
-    console.error("Auth Me Error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+async function meHandler(request: NextRequest) {
+  // 1. Authenticate (any role allowed)
+  const { authorized, userId, propertyId } = await requireRole(request, ["admin", "super_admin", "partner", "owner", "manager", "customer"]);
+  
+  if (!authorized) {
+    return NextResponse.json({ user: null }); // Returning 200 with null for unauthenticated guests
   }
+
+  // 2. Fetch user via AuthService
+  const user = await authService.getCurrentUser(userId as string);
+
+  return successResponse({
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone,
+      createdAt: user.createdAt,
+      propertyId: propertyId
+    }
+  });
 }
+
+export const GET = withErrorHandler(meHandler as any);

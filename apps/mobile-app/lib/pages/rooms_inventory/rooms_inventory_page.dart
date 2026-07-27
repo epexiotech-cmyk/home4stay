@@ -142,7 +142,7 @@ class RoomsInventoryPage extends StatelessWidget {
                               child: Text(
                                 "Room categories define your pricing architecture.",
                                 style: TextStyle(
-                                  color: const Color(0xFF1F2937).withOpacity(0.7),
+                                  color: const Color(0xFF1F2937).withValues(alpha: 0.7),
                                   fontSize: dp(context, 12),
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -171,7 +171,7 @@ class RoomsInventoryPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -274,10 +274,10 @@ class RoomsInventoryPage extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(48),
         decoration: BoxDecoration(
-          color: const Color(0xFF0D5C7D).withOpacity(0.05),
+          color: const Color(0xFF0D5C7D).withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xFF0D5C7D).withOpacity(0.1),
+            color: const Color(0xFF0D5C7D).withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -299,7 +299,7 @@ class RoomsInventoryPage extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: const Color(0xFF1F2937).withOpacity(0.7),
+                color: const Color(0xFF1F2937).withValues(alpha: 0.7),
               ),
             ),
           ],
@@ -335,7 +335,7 @@ class RoomsInventoryPage extends StatelessWidget {
                 border: Border.all(color: Colors.grey.shade200, width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -346,7 +346,7 @@ class RoomsInventoryPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0D5C7D).withOpacity(0.1),
+                      color: const Color(0xFF0D5C7D).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.king_bed, color: Color(0xFF0D5C7D), size: 24),
@@ -369,7 +369,7 @@ class RoomsInventoryPage extends StatelessWidget {
                           "₹${room.baseRate.toStringAsFixed(0)} / night",
                           style: TextStyle(
                             fontSize: 14,
-                            color: const Color(0xFF1F2937).withOpacity(0.7),
+                            color: const Color(0xFF1F2937).withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -403,7 +403,7 @@ class RoomsInventoryPage extends StatelessWidget {
           ),
           content: Text(
             "Remove '${room.name}'?\nThis will also remove all inventory limits and policies associated with this category.",
-            style: TextStyle(color: const Color(0xFF1F2937).withOpacity(0.7), height: 1.5),
+            style: TextStyle(color: const Color(0xFF1F2937).withValues(alpha: 0.7), height: 1.5),
           ),
           actions: [
             TextButton(
@@ -443,7 +443,7 @@ class RoomsInventoryPage extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.WHITE,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF0D5C7D).withOpacity(0.2), width: 1),
+          border: Border.all(color: const Color(0xFF0D5C7D).withValues(alpha: 0.2), width: 1),
         ),
         child: Wrap(
           spacing: 32,
@@ -467,7 +467,7 @@ class RoomsInventoryPage extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: const Color(0xFF1F2937).withOpacity(0.6),
+            color: const Color(0xFF1F2937).withValues(alpha: 0.6),
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
           ),

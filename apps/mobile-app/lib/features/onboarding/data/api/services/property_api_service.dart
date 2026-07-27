@@ -1,7 +1,6 @@
 import 'package:home4stay/features/onboarding/data/api/dtos/create_property_request.dart';
 import 'package:home4stay/features/onboarding/data/api/dtos/create_property_response.dart';
 import 'package:home4stay/features/onboarding/data/api/dtos/property_summary_response.dart';
-import 'package:home4stay/features/onboarding/data/api/exceptions/property_api_exceptions.dart';
 
 class PropertyApiService {
   Future<CreatePropertyResponse> createProperty(CreatePropertyRequest request) async {

@@ -1,7 +1,6 @@
 import 'package:home4stay/core/common_imports.dart';
 import 'package:home4stay/pages/welcome/widget/wizard_sidebar.dart';
 import 'package:home4stay/pages/launch_readiness/launch_readiness_controller.dart';
-import 'package:flutter/material.dart';
 
 class LaunchReadinessPage extends StatelessWidget {
   const LaunchReadinessPage({super.key});
@@ -160,7 +159,7 @@ class LaunchReadinessPage extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade200, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -208,7 +207,7 @@ class LaunchReadinessPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: controller.statusColor.withOpacity(0.1),
+                  color: controller.statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
