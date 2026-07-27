@@ -47,22 +47,22 @@ model User {
   referralRedemptions ReferralRewardRedemption[]
 
   // Business Billing Identity
-  legalBusinessName       String?   @map("legal_business_name")
-  gstin                   String?
-  billingAddress          String?   @map("billing_address")
-  billingState            String?   @map("billing_state")
-  billingPincode          String?   @map("billing_pincode")
-  billingContact          String?   @map("billing_contact")
+  legalBusinessName String? @map("legal_business_name")
+  gstin             String?
+  billingAddress    String? @map("billing_address")
+  billingState      String? @map("billing_state")
+  billingPincode    String? @map("billing_pincode")
+  billingContact    String? @map("billing_contact")
 
   @@index([reset_password_token])
   @@map("users")
 }
 
 model Property {
-  id        String   @id @default(uuid())
-  ownerId   String   @map("owner_id")
-  slug      String   @unique
-  title     String
+  id          String    @id @default(uuid())
+  ownerId     String    @map("owner_id")
+  slug        String    @unique
+  title       String
   status      String    @default("DRAFT") // DRAFT, SETUP_IN_PROGRESS, READY_TO_LAUNCH, LIVE, SUSPENDED
   publishedAt DateTime? @map("published_at")
   createdAt   DateTime  @default(now()) @map("created_at")
@@ -79,6 +79,14 @@ model Property {
   reviews           PropertyReview[]
   offers            PropertyOffer[]
   onboardingSession OnboardingSession?
+
+  // Phase B1 Extensions
+  propertyType     String?           @map("property_type")
+  shortDescription String?           @map("short_description") @db.Text
+  onboardingStatus String            @default("NOT_STARTED") @map("onboarding_status")
+  amenities        PropertyAmenity[]
+  policies         PropertyPolicy?
+  pricing          PropertyPricing?
 
   userAccesses        PropertyUserAccess[]
   aiGenerationEvents  AiGenerationEvent[]
@@ -379,6 +387,8 @@ model Room {
   capacity   String
   view       String
   images     Json     @default("[]")
+  roomType   String?  @map("room_type")
+  roomCount  Int      @default(1) @map("room_count")
   isActive   Boolean  @default(true) @map("is_active")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
@@ -388,6 +398,51 @@ model Room {
 
   @@index([propertyId])
   @@map("rooms")
+}
+
+model PropertyAmenity {
+  id          String   @id @default(uuid())
+  propertyId  String   @map("property_id")
+  category    String
+  name        String
+  isAvailable Boolean  @default(true) @map("is_available")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_amenities")
+}
+
+model PropertyPolicy {
+  id                 String   @id @default(uuid())
+  propertyId         String   @unique @map("property_id")
+  checkInTime        String   @map("check_in_time")
+  checkOutTime       String   @map("check_out_time")
+  petsAllowed        Boolean  @default(false) @map("pets_allowed")
+  smokingAllowed     Boolean  @default(false) @map("smoking_allowed")
+  cancellationPolicy String   @map("cancellation_policy") @db.Text
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_policies")
+}
+
+model PropertyPricing {
+  id         String   @id @default(uuid())
+  propertyId String   @unique @map("property_id")
+  basePrice  Float    @map("base_price")
+  currency   String   @default("INR")
+  taxRate    Float    @default(0.0) @map("tax_rate")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_pricing")
 }
 
 model PropertyReview {
@@ -748,9 +803,9 @@ model PropertySubscription {
   createdAt      DateTime           @default(now()) @map("created_at")
   updatedAt      DateTime           @updatedAt @map("updated_at")
 
-  property     Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  transactions PaymentTransaction[]
-  invoices     Invoice[]
+  property            Property                   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  transactions        PaymentTransaction[]
+  invoices            Invoice[]
   referralRedemptions ReferralRewardRedemption[]
 
   @@index([propertyId])
@@ -759,69 +814,68 @@ model PropertySubscription {
 }
 
 model SubscriptionPlan {
-  id                   String    @id @default(uuid())
-  name                 String
-  slug                 String    @unique
-  description          String
-  shortDescription     String?   @map("short_description")
-  isActive             Boolean   @default(true) @map("is_active")
-  isFeatured           Boolean   @default(false) @map("is_featured")
-  displayOrder         Int       @default(0) @map("display_order")
+  id               String  @id @default(uuid())
+  name             String
+  slug             String  @unique
+  description      String
+  shortDescription String? @map("short_description")
+  isActive         Boolean @default(true) @map("is_active")
+  isFeatured       Boolean @default(false) @map("is_featured")
+  displayOrder     Int     @default(0) @map("display_order")
 
   // Pricing Options
-  monthlyPrice         Float     @map("monthly_price")
-  quarterlyPrice       Float     @map("quarterly_price")
-  yearlyPrice          Float     @map("yearly_price")
-  lifetimePrice        Float     @map("lifetime_price")
+  monthlyPrice   Float @map("monthly_price")
+  quarterlyPrice Float @map("quarterly_price")
+  yearlyPrice    Float @map("yearly_price")
+  lifetimePrice  Float @map("lifetime_price")
 
   // Limits
-  maxProperties        Int       @default(1) @map("max_properties")
-  maxImagesPerProperty Int       @default(10) @map("max_images_per_property")
-  maxVideosPerProperty Int       @default(1) @map("max_videos_per_property")
-  maxRoomListings      Int       @default(5) @map("max_room_listings")
-  maxBookingsPerMonth  Int       @default(100) @map("max_bookings_per_month")
+  maxProperties        Int @default(1) @map("max_properties")
+  maxImagesPerProperty Int @default(10) @map("max_images_per_property")
+  maxVideosPerProperty Int @default(1) @map("max_videos_per_property")
+  maxRoomListings      Int @default(5) @map("max_room_listings")
+  maxBookingsPerMonth  Int @default(100) @map("max_bookings_per_month")
 
   // Flags & badges
-  featureFlags         Json      @default("{}") @map("feature_flags")
-  customBadge          String?   @map("custom_badge")
-  supportPriority      String    @default("NORMAL") @map("support_priority")
+  featureFlags    Json    @default("{}") @map("feature_flags")
+  customBadge     String? @map("custom_badge")
+  supportPriority String  @default("NORMAL") @map("support_priority")
 
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-  deletedAt            DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@index([slug])
   @@index([isActive])
   @@map("subscription_plans")
 }
 
-
 model PaymentTransaction {
-  id                   String          @id @default(uuid())
-  propertyId           String          @map("property_id")
-  subscriptionId       String?         @map("subscription_id")
-  providerId           String?         @map("provider_id")
-  paymentStatus        PaymentStatus   @default(PENDING) @map("payment_status")
+  id                   String        @id @default(uuid())
+  propertyId           String        @map("property_id")
+  subscriptionId       String?       @map("subscription_id")
+  providerId           String?       @map("provider_id")
+  paymentStatus        PaymentStatus @default(PENDING) @map("payment_status")
   amount               Float
-  currency             String          @default("INR")
-  utrNumber            String?         @map("utr_number")
-  paymentScreenshotUrl String?         @map("payment_screenshot_url")
-  gatewayTransactionId String?         @map("gateway_transaction_id")
-  gatewayOrderId       String?         @map("gateway_order_id")
-  gatewayResponse      Json?           @map("gateway_response")
-  adminReviewNote      String?         @map("admin_review_note")
-  reviewedBy           String?         @map("reviewed_by")
-  reviewedAt           DateTime?       @map("reviewed_at")
-  paidAt               DateTime?       @map("paid_at")
-  createdAt            DateTime        @default(now()) @map("created_at")
-  updatedAt            DateTime        @updatedAt @map("updated_at")
+  currency             String        @default("INR")
+  utrNumber            String?       @map("utr_number")
+  paymentScreenshotUrl String?       @map("payment_screenshot_url")
+  gatewayTransactionId String?       @map("gateway_transaction_id")
+  gatewayOrderId       String?       @map("gateway_order_id")
+  gatewayResponse      Json?         @map("gateway_response")
+  adminReviewNote      String?       @map("admin_review_note")
+  reviewedBy           String?       @map("reviewed_by")
+  reviewedAt           DateTime?     @map("reviewed_at")
+  paidAt               DateTime?     @map("paid_at")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
 
-  property     Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  subscription PropertySubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  provider     PaymentProvider?      @relation(fields: [providerId], references: [id], onDelete: SetNull)
-  auditLogs    PaymentAuditLog[]
-  reconciliation PaymentReconciliation?
-  invoices     Invoice[]
+  property           Property               @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  subscription       PropertySubscription?  @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  provider           PaymentProvider?       @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  auditLogs          PaymentAuditLog[]
+  reconciliation     PaymentReconciliation?
+  invoices           Invoice[]
   reconciliationLogs ReconciliationLog[]
 
   @@index([propertyId])
@@ -850,10 +904,10 @@ model PaymentAuditLog {
 model AutomationJobLog {
   id               String   @id @default(uuid())
   jobType          String   @map("job_type") // EXPIRY_SCAN, GRACE_SCAN, REMINDER_SCAN, SUSPENSION_PROCESSING
-  status           String   // SUCCESS, FAILED
+  status           String // SUCCESS, FAILED
   recordsProcessed Int      @default(0) @map("records_processed")
   errorMessage     String?  @map("error_message")
-  logs             Json?    // Detailed execution trace messages
+  logs             Json? // Detailed execution trace messages
   createdAt        DateTime @default(now()) @map("created_at")
 
   @@map("automation_job_logs")
@@ -872,7 +926,7 @@ model PaymentReconciliation {
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
 
-  transaction          PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  transaction PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
   @@map("payment_reconciliations")
 }
@@ -900,7 +954,7 @@ model LegalDocument {
   createdAt    DateTime          @default(now()) @map("created_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
 
-  acceptances  LegalAcceptanceLog[]
+  acceptances LegalAcceptanceLog[]
 
   @@unique([documentType, version])
   @@index([slug])
@@ -909,17 +963,17 @@ model LegalDocument {
 }
 
 model LegalAcceptanceLog {
-  id              String        @id @default(uuid())
-  userId          String        @map("user_id")
-  documentId      String        @map("document_id")
-  acceptedVersion String        @map("accepted_version")
-  acceptedAt      DateTime      @default(now()) @map("accepted_at")
-  ipAddress       String?       @map("ip_address")
-  userAgent       String?       @map("user_agent")
-  metadata        Json?         @default("{}") @map("metadata")
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  documentId      String   @map("document_id")
+  acceptedVersion String   @map("accepted_version")
+  acceptedAt      DateTime @default(now()) @map("accepted_at")
+  ipAddress       String?  @map("ip_address")
+  userAgent       String?  @map("user_agent")
+  metadata        Json?    @default("{}") @map("metadata")
 
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  document        LegalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document LegalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([documentId])
@@ -963,51 +1017,51 @@ model FinancialSettings {
   updatedAt             DateTime @updatedAt @map("updated_at")
 
   // Tax split, place of supply, SLA, and liability configurations (Phase 10A.5)
-  defaultStateCode      String?  @default("24") @map("default_state_code")
-  placeOfSupplyMode     String?  @default("STATE_MATCH") @map("place_of_supply_mode")
-  enableGSTSplitting    Boolean  @default(true) @map("enable_gst_splitting")
-  enableIGST            Boolean  @default(true) @map("enable_igst")
-  invoiceTerms          String?  @db.Text @map("invoice_terms")
-  refundTerms           String?  @db.Text @map("refund_terms")
-  SLAUptimeTarget       Float?   @default(99.9) @map("sla_uptime_target")
-  SLAMaintenanceWindow  String?  @default("Sunday 02:00 AM - 04:00 AM IST") @map("sla_maintenance_window")
-  liabilityCapMonths    Int?     @default(6) @map("liability_cap_months")
-  dataRetentionDays     Int?     @default(365) @map("data_retention_days")
+  defaultStateCode     String? @default("24") @map("default_state_code")
+  placeOfSupplyMode    String? @default("STATE_MATCH") @map("place_of_supply_mode")
+  enableGSTSplitting   Boolean @default(true) @map("enable_gst_splitting")
+  enableIGST           Boolean @default(true) @map("enable_igst")
+  invoiceTerms         String? @map("invoice_terms") @db.Text
+  refundTerms          String? @map("refund_terms") @db.Text
+  SLAUptimeTarget      Float?  @default(99.9) @map("sla_uptime_target")
+  SLAMaintenanceWindow String? @default("Sunday 02:00 AM - 04:00 AM IST") @map("sla_maintenance_window")
+  liabilityCapMonths   Int?    @default(6) @map("liability_cap_months")
+  dataRetentionDays    Int?    @default(365) @map("data_retention_days")
 
   @@map("financial_settings")
 }
 
 model Invoice {
-  id             String             @id @default(uuid())
-  invoiceNumber  String             @unique @map("invoice_number")
-  userId         String             @map("user_id")
-  subscriptionId String?            @map("subscription_id")
-  transactionId  String?            @map("transaction_id")
-  invoiceType    InvoiceType        @map("invoice_type")
-  status         InvoiceStatus      @default(DRAFT)
+  id             String        @id @default(uuid())
+  invoiceNumber  String        @unique @map("invoice_number")
+  userId         String        @map("user_id")
+  subscriptionId String?       @map("subscription_id")
+  transactionId  String?       @map("transaction_id")
+  invoiceType    InvoiceType   @map("invoice_type")
+  status         InvoiceStatus @default(DRAFT)
   subtotal       Float
-  gstPercent     Float              @map("gst_percent")
-  gstAmount      Float              @map("gst_amount")
-  totalAmount    Float              @map("total_amount")
-  currency       String             @default("INR")
-  billingName    String             @map("billing_name")
-  billingAddress String             @map("billing_address")
+  gstPercent     Float         @map("gst_percent")
+  gstAmount      Float         @map("gst_amount")
+  totalAmount    Float         @map("total_amount")
+  currency       String        @default("INR")
+  billingName    String        @map("billing_name")
+  billingAddress String        @map("billing_address")
   GSTIN          String?
-  invoicePdfUrl  String?            @map("invoice_pdf_url")
-  metadata       Json               @default("{}")
-  issuedAt       DateTime?          @map("issued_at")
-  paidAt         DateTime?          @map("paid_at")
-  createdAt      DateTime           @default(now()) @map("created_at")
-  updatedAt      DateTime           @updatedAt @map("updated_at")
+  invoicePdfUrl  String?       @map("invoice_pdf_url")
+  metadata       Json          @default("{}")
+  issuedAt       DateTime?     @map("issued_at")
+  paidAt         DateTime?     @map("paid_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
   // E-invoice compliance fields (Phase 10A.5)
-  irn            String?
-  eInvoiceQrUrl  String?            @map("e_invoice_qr_url")
-  govAckId       String?            @map("gov_ack_id")
+  irn           String?
+  eInvoiceQrUrl String? @map("e_invoice_qr_url")
+  govAckId      String? @map("gov_ack_id")
 
-  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscription PropertySubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  transaction  PaymentTransaction?   @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription       PropertySubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  transaction        PaymentTransaction?   @relation(fields: [transactionId], references: [id], onDelete: SetNull)
   reconciliationLogs ReconciliationLog[]
 
   @@index([userId])
@@ -1029,18 +1083,18 @@ enum ReconciliationStatus {
 }
 
 model SettlementRecord {
-  id                  String             @id @default(uuid())
-  providerType        String             @map("provider_type")
-  settlementReference String             @unique @map("settlement_reference")
-  settlementDate      DateTime           @map("settlement_date")
-  settlementAmount    Float              @map("settlement_amount")
-  currency            String             @default("INR")
+  id                  String               @id @default(uuid())
+  providerType        String               @map("provider_type")
+  settlementReference String               @unique @map("settlement_reference")
+  settlementDate      DateTime             @map("settlement_date")
+  settlementAmount    Float                @map("settlement_amount")
+  currency            String               @default("INR")
   status              ReconciliationStatus @default(PENDING)
-  metadata            Json               @default("{}")
-  createdAt           DateTime           @default(now()) @map("created_at")
-  updatedAt           DateTime           @updatedAt @map("updated_at")
+  metadata            Json                 @default("{}")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
 
-  reconciliationLogs  ReconciliationLog[]
+  reconciliationLogs ReconciliationLog[]
 
   @@map("settlement_records")
 }
@@ -1070,8 +1124,6 @@ model ReconciliationLog {
   @@map("reconciliation_logs")
 }
 
-
-
 // ==========================================
 // PHASE 11 — REFERRALS & REWARDS
 // ==========================================
@@ -1094,7 +1146,7 @@ model ReferralProfile {
   redeemedCredits Int      @default(0) @map("redeemed_credits")
   createdAt       DateTime @default(now()) @map("created_at")
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("referral_profiles")
 }
@@ -1111,8 +1163,8 @@ model ReferralEvent {
   metadata                 Json                @default("{}")
   createdAt                DateTime            @default(now()) @map("created_at")
 
-  referrer                 User                @relation("ReferrerEvents", fields: [referrerUserId], references: [id], onDelete: Cascade)
-  referred                 User                @relation("ReferredEvents", fields: [referredUserId], references: [id], onDelete: Cascade)
+  referrer User @relation("ReferrerEvents", fields: [referrerUserId], references: [id], onDelete: Cascade)
+  referred User @relation("ReferredEvents", fields: [referredUserId], references: [id], onDelete: Cascade)
 
   @@map("referral_events")
 }
@@ -1127,7 +1179,7 @@ model ReferralCreditLedger {
   notes        String?  @db.Text
   createdAt    DateTime @default(now()) @map("created_at")
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("referral_credit_ledger")
 }
@@ -1143,8 +1195,8 @@ model ReferralRewardRedemption {
   remainingCredits Int      @map("remaining_credits")
   createdAt        DateTime @default(now()) @map("created_at")
 
-  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscription     PropertySubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription PropertySubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@map("referral_reward_redemptions")
 }
