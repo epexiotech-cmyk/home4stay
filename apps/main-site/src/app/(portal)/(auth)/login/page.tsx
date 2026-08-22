@@ -27,7 +27,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      await login(formData.email, formData.password, "customer");
+      await login(formData.email, formData.password);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Invalid credentials";
       setError(message);
@@ -74,7 +74,7 @@ export default function LoginPage() {
           />
           <div className="flex justify-end pr-1">
             <Link 
-              href="/auth/forgot-password" 
+              href="/forgot-password" 
               className="text-[10px] font-black text-[#0983B0] dark:text-[#FCBC43] uppercase tracking-widest hover:underline transition-all"
             >
               Forgot Password?
@@ -108,7 +108,7 @@ export default function LoginPage() {
 
         <p className="text-center text-[10px] font-black text-[#0E5A75]/40 dark:text-white/30 uppercase tracking-[0.4em] mt-8">
           Don&apos;t have an account?{" "}
-          <Link href="/auth/register" className="text-[#0E5A75] dark:text-[#FCBC43] font-black hover:underline transition-all">
+          <Link href="/register?intent=customer" className="text-[#0E5A75] dark:text-[#FCBC43] font-black hover:underline transition-all">
             Join the Club
           </Link>
         </p>

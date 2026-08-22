@@ -13,10 +13,13 @@ export class AuthService {
   private sessionRepo = new SessionRepository();
   private auditRepo = new AuditRepository();
 
+  public async checkUserExists(email: string) {
+    return !!(await this.userRepo.findByEmail(email));
+  }
+
   async login(
     email: string,
     password: string,
-    loginType: 'customer' | 'partner' | 'admin',
     ip: string,
     userAgent: string,
     requestId: string = "system"
@@ -43,32 +46,27 @@ export class AuthService {
     }
 
     const role = user.role;
-    let isAuthorized = false;
-    if (loginType === "customer") isAuthorized = role === "customer";
-    else if (loginType === "partner") isAuthorized = ["owner", "manager", "receptionist", "billing", "housekeeping"].includes(role);
-    else if (loginType === "admin") isAuthorized = ["admin", "super_admin"].includes(role);
-
-    if (!isAuthorized) {
-      throw new Error("Unauthorized access");
-    }
 
     let propertyId: string | undefined;
     let propertySlug: string | undefined;
     let subdomain: string | undefined;
+    let onboardingStatus: string | undefined;
 
-    if (loginType === "partner") {
+    if (["owner", "manager", "partner", "receptionist", "billing", "housekeeping"].includes(user.role)) {
       try {
         const accesses = await this.userRepo.getPropertyAccesses(user.id);
         if (accesses.length > 0) {
           propertyId = accesses[0].propertyId;
           propertySlug = accesses[0].property.slug;
           subdomain = (accesses[0].property as { subdomain?: string }).subdomain;
+          onboardingStatus = accesses[0].property.onboardingStatus;
         } else {
           const property = await this.userRepo.findFirstPropertyByOwnerId(user.id);
           if (property) {
             propertyId = property.id;
             propertySlug = property.slug;
             subdomain = (property as { subdomain?: string }).subdomain;
+            onboardingStatus = property.onboardingStatus;
           }
         }
       } catch (err) {}
@@ -77,7 +75,7 @@ export class AuthService {
     const sessionToken = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    const tokenPayload = { userId: user.id, role: user.role, propertyId, propertySlug, subdomain, sessionToken };
+    const tokenPayload = { userId: user.id, role: user.role, propertyId, propertySlug, subdomain, sessionToken, onboardingStatus };
     const accessToken = await signToken({ ...tokenPayload, type: "access" }, "15m");
     const refreshToken = await signToken({ ...tokenPayload, type: "refresh" }, "7d");
 
@@ -91,9 +89,9 @@ export class AuthService {
       expiresAt
     });
 
-    await this.auditRepo.log({ userId: user.id, action: "USER_LOGIN_SUCCESS", ipAddress: ip, userAgent, status: "SUCCESS", metadata: { email, loginType, isMock: false, requestId } });
+    await this.auditRepo.log({ userId: user.id, action: "USER_LOGIN_SUCCESS", ipAddress: ip, userAgent, status: "SUCCESS", metadata: { email, isMock: false, requestId } });
 
-    return { accessToken, refreshToken, sessionToken, user: { id: user.id, name: user.name, email: user.email, role: user.role, propertyId, propertySlug, subdomain } };
+    return { accessToken, refreshToken, sessionToken, user: { id: user.id, name: user.name, email: user.email, role: user.role, propertyId, propertySlug, subdomain, onboardingStatus } };
   }
 
   async refresh(refreshTokenStr: string, ip: string, userAgent: string) {
@@ -116,6 +114,7 @@ export class AuthService {
     let propertyId: string | undefined;
     let propertySlug: string | undefined;
     let subdomain: string | undefined;
+    let onboardingStatus: string | undefined;
 
     if (["owner", "manager", "receptionist", "billing", "housekeeping"].includes(user.role)) {
       const accesses = await this.userRepo.getPropertyAccesses(user.id);
@@ -123,17 +122,19 @@ export class AuthService {
         propertyId = accesses[0].propertyId;
         propertySlug = accesses[0].property.slug;
         subdomain = (accesses[0].property as { subdomain?: string }).subdomain;
+        onboardingStatus = accesses[0].property.onboardingStatus;
       } else {
         const property = await this.userRepo.findFirstPropertyByOwnerId(user.id);
         if (property) {
           propertyId = property.id;
           propertySlug = property.slug;
           subdomain = (property as { subdomain?: string }).subdomain;
+          onboardingStatus = property.onboardingStatus;
         }
       }
     }
 
-    const tokenPayload = { userId: user.id, role: user.role, propertyId, propertySlug, subdomain, sessionToken };
+    const tokenPayload = { userId: user.id, role: user.role, propertyId, propertySlug, subdomain, sessionToken, onboardingStatus };
     const accessToken = await signToken({ ...tokenPayload, type: "access" }, "15m");
 
     return { accessToken };
@@ -185,8 +186,10 @@ export class AuthService {
     return newUser;
   }
 
-  async registerPartner(
-    data: { name: string; email: string; phone: string; password: string; propertyName: string; acceptedTermsVersion: string; acceptedPrivacyVersion: string },
+
+  
+  async registerPartnerVerified(
+    data: { name: string; email: string; phone: string; passwordHash: string; propertyName: string; acceptedTermsVersion: string; acceptedPrivacyVersion: string },
     ip: string,
     userAgent: string
   ) {
@@ -200,7 +203,6 @@ export class AuthService {
     if (activeTerms && activeTerms.version !== data.acceptedTermsVersion) throw new Error(`Outdated Terms version accepted`);
     if (activePrivacy && activePrivacy.version !== data.acceptedPrivacyVersion) throw new Error(`Outdated Privacy version accepted`);
 
-    const hashedPassword = await hashPassword(data.password);
     const slug = `${data.propertyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}-${crypto.randomBytes(2).toString("hex")}`;
     
     const legalAcceptances = [];
@@ -208,7 +210,7 @@ export class AuthService {
     if (activePrivacy) legalAcceptances.push({ documentId: activePrivacy.id, ipAddress: ip, userAgent, acceptedVersion: activePrivacy.version });
 
     const registeredUser = await this.userRepo.createPartner(
-      { name: data.name, email, password: hashedPassword, phone: data.phone, role: "partner" },
+      { name: data.name, email, password: data.passwordHash, phone: data.phone, role: "owner" },
       { title: data.propertyName, slug },
       legalAcceptances
     );

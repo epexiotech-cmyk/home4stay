@@ -15,7 +15,8 @@ import {
   Tablet,
   Maximize2,
   Minimize2,
-  Info
+  Info,
+  Bell
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OnboardingProvider, useOnboarding } from "@/context/OnboardingContext";
@@ -79,10 +80,10 @@ function OnboardingInnerLayout({ children }: { children: React.ReactNode }) {
   const currentPropertyDraft = draftData.property || { title: "", location: "", description: "", slug: "" };
 
   return (
-    <div className="min-h-screen bg-background text-text flex flex-col font-sans selection:bg-primary/10 select-none contain-paint">
+    <div className="h-[calc(100dvh-128px)] md:h-[calc(100dvh-144px)] bg-background text-text flex flex-col font-sans selection:bg-primary/10 select-none contain-paint overflow-hidden rounded-[24px] md:rounded-[32px] border border-border/40 shadow-xl">
       
       {/* 1. TOP NAV / DISTRACTION-FREE HEADER */}
-      <header className="h-20 bg-white/80 dark:bg-black/20 backdrop-blur-xl border-b border-border px-6 md:px-12 flex items-center justify-between shrink-0 sticky top-0 z-40">
+      <header className="h-20 bg-white/80 dark:bg-black/20 backdrop-blur-xl border-b border-border px-6 md:px-12 flex items-center justify-between shrink-0 z-20 relative">
         <div className="flex items-center gap-6">
           <Logo variant="full" size="sm" link={false} className="opacity-95" />
           <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/10">
@@ -181,7 +182,7 @@ function OnboardingInnerLayout({ children }: { children: React.ReactNode }) {
             isFullScreen && "hidden"
           )}>
             {/* Inner focus element */}
-            <div className="max-w-2xl w-full mx-auto pb-20">
+            <div className="max-w-4xl w-full mx-auto pb-20">
               
               {/* Dynamic step name pill (Mobile helper) */}
               <div className="lg:hidden inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/10 mb-6">
@@ -312,7 +313,7 @@ function OnboardingInnerLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* 3. STICKY BOTTOM NAVIGATION PANEL */}
-      <footer className="h-20 bg-white border-t border-border px-6 md:px-12 flex items-center justify-between shrink-0 sticky bottom-0 z-40">
+      <footer className="h-20 bg-white border-t border-border px-6 md:px-12 flex items-center justify-between shrink-0 z-20 relative">
         <button
           onClick={handleBack}
           disabled={activeStepIndex === 0}
@@ -356,18 +357,31 @@ function OnboardingInnerLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <button
-          onClick={handleNext}
-          className={cn(
-            "flex items-center gap-2 px-8 py-3.5 rounded-xl text-white text-xs font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg",
-            activeStepIndex === steps.length - 1 
-              ? "bg-success shadow-success/20 hover:bg-success-light" 
-              : "bg-primary shadow-primary/20 hover:bg-primary-hover"
-          )}
-        >
-          <span>{activeStepIndex === steps.length - 1 ? "Launch Booking Site" : "Continue"}</span>
-          <ArrowRight size={14} />
-        </button>
+        <div className="flex items-center gap-4 shrink-0">
+          <button
+            type="button"
+            className="hidden md:flex items-center gap-2.5 px-6 py-3.5 rounded-xl border border-primary text-primary bg-white text-xs font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-sm hover:bg-primary/5 shrink-0"
+          >
+            <div className="w-[22px] h-[22px] rounded-full bg-primary/10 text-primary flex items-center justify-center font-medium text-[11px] shrink-0">
+              1
+            </div>
+            <span className="whitespace-nowrap">Concierge Action</span>
+            <Bell size={14} className="shrink-0" />
+          </button>
+
+          <button
+            onClick={handleNext}
+            className={cn(
+              "flex items-center gap-2 px-8 py-3.5 rounded-xl text-white text-xs font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shrink-0 whitespace-nowrap",
+              activeStepIndex === steps.length - 1 
+                ? "bg-success shadow-success/20 hover:bg-success-light" 
+                : "bg-primary shadow-primary/20 hover:bg-primary-hover"
+            )}
+          >
+            <span>{activeStepIndex === steps.length - 1 ? "Launch Booking Site" : "Continue Setup"}</span>
+            <ArrowRight size={14} className="shrink-0" />
+          </button>
+        </div>
       </footer>
 
     </div>

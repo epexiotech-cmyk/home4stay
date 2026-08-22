@@ -4,6 +4,19 @@ import { LegalService } from "@/lib/legal/legalService";
 
 export async function GET(request: NextRequest) {
   try {
+    console.log(`\n[API legal-status] Header 'cookie':`, request.headers.get("cookie"));
+    console.log(`[API legal-status] request.cookies.getAll():`, JSON.stringify(request.cookies.getAll()));
+
+    console.log(
+      "[LEGAL] cookie header =",
+      request.headers.get("cookie"),
+    );
+
+    console.log(
+      "[LEGAL] cookies =",
+      request.cookies.getAll(),
+    );
+
     const auth = await requireAuth(request);
     if (!auth.authorized || !auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

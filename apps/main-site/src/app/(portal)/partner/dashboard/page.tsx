@@ -184,40 +184,57 @@ interface Booking {
   amount: string | number;
 }
 
-const ActivityFeed = ({ bookings, isLoading }: { bookings: Booking[], isLoading: boolean }) => (
-  <GlassCard className="col-span-1 md:col-span-1">
-    <WidgetHeader title="Activity" icon={Clock} />
-    <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-px before:bg-[#0E5A75]/10 dark:before:bg-white/10 min-h-[200px]">
-      {isLoading ? (
-        <div className="flex items-center justify-center h-40">
-          <Loader2 className="animate-spin text-[#0E5A75]" />
-        </div>
-      ) : bookings.length === 0 ? (
-        <div className="text-center py-10">
-          <p className="text-xs font-bold text-[#0E5A75]/40 uppercase tracking-widest">No recent activity</p>
-        </div>
-      ) : (
-        bookings.slice(0, 5).map((item, i) => (
-          <div key={i} className="flex gap-4 relative text-left">
-            <div className={cn("w-6 h-6 rounded-full border-4 border-white dark:border-[#0b1220] shadow-sm shrink-0 z-10", "bg-[#0E5A75]")} />
-            <div>
-              <p className="text-[13px] font-bold text-[#053344] dark:text-[#FDF6F1] leading-tight">New Booking</p>
-              <p className="text-[11px] text-[#0E5A75] dark:text-[#0983B0] font-medium mb-1">{item.guest_name} - {item.room_name}</p>
-              <span className="text-[10px] font-bold text-[#0E5A75]/60 dark:text-[#0983B0]/60 uppercase tracking-tighter">Just now</span>
-            </div>
+const ActivityFeed = ({ bookings, isLoading }: { bookings: Booking[], isLoading: boolean }) => {
+  console.log("bookings =", bookings);
+  console.log("typeof =", typeof bookings);
+  console.log("isArray =", Array.isArray(bookings));
+
+  const bookingList = Array.isArray(bookings)
+      ? bookings
+      : [];
+
+  return (
+    <GlassCard className="col-span-1 md:col-span-1">
+      <WidgetHeader title="Activity" icon={Clock} />
+      <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-px before:bg-[#0E5A75]/10 dark:before:bg-white/10 min-h-[200px]">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-40">
+            <Loader2 className="animate-spin text-[#0E5A75]" />
           </div>
-        ))
-      )}
-    </div>
-  </GlassCard>
-);
+        ) : bookingList.length === 0 ? (
+          <div className="text-center py-10">
+            <p className="text-xs font-bold text-[#0E5A75]/40 uppercase tracking-widest">No recent activity</p>
+          </div>
+        ) : (
+          bookingList.slice(0, 5).map((item, i) => (
+            <div key={i} className="flex gap-4 relative text-left">
+              <div className={cn("w-6 h-6 rounded-full border-4 border-white dark:border-[#0b1220] shadow-sm shrink-0 z-10", "bg-[#0E5A75]")} />
+              <div>
+                <p className="text-[13px] font-bold text-[#053344] dark:text-[#FDF6F1] leading-tight">New Booking</p>
+                <p className="text-[11px] text-[#0E5A75] dark:text-[#0983B0] font-medium mb-1">{item.guest_name} - {item.room_name}</p>
+                <span className="text-[10px] font-bold text-[#0E5A75]/60 dark:text-[#0983B0]/60 uppercase tracking-tighter">Just now</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </GlassCard>
+  );
+};
+
+import { useAuth } from "@/context/AuthContext";
 
 export default function PartnerDashboard() {
+  const { user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+    const status = (user as any).onboardingStatus;
+    if (status !== "COMPLETED" && status !== "LIVE") return;
+
     const fetchData = async () => {
       try {
         const [bookingsRes, statsRes] = await Promise.all([
@@ -226,7 +243,9 @@ export default function PartnerDashboard() {
         ]);
         
         if (bookingsRes.ok) {
-          setBookings(await bookingsRes.json());
+          const response = await bookingsRes.json();
+          const bookingData = response?.data?.data;
+          setBookings(Array.isArray(bookingData) ? bookingData : []);
         }
         if (statsRes.ok) {
           const statsData = await statsRes.json();
@@ -239,7 +258,7 @@ export default function PartnerDashboard() {
       }
     };
     fetchData();
-  }, []);
+  }, [user]);
 
   return (
     <div className="space-y-8 pb-12">

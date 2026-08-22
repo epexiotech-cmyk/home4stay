@@ -14,7 +14,7 @@ type RegisterFormData = {
   confirmPassword: string;
 };
 
-export default function PartnerRegisterPage() {
+export function PartnerRegisterForm() {
   const [formData, setFormData] = useState<RegisterFormData>({
     name: "",
     email: "",
@@ -64,7 +64,7 @@ export default function PartnerRegisterPage() {
     }
 
     try {
-      const res = await fetch("/api/auth/partner/register", {
+      const res = await fetch("/api/auth/partner/register/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -80,7 +80,7 @@ export default function PartnerRegisterPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to create partner account");
+        throw new Error(data.error?.message || data.error || "Failed to create partner account");
       }
 
       setSuccess(true);
@@ -230,7 +230,7 @@ export default function PartnerRegisterPage() {
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
             <span className="relative z-10 flex items-center justify-center gap-1.5">
-              <span>{submitting ? "Establishing Workspace..." : "Establish Workspace"}</span>
+              <span>{submitting ? "VERIFYING..." : "VERIFY"}</span>
               {!submitting && <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />}
             </span>
           </button>
@@ -239,7 +239,7 @@ export default function PartnerRegisterPage() {
 
       <div className="mt-8 text-center text-[10px] font-black uppercase tracking-[0.15em] text-[#29655C] dark:text-[#0983B0]">
         Already have a partner account?{" "}
-        <Link href="/partner/login" className="text-[#0E5A75] dark:text-white hover:underline ml-1 decoration-2 underline-offset-4 transition-all">
+        <Link href="/login" className="text-[#0E5A75] dark:text-white hover:underline ml-1 decoration-2 underline-offset-4 transition-all">
           Sign In
         </Link>
       </div>

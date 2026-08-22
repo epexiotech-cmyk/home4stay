@@ -15,11 +15,26 @@ export default function OnboardingBasePage() {
     if (!loading) {
       if (user) {
         // Authenticated: seamlessly move to welcome step inside the layout
-        router.replace("/partner/onboarding/welcome");
+        fetch("/api/partner/onboarding/session")
+          .then(res => res.json())
+          .then(data => {
+            const status = data.data?.session?.status || data.session?.status;
+            const currentStep = data.data?.session?.currentStep || data.session?.currentStep;
+            if (status === "COMPLETED" || status === "LIVE") {
+              router.replace("/partner/dashboard");
+            } else if (currentStep && currentStep !== "welcome") {
+              router.replace(`/partner/onboarding/${currentStep}`);
+            } else {
+              router.replace("/partner/onboarding/welcome");
+            }
+          })
+          .catch(() => {
+            router.replace("/partner/onboarding/welcome");
+          });
       } else {
         // Unauthenticated: redirect to login after a brief visual gate delay
         const timer = setTimeout(() => {
-          router.push("/partner/login?redirect=/partner/onboarding");
+          router.push("/login?redirect=/partner/onboarding");
         }, 2500);
         return () => clearTimeout(timer);
       }
@@ -49,7 +64,7 @@ export default function OnboardingBasePage() {
 
           <div className="mt-8 flex flex-col gap-3">
             <button 
-              onClick={() => router.push("/partner/login?redirect=/partner/onboarding")}
+              onClick={() => router.push("/login?redirect=/partner/onboarding")}
               className="btn btn-primary w-full py-4.5 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm uppercase tracking-wider"
             >
               <span>Sign In to Account</span>

@@ -11,7 +11,7 @@ import { PhoneInput } from "@/components/auth/PhoneInput";
 import { validatePassword } from "@/lib/client/password";
 import { isValidPhoneNumber } from "react-phone-number-input";
 
-export default function RegisterPage() {
+export function CustomerRegisterForm() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -58,7 +58,7 @@ export default function RegisterPage() {
       }
 
       setSuccess(true);
-      setTimeout(() => router.push("/auth/login"), 2000);
+      setTimeout(() => router.push("/login"), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -176,7 +176,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-[10px] font-black text-[#0E5A75]/40 dark:text-white/30 uppercase tracking-[0.4em] mt-8">
           Already have an account?{" "}
-          <Link href="/auth/login" className="text-[#0E5A75] dark:text-[#FCBC43] font-black hover:underline transition-all">
+          <Link href="/login" className="text-[#0E5A75] dark:text-[#FCBC43] font-black hover:underline transition-all">
             Sign In
           </Link>
         </p>

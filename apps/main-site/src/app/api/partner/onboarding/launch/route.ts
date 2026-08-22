@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/rbac";
 import { PartnerService } from "@/lib/services/partnerService";
 import { successResponse } from "@/lib/utils/apiResponse";
 import { withErrorHandler, AppError } from "@/lib/errors/handler";
+import { AuthService } from "@/lib/auth/auth.service";
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const auth = await requireAuth(request);
@@ -44,9 +45,40 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   const result = await PartnerService.launchProperty(auth.propertyId!, auth.userId);
-  return successResponse({
-    success: true,
-    message: "Congratulations! Your property has been activated and published successfully.",
-    activatedAt: new Date().toISOString()
-  });
+    
+    const response = successResponse({
+      success: true,
+      message: "Congratulations! Your property has been activated and published successfully.",
+      activatedAt: new Date().toISOString()
+    });
+
+    try {
+      const refreshToken = request.cookies.get("refresh-token")?.value;
+      if (refreshToken) {
+        const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
+        const userAgent = request.headers.get("user-agent") || "unknown";
+        const authService = new AuthService();
+        const { accessToken } = await authService.refresh(refreshToken, ip, userAgent);
+        
+        response.cookies.set("access-token", accessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          path: "/",
+          maxAge: 15 * 60,
+        });
+
+        response.cookies.set("token", accessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          path: "/",
+          maxAge: 15 * 60,
+        });
+      }
+    } catch (err) {
+      console.error("Token refresh failed after launch", err);
+    }
+
+    return response;
 });

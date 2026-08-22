@@ -177,8 +177,8 @@ export default function StickyHeader({ name }: StickyHeaderProps) {
                   </>
                 ) : (
                   <div className="py-2">
-                    <a href={getMainDomainUrl("/auth/login")} className="block px-4 py-2.5 text-sm font-bold text-[var(--text)] hover:bg-[var(--text)]/5">Login</a>
-                    <a href={getMainDomainUrl("/auth/register")} className="block px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:bg-[var(--text)]/5">Sign Up</a>
+                    <a href={getMainDomainUrl("/login")} className="block px-4 py-2.5 text-sm font-bold text-[var(--text)] hover:bg-[var(--text)]/5">Login</a>
+                    <a href={getMainDomainUrl("/register?intent=customer")} className="block px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:bg-[var(--text)]/5">Sign Up</a>
                     <hr className="border-[var(--border)] my-2" />
                     <ThemeSwitcher />
                   </div>

@@ -138,7 +138,29 @@ export default function PartnerLayout({
     setIsMobileMenuOpen(false);
   }
 
-  const { user, logout: authLogout } = useAuth();
+  const { user, loading, logout: authLogout } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user && ["owner", "manager", "partner"].includes(user.role)) {
+      const status = (user as any).onboardingStatus;
+      const isOnboardingComplete = status === "COMPLETED" || status === "LIVE";
+      if (!isOnboardingComplete && !pathname.startsWith("/partner/onboarding")) {
+        router.push("/partner/onboarding");
+      }
+    }
+  }, [user, loading, pathname, router]);
+
+  if (loading) {
+    return null;
+  }
+
+  if (user && ["owner", "manager", "partner"].includes(user.role)) {
+    const status = (user as any).onboardingStatus;
+    const isOnboardingComplete = status === "COMPLETED" || status === "LIVE";
+    if (!isOnboardingComplete && !pathname.startsWith("/partner/onboarding")) {
+      return null;
+    }
+  }
 
   const handleLogout = () => {
     authLogout();
@@ -253,7 +275,8 @@ export default function PartnerLayout({
           isScrolled ? "pt-4" : "pt-0"
         )}>
           <div className={cn(
-            "w-full h-16 max-w-7xl flex items-center justify-between px-6 rounded-3xl transition-all duration-500",
+            "w-full h-16 flex items-center justify-between px-6 rounded-3xl transition-all duration-500",
+            pathname.startsWith("/partner/onboarding") ? "w-full" : "max-w-7xl",
             isScrolled 
               ? "glass-premium shadow-2xl border border-white/40 dark:border-white/10" 
               : "bg-transparent"
@@ -367,7 +390,10 @@ export default function PartnerLayout({
 
         {/* Page Content */}
         <main className="flex-1 p-4 md:p-8 overflow-x-hidden pt-4">
-          <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out text-[#0E5A75] dark:text-white">
+          <div className={cn(
+            "mx-auto animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out text-[#0E5A75] dark:text-white",
+            pathname.startsWith("/partner/onboarding") ? "w-full" : "max-w-7xl"
+          )}>
             {children}
           </div>
         </main>
@@ -435,16 +461,18 @@ export default function PartnerLayout({
       </aside>
 
       {/* Floating Concierge Action Hub */}
-      <button 
-        onClick={() => setIsConciergeOpen(true)}
-        className="fixed bottom-8 right-8 md:bottom-12 md:right-12 z-[80] group gpu-accelerated"
-      >
+      {!pathname.startsWith("/partner/onboarding") && (
+        <button 
+          onClick={() => setIsConciergeOpen(true)}
+          className="fixed bottom-8 right-8 md:bottom-12 md:right-12 z-[80] group gpu-accelerated"
+        >
         <div className="absolute inset-0 bg-gradient-to-tr from-[#0E5A75]/40 to-[#0983B0]/20 blur-2xl rounded-full group-hover:scale-125 transition-transform duration-700 pointer-events-none" />
         <div className="relative flex items-center gap-3 bg-[#0E5A75] hover:bg-[#0A4459] text-white px-8 py-4.5 rounded-[24px] shadow-luxury transition-all duration-300 hover:scale-[1.02] active:scale-95 border border-white/10">
           <Plus size={20} className="transition-transform duration-500 group-hover:rotate-90" />
           <span className="font-black text-xs uppercase tracking-[0.2em]">Concierge Action</span>
         </div>
       </button>
+      )}
 
       {/* Concierge Action Hub Modal */}
       {isConciergeOpen && (

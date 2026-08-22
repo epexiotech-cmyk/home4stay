@@ -29,7 +29,7 @@ export default function PartnerPage() {
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">The Future of Independent Hospitality SaaS</span>
           </div>
 
-          <Logo variant="icon" size="lg" link={false} className="justify-center mb-10 scale-110" />
+          <Logo variant="icon" size="lg" link={false} className="justify-center mb-10 scale-110 translate-y-7" />
           
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-primary leading-[1.1] max-w-4xl mx-auto">
             Your Brand. Your Guests.<br />
@@ -42,7 +42,7 @@ export default function PartnerPage() {
           
           <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row max-w-md mx-auto sm:max-w-none">
             <Link
-              href="/partner/onboarding"
+              href="/register?intent=host"
               className="btn btn-primary px-10 py-4.5 text-base rounded-2xl w-full sm:w-auto shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 flex items-center justify-center gap-2 group transition-all"
             >
               <span>Launch Your Property</span>
@@ -326,7 +326,7 @@ export default function PartnerPage() {
           
           <div className="flex flex-col items-center gap-6">
             <Link
-              href="/partner/onboarding"
+              href="/register?intent=host"
               className="btn btn-primary px-16 py-5 text-base font-extrabold uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 w-full sm:w-auto flex items-center justify-center gap-2 group transition-all"
             >
               <span>Launch Your Property</span>

@@ -61,7 +61,7 @@ export default function ForgotPasswordPage() {
       <div className="max-w-md w-full">
         {/* Header */}
         <Link
-          href="/auth/login"
+          href="/login"
           className="inline-flex items-center gap-2 text-gray-500 hover:text-primary transition-colors mb-8 group"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
@@ -150,7 +150,7 @@ export default function ForgotPasswordPage() {
 
         <p className="text-center mt-10 text-gray-400 text-sm font-medium">
           Remembered your password?{" "}
-          <Link href="/auth/login" className="text-primary font-bold hover:underline ml-1">
+          <Link href="/login" className="text-primary font-bold hover:underline ml-1">
             Log in
           </Link>
         </p>

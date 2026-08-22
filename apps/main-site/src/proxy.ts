@@ -10,6 +10,10 @@ export const config = {
 };
 
 export async function proxy(request: NextRequest) {
+  console.log(`\n[PROXY] ---> Incoming Request: ${request.nextUrl.pathname}`);
+  console.log(`[PROXY] Header 'cookie':`, request.headers.get("cookie"));
+  console.log(`[PROXY] request.cookies.getAll():`, JSON.stringify(request.cookies.getAll()));
+
   // 1. Generate Request Context (Correlation ID, Request ID)
   const requestId = crypto.randomUUID();
   const correlationId = request.headers.get("x-correlation-id") || crypto.randomUUID();

@@ -165,14 +165,14 @@ function AuthPromptModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <a 
-                  href={getMainDomainUrl("/auth/login")}
+                  href={getMainDomainUrl("/login")}
                   className="flex items-center justify-center gap-3 px-8 py-5 rounded-[24px] bg-white text-[#053344] font-black text-xs uppercase tracking-widest hover:bg-white/90 hover:scale-[1.02] transition-all shadow-xl shadow-black/20"
                 >
                   <LogIn size={18} />
                   Login
                 </a>
                 <a 
-                  href={getMainDomainUrl("/auth/register")}
+                  href={getMainDomainUrl("/register?intent=customer")}
                   className="flex items-center justify-center gap-3 px-8 py-5 rounded-[24px] bg-[#FCBC43] text-[#053344] font-black text-xs uppercase tracking-widest hover:bg-[#F2AE29] hover:scale-[1.02] transition-all shadow-xl shadow-[#FCBC43]/20"
                 >
                   <UserPlus size={18} />

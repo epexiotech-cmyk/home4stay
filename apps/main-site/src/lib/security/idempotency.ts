@@ -22,7 +22,7 @@ const TTL = {
 const ROUTE_LOCK_TTL: Record<string, number> = {
   "/api/bookings": 60,
   "/api/payment": 90,
-  "/api/login": 15,
+  "/api/auth/login": 15,
 }
 
 /**

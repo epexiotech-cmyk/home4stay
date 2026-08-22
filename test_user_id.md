@@ -7,7 +7,7 @@ The following test accounts have been created for development and QA purposes. A
 | Role | Email | Owner ID / Purpose | Property ID |
 | :--- | :--- | :--- | :--- |
 | **Super Admin** | `super_admin@home4stay.com` | Full system access | - |
-| **Admin** | `admin@home4stay.com` | Property approvals | - |
+| **Admin** | `admin@home4stay.homes` | Property approvals | - |
 | **Manager** | `manager@home4stay.com` | Multiple properties | - |
 | **Owner - Shivay Resort** | `owner@shivay.com` | `owner_shivay` | `shivay-resort-101` |
 | **Owner - Royal Villa** | `owner@royalvilla.com` | `owner_royalvilla` | `royal-villa-202` |

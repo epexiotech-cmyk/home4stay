@@ -10,7 +10,6 @@ const authService = new AuthService();
 const loginSchema = z.object({
   email: z.string().email("Invalid email address").trim(),
   password: z.string().min(1, "Password is required"),
-  loginType: z.enum(["customer", "partner", "admin"]),
 });
 
 async function loginHandler(request: NextRequest) {
@@ -24,7 +23,7 @@ async function loginHandler(request: NextRequest) {
     throw new Error(validation.error.issues[0].message);
   }
 
-  const { email, password, loginType } = validation.data;
+  const { email, password } = validation.data;
 
   const { locked, remainingSeconds } = await checkLockout(email, ip, requestId);
   if (locked) {
@@ -33,7 +32,7 @@ async function loginHandler(request: NextRequest) {
 
   let authResult;
   try {
-    authResult = await authService.login(email, password, loginType, ip, userAgent, requestId);
+    authResult = await authService.login(email, password, ip, userAgent, requestId);
   } catch (err) {
     await recordFailure(email, ip, requestId);
     throw err;

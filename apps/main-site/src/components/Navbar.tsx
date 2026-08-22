@@ -63,7 +63,11 @@ export default function Navbar() {
     };
   }, [isScrolled]);
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string) => {
+    if (!name) {
+        return "U";
+    }
+
     return name
       .split(" ")
       .map((n) => n[0])
@@ -141,7 +145,7 @@ export default function Navbar() {
                     user.image_url && !imageError ? (
                       <OptimizedImage
                         src={user.image_url}
-                        alt={user.name}
+                        alt={user?.name || "User"}
                         width={32}
                         height={32}
                         className="w-full h-full object-cover"
@@ -149,7 +153,7 @@ export default function Navbar() {
                         sizes="32px"
                       />
                     ) : (
-                      <span className="text-[10px] font-bold">{getInitials(user.name)}</span>
+                      <span className="text-[10px] font-bold">{getInitials(user?.name)}</span>
                     )
                   ) : (
                     <UserCircle size={24} className="text-gray-400" />
@@ -168,8 +172,8 @@ export default function Navbar() {
                 {user ? (
                   <>
                     <div className="px-4 py-3">
-                      <p className="text-sm font-bold text-[var(--text)]">{user.name}</p>
-                      <p className="text-xs text-[var(--text-subtle)] truncate">{user.email}</p>
+                      <p className="text-sm font-bold text-[var(--text)]">{user?.name || "User"}</p>
+                      <p className="text-xs text-[var(--text-subtle)] truncate">{user?.email || "No email"}</p>
                     </div>
                     <hr className="border-[var(--border)]" />
                     <ThemeSwitcher />
@@ -188,8 +192,8 @@ export default function Navbar() {
                   </>
                 ) : (
                   <div className="py-2">
-                    <a href={getMainDomainUrl("/auth/login")} className="block px-4 py-2.5 text-sm font-bold text-[var(--text)] hover:bg-black/5">Login</a>
-                    <a href={getMainDomainUrl("/auth/register")} className="block px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:bg-black/5">Sign Up</a>
+                    <a href={getMainDomainUrl("/login")} className="block px-4 py-2.5 text-sm font-bold text-[var(--text)] hover:bg-black/5">Login</a>
+                    <a href={getMainDomainUrl("/register?intent=customer")} className="block px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:bg-black/5">Sign Up</a>
                     <hr className="border-white/10 my-2" />
                     <ThemeSwitcher />
                     <hr className="border-white/10 my-2" />

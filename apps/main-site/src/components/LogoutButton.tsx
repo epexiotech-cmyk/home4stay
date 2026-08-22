@@ -9,7 +9,7 @@ export default function LogoutButton() {
     // Clear cookies
     document.cookie = "access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
     document.cookie = "refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-    router.push("/auth/login");
+    router.push("/login");
   };
 
   return (

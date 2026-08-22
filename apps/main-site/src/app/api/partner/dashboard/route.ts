@@ -17,6 +17,15 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
   }
 
+  const { PropertyRepository } = await import("@/lib/repositories/propertyRepository");
+  const propertyRepo = new PropertyRepository();
+  const property = await propertyRepo.findById(propertyId);
+  
+  const isOnboardingComplete = property?.onboardingStatus === "COMPLETED" || property?.onboardingStatus === "LIVE";
+  if (!isOnboardingComplete) {
+    throw new AppError("Forbidden: Onboarding is incomplete", 403, "FORBIDDEN");
+  }
+
   const mergedStats = await PartnerDashboardService.getDashboardStats(propertyId);
 
   return successResponse({ stats: mergedStats });

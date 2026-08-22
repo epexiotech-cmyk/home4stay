@@ -26,7 +26,7 @@ export default function ChangePasswordPage() {
   // Auth Protection
   React.useEffect(() => {
     if (!loading && !user) {
-      router.replace("/auth/login");
+      router.replace("/login");
     }
   }, [user, loading, router]);
 

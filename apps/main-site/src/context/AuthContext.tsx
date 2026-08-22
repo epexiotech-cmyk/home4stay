@@ -14,12 +14,13 @@ interface User {
   created_at?: string;
   kycStatus?: string;
   propertyId?: string;
+  onboardingStatus?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string, loginType: "customer" | "partner" | "admin") => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;
 }
@@ -36,7 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch("/api/auth/me");
       if (res.ok) {
         const data = await res.json();
-        setUser(data.user);
+        const userData = data.data?.user || data.user || data.data;
+        setUser(userData);
       } else {
         setUser(null);
       }
@@ -58,7 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (res.ok) {
           const data = await res.json();
-          setUser(data.user);
+          const userData = data.data?.user || data.user || data.data;
+          setUser(userData);
         } else {
           setUser(null);
         }
@@ -76,11 +79,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { isMounted = false; };
   }, []);
 
-  const login = async (email: string, password: string, loginType: "customer" | "partner" | "admin") => {
+  const login = async (email: string, password: string) => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, loginType }),
+      body: JSON.stringify({ email, password }),
     });
 
     const data = await res.json();
@@ -93,11 +96,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await fetchUser();
     
     // Redirect based on role
-    const role = data.user.role;
+    const user = data.data?.user || data.user;
+    const role = user.role;
+    
     if (role === "customer") {
       router.push("/");
-    } else if (["owner", "manager"].includes(role)) {
-      router.push("/partner/dashboard");
+    } else if (["owner", "manager", "partner"].includes(role)) {
+      const onboardingStatus = user.onboardingStatus;
+      let redirectTarget = "";
+      
+      if (
+          onboardingStatus === "COMPLETED" ||
+          onboardingStatus === "LIVE"
+      ) {
+          redirectTarget = "/partner/dashboard";
+      } else {
+          redirectTarget = "/partner/onboarding";
+      }
+      
+      console.log({
+          onboardingStatus,
+          redirectTarget
+      });
+      
+      router.push(redirectTarget);
     } else if (["admin", "super_admin"].includes(role)) {
       router.push("/admin/dashboard");
     }
@@ -105,9 +127,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      if (user?.propertyId) {
+        localStorage.removeItem(`home4stay_onboarding_draft_${user.propertyId}`);
+        localStorage.removeItem(`home4stay_onboarding_offline_cache_${user.propertyId}`);
+      }
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
-      router.push("/auth/login");
+      router.push("/login");
     } catch (error) {
       console.error("Logout error:", error);
     }

@@ -19,12 +19,14 @@ import {
   ExternalLink
 } from "lucide-react";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { useAuth } from "@/context/AuthContext";
 import { TextField, TextArea } from "@/components/onboarding/FormComponents";
 import { LaunchReadinessReport } from "@/lib/onboarding/readiness";
 
 export default function LaunchStepPage() {
   const router = useRouter();
   const { draftData, saveStepDraft } = useOnboarding();
+  const { fetchUser } = useAuth();
   
   // UI states
   const [report, setReport] = useState<LaunchReadinessReport | null>(null);
@@ -166,6 +168,7 @@ export default function LaunchStepPage() {
 
       const json = await res.json();
       if (res.ok && json.success) {
+        await fetchUser();
         setLaunched(true);
       } else {
         setError(json.error || "Launch failed. Please verify that all blocking issues are resolved.");
@@ -266,7 +269,7 @@ export default function LaunchStepPage() {
             </div>
             <div className="pt-4">
               <button 
-                onClick={() => router.push("/partner")}
+                onClick={() => router.push("/partner/dashboard")}
                 className="w-full py-4 px-6 rounded-2xl bg-white border-2 border-primary/10 text-primary text-xs font-black uppercase tracking-wider hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
               >
                 <span>Enter Admin Console</span>
@@ -610,7 +613,7 @@ export default function LaunchStepPage() {
           <span>Setup compliance locks loaded</span>
         </span>
         <button
-          onClick={() => router.push("/partner")}
+          onClick={() => router.push("/partner/dashboard")}
           className="btn btn-secondary px-6 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 group"
         >
           <span>Return to Dashboard</span>

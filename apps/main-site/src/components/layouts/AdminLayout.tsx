@@ -34,7 +34,7 @@ export default function AdminLayout({
           <div className="text-xs font-bold text-secondary uppercase tracking-widest px-2 py-4 mt-4">
             System
           </div>
-          <Link href="/admin/login" className="block px-4 py-2.5 rounded-xl hover:bg-background text-secondary transition-all">
+          <Link href="/login" className="block px-4 py-2.5 rounded-xl hover:bg-background text-secondary transition-all">
             Admin Login
           </Link>
         </nav>

@@ -186,3 +186,56 @@ export async function sendPlanChangeAlertEmail(
     return { success: false, message: "Failed to send email" };
   }
 }
+
+export async function sendPartnerVerificationEmail(email: string, token: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://home4stay.homes";
+  const verifyLink = `${appUrl}/partner/verify?token=${token}`;
+
+  const mailOptions = {
+    from: process.env.SMTP_FROM,
+    to: email,
+    subject: "Verify your Partner Registration - Home4Stay",
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <h1 style="color: #000; margin: 0; font-size: 24px; font-weight: 800;">Home4Stay</h1>
+        </div>
+        
+        <div style="background-color: #fcfcfc; border: 1px solid #f0f0f0; padding: 32px; border-radius: 24px;">
+          <h2 style="font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 16px;">Partner Registration Verification</h2>
+          <p style="line-height: 1.6; color: #666; margin-bottom: 24px;">
+            Thank you for registering to become a Home4Stay partner! Please click the button below to verify your email and complete your registration.
+          </p>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${verifyLink}" style="background-color: #000; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; font-size: 14px;">REGISTER</a>
+          </div>
+          
+          <p style="font-size: 14px; color: #888; text-align: center; margin-top: 24px;">
+            This link will expire in <strong>24 hours</strong> for your security.
+          </p>
+          
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
+            <p style="font-size: 12px; color: #aaa; margin-bottom: 8px;">If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="font-size: 11px; color: #000; word-break: break-all;">${verifyLink}</p>
+          </div>
+        </div>
+        
+        <p style="text-align: center; font-size: 12px; color: #aaa; margin-top: 32px;">
+          If you didn't request this, you can safely ignore this email. No changes will be made to your account.
+        </p>
+        <p style="text-align: center; font-size: 12px; color: #aaa; margin-top: 8px;">
+          &copy; ${new Date().getFullYear()} Home4Stay. All rights reserved.
+        </p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return { success: true, message: "Verification email sent successfully" };
+  } catch (error) {
+    console.error("SMTP Error:", error);
+    return { success: false, message: "Failed to send email" };
+  }
+}

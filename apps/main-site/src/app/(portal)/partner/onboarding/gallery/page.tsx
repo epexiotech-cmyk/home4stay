@@ -194,6 +194,7 @@ export default function GalleryStepPage() {
     };
 
     xhr.open("POST", "/api/partner/media", true);
+    xhr.withCredentials = true;
     xhr.send(formData);
   };
 
@@ -214,7 +215,7 @@ export default function GalleryStepPage() {
   const handleDeleteAsset = async (assetId: string) => {
     try {
       const res = await fetch(`/api/partner/media?id=${assetId}`, {
-        method: "DELETE"
+        method: "DELETE", credentials: "include"
       });
       const json = await res.json();
       if (json.success) {
@@ -247,7 +248,7 @@ export default function GalleryStepPage() {
     try {
       const ids = reordered.map(a => a.id);
       await fetch("/api/partner/media", {
-        method: "PUT",
+        method: "PUT", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids })
       });
@@ -285,7 +286,7 @@ export default function GalleryStepPage() {
     try {
       const ids = shuffled.map(a => a.id);
       await fetch("/api/partner/media", {
-        method: "PUT",
+        method: "PUT", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids })
       });

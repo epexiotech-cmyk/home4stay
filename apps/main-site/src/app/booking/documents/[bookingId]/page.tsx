@@ -30,12 +30,12 @@ export default async function DocumentCenterPage({ params }: PageProps) {
   const cookieStore = await cookies();
   const token = cookieStore.get("access-token")?.value || cookieStore.get("token")?.value;
   if (!token) {
-    redirect("/auth/login?redirect=" + encodeURIComponent(`/booking/documents/${bookingId}`));
+    redirect("/login?redirect=" + encodeURIComponent(`/booking/documents/${bookingId}`));
   }
 
   const payload = await verifyToken(token);
   if (!payload || !payload.userId) {
-    redirect("/auth/login?redirect=" + encodeURIComponent(`/booking/documents/${bookingId}`));
+    redirect("/login?redirect=" + encodeURIComponent(`/booking/documents/${bookingId}`));
   }
 
   // 2. Fetch User and Booking

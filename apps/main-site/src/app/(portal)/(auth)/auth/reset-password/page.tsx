@@ -81,7 +81,7 @@ function ResetPasswordForm() {
       
       // Redirect to login after a delay
       setTimeout(() => {
-        router.push("/auth/login");
+        router.push("/login");
       }, 3000);
 
     } catch (err: unknown) {
@@ -204,7 +204,7 @@ export default function ResetPasswordPage() {
       <div className="max-w-md w-full">
         {/* Header */}
         <Link
-          href="/auth/login"
+          href="/login"
           className="inline-flex items-center gap-2 text-gray-500 hover:text-primary transition-colors mb-8 group"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />

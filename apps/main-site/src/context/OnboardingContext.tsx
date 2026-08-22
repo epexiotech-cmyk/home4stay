@@ -183,7 +183,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (authLoading) return;
     
-    if (user && user.role !== "owner") {
+    if (user && !["owner", "manager", "partner"].includes(user.role)) {
       router.replace("/partner");
       return;
     }

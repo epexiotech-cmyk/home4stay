@@ -67,12 +67,12 @@ export default async function OperationalPanelPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("access-token")?.value || cookieStore.get("token")?.value;
   if (!token) {
-    redirect("/partner/login");
+    redirect("/login");
   }
 
   const payload = await verifyToken(token);
   if (!payload || !payload.userId) {
-    redirect("/partner/login");
+    redirect("/login");
   }
 
   const user = await prisma.user.findUnique({
