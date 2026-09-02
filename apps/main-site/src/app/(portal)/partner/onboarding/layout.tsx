@@ -51,8 +51,39 @@ function OnboardingInnerLayout({ children }: { children: React.ReactNode }) {
   // Navigation handlers
   const handleNext = async () => {
     if (activeStep.id === "launch") {
-      await completeStep(activeStep.id);
-      router.push("/partner/dashboard");
+      try {
+        const res = await fetch("/api/partner/activation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+        
+        let finalPropertyUrl = `/property/${(draftData?.property?.slug || "not-found")}`;
+        
+        if (res.ok) {
+           const json = await res.json();
+           if (json.data && json.data.propertyUrl) {
+             finalPropertyUrl = json.data.propertyUrl;
+           }
+           await completeStep(activeStep.id);
+           window.location.href = finalPropertyUrl; // use window.location.href for external subdomain
+        } else {
+           const json = await res.json();
+           if (json.data && json.data.propertyUrl) {
+             finalPropertyUrl = json.data.propertyUrl;
+           } else if (json.propertyUrl) {
+             finalPropertyUrl = json.propertyUrl;
+           }
+           
+           if (json.error?.message?.includes("already active") || json.status === "ACTIVE") {
+              await completeStep(activeStep.id);
+              window.location.href = finalPropertyUrl;
+           } else {
+              alert(json.error?.message || json.message || "Failed to activate property. Check readiness.");
+           }
+        }
+      } catch (err) {
+        console.error("Launch failed:", err);
+      }
     } else {
       await completeStep(activeStep.id);
     }
@@ -285,7 +316,7 @@ function OnboardingInnerLayout({ children }: { children: React.ReactNode }) {
                       <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
                     </div>
                     <div className="mx-auto rounded bg-white border border-border px-3 py-0.5 text-[8px] font-bold text-secondary/35 tracking-wider truncate max-w-[180px]">
-                      {currentPropertyDraft.slug ? `${currentPropertyDraft.slug}.home4stay.in` : "luxuryvilla.home4stay.in"}
+                      {(draftData?.property?.slug || "not-found") ? `${(draftData?.property?.slug || "not-found")}.home4stay.in` : "luxuryvilla.home4stay.in"}
                     </div>
                   </div>
 

@@ -46,6 +46,12 @@ export async function handleAuth(request: NextRequest): Promise<NextResponse> {
   // 7. Role-Based Access Control (RBAC)
   const userRole = payload.role as string;
   
+  if (pathname.startsWith("/admin/database") || pathname.startsWith("/api/admin/database") || pathname.startsWith("/admin/leads") || pathname.startsWith("/api/admin/leads")) {
+    if (userRole !== "super_admin") {
+      return new NextResponse("403 Forbidden: Super Admin access required", { status: 403 });
+    }
+  }
+
   if (pathname.startsWith("/admin")) {
     const allowedRoles = ["admin", "super_admin"];
     if (!allowedRoles.includes(userRole)) {

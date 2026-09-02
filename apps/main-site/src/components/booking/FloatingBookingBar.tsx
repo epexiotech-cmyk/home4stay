@@ -22,7 +22,7 @@ export default function FloatingBookingBar() {
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   
-  const { selectedRoomId, selectedExperiences, pricing, guestCount } = state;
+  const { selectedRoomId, selectedRoomName, selectedExperiences, pricing, guestCount } = state;
 
   const hasSelection = !!selectedRoomId;
   const experienceCount = Object.keys(selectedExperiences).length;
@@ -61,7 +61,7 @@ export default function FloatingBookingBar() {
                     <div className="hidden md:block">
                       <p className="text-[10px] font-black text-[#0E5A75] dark:text-[#FCBC43] uppercase tracking-[0.2em] mb-1">Your Selection</p>
                       <h4 className="text-sm font-black text-[#053344] dark:text-white truncate max-w-[200px]">
-                        {selectedRoomId === "RT-001" ? "Royal Heritage Suite" : "Premium Garden Room"}
+                        {selectedRoomName || "Selected Room"}
                       </h4>
                     </div>
                     

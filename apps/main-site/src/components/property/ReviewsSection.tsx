@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_FALLBACK_IMAGE, getValidImageUrl } from "@/lib/utils";
 import React, { useState, useEffect } from "react";
 import { Star, ShieldCheck, Reply, RefreshCcw, User } from "lucide-react";
 import { format } from "date-fns";
@@ -79,7 +80,7 @@ export default function ReviewsSection({ propertyId }: ReviewsSectionProps) {
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-[#0E5A75]/5 flex items-center justify-center text-[#0E5A75] shadow-inner relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {review.guestAvatar ? <img src={review.guestAvatar} alt={`${review.guestName} Avatar`} className="w-full h-full object-cover rounded-2xl" /> : <User size={24} />}
+                {getValidImageUrl(review.guestAvatar) ? <img src={getValidImageUrl(review.guestAvatar) || DEFAULT_FALLBACK_IMAGE} alt={`${review.guestName} Avatar`} className="w-full h-full object-cover rounded-2xl" /> : <User size={24} />}
                 {review.isVerified && (
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#159665] flex items-center justify-center text-white border-2 border-white dark:border-[#0b1220]">
                     <ShieldCheck size={10} />

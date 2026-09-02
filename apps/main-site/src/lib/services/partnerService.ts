@@ -73,7 +73,7 @@ export class PartnerService {
       await PartnerRepository.upsertPropertySetupProgress(session.id, stepId, status);
     }
 
-    const nextStatus = status === "COMPLETED" && session.status === "NOT_STARTED" ? "IN_PROGRESS" : undefined;
+    const nextStatus = status === "COMPLETED" ? (stepId === "launch" ? "COMPLETED" : (session.status === "NOT_STARTED" ? "IN_PROGRESS" : undefined)) : undefined;
     
     if (nextStatus || currentStep) {
       await PartnerRepository.updateOnboardingSessionStatus(

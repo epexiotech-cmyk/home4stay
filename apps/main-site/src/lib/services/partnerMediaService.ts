@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
+import sharp from "sharp";
 import { MediaRepository } from "@/lib/repositories/mediaRepository";
 import { PropertyRepository } from "@/lib/repositories/propertyRepository";
 import { AppError } from "@/lib/errors/handler";
@@ -46,16 +47,78 @@ export class PartnerMediaService {
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const base64File = `data:${file.type};base64,${fileBuffer.toString("base64")}`;
+
+    let finalBuffer: Buffer | null = null;
+    const finalMimeType = "image/webp";
+
+    try {
+      // --- Image Processing via sharp ---
+      const isHero = assetType === "HERO";
+      const targetWidth = isHero ? 1920 : 1080;
+      const targetHeight = isHero ? 1080 : 720;
+      
+      const TARGET_SIZE_BYTES = 50 * 1024; // 50 KB
+      const qualitySteps = [75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20];
+      const QUALITY_FLOOR = 20;
+
+      // Base resize instance
+      const sharpInstance = sharp(fileBuffer).resize(targetWidth, targetHeight, {
+        fit: "inside",
+        withoutEnlargement: true
+      });
+
+      console.log(`[PARTNER_MEDIA_SERVICE] Uploading ${file.name}. Original size: ${(fileBuffer.length / 1024).toFixed(2)} KB. Target: ${targetWidth}x${targetHeight}`);
+
+      let selectedQuality = qualitySteps[0];
+      for (const quality of qualitySteps) {
+        selectedQuality = quality;
+        const testBuffer = await sharpInstance
+          .clone()
+          .webp({ quality, effort: 4 })
+          .toBuffer();
+
+        finalBuffer = testBuffer;
+
+        if (testBuffer.length <= TARGET_SIZE_BYTES) {
+          break; // Found optimal compression
+        }
+      }
+
+      const achievedTarget = finalBuffer!.length <= TARGET_SIZE_BYTES;
+      console.log(`[PARTNER_MEDIA_SERVICE] ${file.name} compressed. Quality used: ${selectedQuality}. Final size: ${(finalBuffer!.length / 1024).toFixed(2)} KB. Achieved 50KB target: ${achievedTarget}`);
+
+      if (!achievedTarget) {
+        throw new AppError(`The image could not be optimized to the 50 KB target without degrading visual quality below the acceptable floor. Final size was ${(finalBuffer!.length / 1024).toFixed(2)} KB.`, 400, "BAD_REQUEST");
+      }
+    } catch (err) {
+      if (err instanceof AppError) throw err;
+      console.warn("[PARTNER_MEDIA_SERVICE] Sharp processing failed:", err);
+      throw new AppError("Failed to process image. Ensure the image is valid and not corrupted.", 400, "BAD_REQUEST");
+    }
+
+    if (!finalBuffer) {
+      throw new AppError("Image processing failed completely", 500, "INTERNAL_SERVER_ERROR");
+    }
 
     const resolvedSlug = propertySlug || propertyId;
     const folderPath = `home4stay/properties/${resolvedSlug}`;
 
-    const result = await cloudinary.uploader.upload(base64File, {
-      folder: folderPath,
-      resource_type: "image",
-      overwrite: true,
-      invalidate: true
+    // Cloudinary Stream Upload
+    const result = await new Promise<any>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: folderPath,
+          resource_type: "image",
+          overwrite: true,
+          invalidate: true
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      
+      uploadStream.end(finalBuffer);
     });
 
     if (!result || !result.secure_url) {
@@ -70,6 +133,11 @@ export class PartnerMediaService {
       propertyId,
       url: result.secure_url,
       type: "image",
+      assetType: assetType || "GALLERY",
+      fileName: file.name,
+      mimeType: finalMimeType,
+      fileSize: finalBuffer.length,
+      storageKey: result.public_id,
       tags: `Partner Upload, ${assetType}`,
       uploadedBy: userId,
       width: result.width,
@@ -79,6 +147,59 @@ export class PartnerMediaService {
     });
 
     return asset;
+  }
+
+
+  static async uploadRawDocument(payload: {
+    propertyId: string;
+    propertySlug?: string;
+    userId: string;
+    file: File | null;
+    assetType: string;
+  }) {
+    const { propertyId, propertySlug, userId, file, assetType } = payload;
+
+    if (!file) {
+      throw new AppError("Missing file payload", 400, "BAD_REQUEST");
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      throw new AppError(`File size exceeds 5MB limit`, 400, "BAD_REQUEST");
+    }
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const resolvedSlug = propertySlug || propertyId;
+    const folderPath = `home4stay/agreements/${resolvedSlug}`;
+
+    // Cloudinary Stream Upload
+    const result = await new Promise<any>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: folderPath,
+          resource_type: "auto", // supports pdf, image, etc.
+          use_filename: true,
+          unique_filename: true
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      
+      uploadStream.end(fileBuffer);
+    });
+
+    if (!result || !result.secure_url) {
+      throw new AppError("Failed to retrieve upload metadata from Cloudinary", 500, "INTERNAL_SERVER_ERROR");
+    }
+
+    // For agreements we do not necessarily need to create a MediaAsset record
+    // We just return the secure_url so the Agreement service can store it
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+      format: result.format
+    };
   }
 
   static async reorderMedia(propertyId: string, ids: string[]) {

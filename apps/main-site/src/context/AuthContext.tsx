@@ -14,6 +14,7 @@ interface User {
   created_at?: string;
   kycStatus?: string;
   propertyId?: string;
+  propertyName?: string;
   onboardingStatus?: string;
 }
 
@@ -32,19 +33,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const fetchUser = useCallback(async () => {
+  const fetchUser = useCallback(async (preserveExisting = false) => {
     try {
-      const res = await fetch("/api/auth/me");
+      const res = await fetch("/api/auth/me", { 
+        cache: "no-store",
+        credentials: "include" 
+      });
       if (res.ok) {
         const data = await res.json();
         const userData = data.data?.user || data.user || data.data;
-        setUser(userData);
-      } else {
+        if (userData && Object.keys(userData).length > 0) {
+          setUser(userData);
+        } else if (!preserveExisting) {
+          setUser(null);
+        }
+      } else if (!preserveExisting) {
         setUser(null);
       }
     } catch (error) {
       console.error("Fetch user error:", error);
-      setUser(null);
+      if (!preserveExisting) setUser(null);
     } finally {
       setLoading(false);
     }
@@ -55,13 +63,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initAuth = async () => {
       try {
-        const res = await fetch("/api/auth/me");
+        const res = await fetch("/api/auth/me", {
+          cache: "no-store",
+          credentials: "include"
+        });
         if (!isMounted) return;
 
         if (res.ok) {
           const data = await res.json();
           const userData = data.data?.user || data.user || data.data;
-          setUser(userData);
+          if (userData && Object.keys(userData).length > 0) {
+            setUser(userData);
+          } else {
+            setUser(null);
+          }
         } else {
           setUser(null);
         }
@@ -93,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(errorMessage || "Login failed");
     }
 
-    await fetchUser();
+    await fetchUser(true);
     
     // Redirect based on role
     const user = data.data?.user || data.user;

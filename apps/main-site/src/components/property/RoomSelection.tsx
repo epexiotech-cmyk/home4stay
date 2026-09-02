@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_FALLBACK_IMAGE, getValidImageUrl } from "@/lib/utils";
 import React from "react";
 import Image from "next/image";
 import { Users, Maximize2, Waves, CheckCircle2, Info } from "lucide-react";
@@ -21,35 +22,6 @@ interface RoomType {
   amenities: string[];
 }
 
-const ROOMS: RoomType[] = [
-  {
-    id: "RT-001",
-    name: "Royal Heritage Suite",
-    image: "https://images.unsplash.com/photo-1582719478250-c89cae4df85b?auto=format&fit=crop&q=80&w=1200",
-    description: "Our signature suite offering unmatched luxury with panoramic views of the heritage architecture.",
-    price: 12500,
-    size: "850 sq ft",
-    occupancy: "2 Adults + 1 Child",
-    bedType: "King Sized",
-    view: "Palace \u0026 Lake View",
-    tags: ["Private Balcony", "Golden Hour View", "Floor 2"],
-    amenities: ["Mini Bar", "Walk-in Closet", "Rain Shower", "Espresso Machine"]
-  },
-  {
-    id: "RT-002",
-    name: "Premium Garden Room",
-    image: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=1200",
-    description: "A serene escape nestled within our lush tropical gardens, perfect for a peaceful retreat.",
-    price: 8200,
-    size: "550 sq ft",
-    occupancy: "2 Adults",
-    bedType: "Queen Sized",
-    view: "Tropical Garden",
-    tags: ["Ground Floor", "Private Deck"],
-    amenities: ["Outdoor Shower", "Hammock", "Organic Toiletries"]
-  }
-];
-
 const ROOM_IMAGES = [
   "https://images.unsplash.com/photo-1582719478250-c89cae4df85b?auto=format&fit=crop&q=80&w=1200",
   "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=1200",
@@ -61,19 +33,21 @@ export default function RoomSelection({ rooms }: { rooms?: Room[] }) {
   const { state, setRoom } = useBooking();
   const selectedRoomId = state.selectedRoomId;
 
-  const displayRooms = (rooms && rooms.length > 0) ? rooms.map((room: Room, idx: number) => ({
+  const sourceRooms = rooms || [];
+  
+  const displayRooms = sourceRooms.map((room: any, idx: number) => ({
     id: room.id || `room-${idx}-${room.name.toLowerCase().replace(/\s+/g, '-')}`,
     name: room.name,
     image: room.image || ROOM_IMAGES[idx % ROOM_IMAGES.length],
     description: room.description || "Experience the pinnacle of mountain luxury in our signature accommodation.",
     price: room.price,
-    size: room.size || "450 sq ft",
-    occupancy: room.capacity || room.occupancy || "2 Adults",
-    bedType: room.bedType || "King Sized",
-    view: room.view || "Mountain View",
-    tags: room.tags || ["Premium", "Featured"],
-    amenities: room.amenities || ["Wi-Fi", "Room Service", "Coffee Maker", "Mountain View"]
-  })) : ROOMS;
+    size: room.size || undefined,
+    occupancy: room.capacity || room.occupancy || "2 Guests",
+    bedType: room.bedType || undefined,
+    view: room.view || undefined,
+    tags: room.tags || [],
+    amenities: room.amenities || []
+  }));
 
   return (
     <section className="py-32" id="rooms">
@@ -103,12 +77,12 @@ export default function RoomSelection({ rooms }: { rooms?: Room[] }) {
                 ? "ring-4 ring-[#0E5A75]/10 border-[#0E5A75] bg-white/80 dark:bg-white/10 shadow-luxury" 
                 : "border-white/40 dark:border-white/5 hover:border-[#0E5A75]/40 hover:shadow-2xl"
             )}
-            onClick={() => setRoom(room.id, room.price)}
+            onClick={() => setRoom(room.id, room.name, room.price)}
           >
             {/* Room Media */}
             <div className="relative w-full lg:w-[45%] h-[400px] lg:h-auto min-h-[400px] rounded-[36px] overflow-hidden">
               <Image 
-                src={room.image} 
+                src={getValidImageUrl(room.image) || DEFAULT_FALLBACK_IMAGE} 
                 alt={room.name} 
                 fill 
                 className="object-cover transition-transform duration-1000 group-hover:scale-110"

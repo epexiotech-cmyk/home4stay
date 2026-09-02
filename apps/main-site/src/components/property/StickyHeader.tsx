@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_FALLBACK_IMAGE, getValidImageUrl } from "@/lib/utils";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Globe, Menu, UserCircle } from "lucide-react";
@@ -126,7 +127,7 @@ export default function StickyHeader({ name }: StickyHeaderProps) {
                   ) : user ? (
                     user.image_url && !imageError ? (
                       <OptimizedImage
-                        src={user.image_url}
+                        src={getValidImageUrl(user.image_url) || DEFAULT_FALLBACK_IMAGE}
                         alt={user.name}
                         width={32}
                         height={32}

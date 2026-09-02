@@ -144,6 +144,7 @@ export default function PartnerLayout({
     if (!loading && user && ["owner", "manager", "partner"].includes(user.role)) {
       const status = (user as any).onboardingStatus;
       const isOnboardingComplete = status === "COMPLETED" || status === "LIVE";
+      console.log("[PartnerLayout] user.onboardingStatus:", status, "pathname:", pathname, "bounce:", !isOnboardingComplete);
       if (!isOnboardingComplete && !pathname.startsWith("/partner/onboarding")) {
         router.push("/partner/onboarding");
       }
@@ -157,6 +158,7 @@ export default function PartnerLayout({
   if (user && ["owner", "manager", "partner"].includes(user.role)) {
     const status = (user as any).onboardingStatus;
     const isOnboardingComplete = status === "COMPLETED" || status === "LIVE";
+      console.log("[PartnerLayout] user.onboardingStatus:", status, "pathname:", pathname, "bounce:", !isOnboardingComplete);
     if (!isOnboardingComplete && !pathname.startsWith("/partner/onboarding")) {
       return null;
     }
@@ -167,7 +169,12 @@ export default function PartnerLayout({
   };
 
   // Profile initial
-  const userInitials = user?.name ? user.name.split(" ").map(n => n[0]).join("").toUpperCase() : "??";
+  const displayName = user?.propertyName || user?.name || "Guest";
+  const userInitials = user?.propertyName 
+    ? user.propertyName.charAt(0).toUpperCase() 
+    : user?.name 
+      ? user.name.split(" ").map(n => n[0]).join("").toUpperCase() 
+      : "??";
 
   return (
     <div className="flex min-h-screen luxury-gradient text-[#0E5A75] dark:text-[#FDF6F1] font-sans selection:bg-[#0983B0]/10 selection:text-[#0983B0] transition-colors duration-500">
@@ -247,7 +254,7 @@ export default function PartnerLayout({
               </div>
               {!isSidebarCollapsed && (
                 <div className="flex-1 min-w-0 animate-in fade-in duration-500">
-                  <p className="text-[13px] font-black truncate text-[#0E5A75] dark:text-white">{user?.name || "Guest"}</p>
+                  <p className="text-[13px] font-black truncate text-[#0E5A75] dark:text-white">{displayName}</p>
                   <p className="text-[10px] text-[#0E5A75] dark:text-[#0983B0] truncate uppercase tracking-widest font-bold">{user?.role === 'owner' ? 'Property Owner' : 'Partner Manager'}</p>
                 </div>
               )}
@@ -349,7 +356,7 @@ export default function PartnerLayout({
                         {userInitials}
                       </div>
                       <div>
-                        <p className="text-sm font-black text-[#0E5A75] dark:text-white leading-tight">{user?.name || "Guest"}</p>
+                        <p className="text-sm font-black text-[#0E5A75] dark:text-white leading-tight">{displayName}</p>
                         <p className="text-[10px] font-bold text-[#29655C] dark:text-[#0983B0] uppercase tracking-widest leading-tight mt-1">{user?.email}</p>
                       </div>
                     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_FALLBACK_IMAGE, getValidImageUrl } from "@/lib/utils";
 import React from "react";
 import OptimizedImage from "@/components/OptimizedImage";
 import { Bed, Sofa, BedDouble } from "lucide-react";
@@ -21,7 +22,7 @@ export default function SleepingArrangements({ arrangements }: SleepingArrangeme
           <div key={idx} className="border border-[var(--border)] rounded-2xl p-6 flex flex-col gap-4 hover:border-[var(--text)] transition-all group shadow-sm hover:shadow-md bg-[var(--bg)]">
             <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-gray-100">
                <OptimizedImage 
-                 src={item.image} 
+                 src={getValidImageUrl(item.image) || DEFAULT_FALLBACK_IMAGE} 
                  alt={item.name} 
                  fill 
                  className="object-cover group-hover:scale-105 transition-transform duration-500"

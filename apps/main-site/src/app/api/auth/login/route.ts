@@ -45,7 +45,7 @@ async function loginHandler(request: NextRequest) {
 
   response.cookies.set("access-token", accessToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && request.nextUrl.protocol === "https:",
     sameSite: "strict",
     path: "/",
     maxAge: 15 * 60,
@@ -53,7 +53,7 @@ async function loginHandler(request: NextRequest) {
 
   response.cookies.set("refresh-token", refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && request.nextUrl.protocol === "https:",
     sameSite: "strict",
     path: "/",
     maxAge: 7 * 24 * 60 * 60,
@@ -61,7 +61,7 @@ async function loginHandler(request: NextRequest) {
 
   response.cookies.set("token", accessToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && request.nextUrl.protocol === "https:",
     sameSite: "strict",
     path: "/",
     maxAge: 15 * 60,

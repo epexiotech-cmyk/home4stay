@@ -3,6 +3,29 @@ import { CreateFullPropertyDto, UpdatePropertyDto } from '../types/property.dto'
 import { AppError } from "@/lib/errors/handler";
 
 export class PropertyService {
+  public async generateUniqueSubdomain(title: string): Promise<string> {
+    const baseSubdomain = title
+      .toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/[^a-z0-9]/g, '');
+    
+    if (!baseSubdomain) {
+      throw new Error("Invalid property title for subdomain generation");
+    }
+
+    let subdomain = baseSubdomain;
+    let counter = 2;
+    
+    while (true) {
+      const existing = await propertyRepository.findBySubdomain(subdomain);
+      if (!existing) {
+        return subdomain;
+      }
+      subdomain = `${baseSubdomain}-${counter}`;
+      counter++;
+    }
+  }
+
   public generateSlug(title: string): string {
     return title
       .toLowerCase()

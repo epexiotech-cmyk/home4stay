@@ -1,12 +1,16 @@
+"use client";
 import React from "react";
 import Link from "next/link";
 import Logo from "../ui/Logo";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, logout } = useAuth();
+
   return (
     <div className="flex min-h-screen bg-background text-primary">
       {/* Admin Sidebar */}
@@ -22,30 +26,40 @@ export default function AdminLayout({
           <Link href="/admin/dashboard" className="block px-4 py-2.5 rounded-xl hover:bg-background text-primary font-semibold transition-all">
             Dashboard
           </Link>
-          <Link href="/admin/leads" className="block px-4 py-2.5 rounded-xl hover:bg-background text-secondary transition-all">
-            Leads
-          </Link>
-          <Link href="/admin/properties" className="block px-4 py-2.5 rounded-xl hover:bg-background text-secondary transition-all">
-            Properties
-          </Link>
+          {user?.role === "super_admin" && (
+            <Link href="/admin/leads" className="block px-4 py-2.5 rounded-xl hover:bg-background text-secondary transition-all">
+              Leads
+            </Link>
+          )}
           <Link href="/super-admin/referrals" className="block px-4 py-2.5 rounded-xl hover:bg-background text-secondary transition-all">
             Referrals
+          </Link>
+          <Link href="/admin/database/partners" className="block px-4 py-2.5 rounded-xl hover:bg-background text-secondary transition-all">
+            Partners Database
           </Link>
           <div className="text-xs font-bold text-secondary uppercase tracking-widest px-2 py-4 mt-4">
             System
           </div>
-          <Link href="/login" className="block px-4 py-2.5 rounded-xl hover:bg-background text-secondary transition-all">
-            Admin Login
-          </Link>
+          {user?.role === "super_admin" && (
+            <>
+              <Link href="/login" className="block px-4 py-2.5 rounded-xl hover:bg-background text-secondary transition-all">
+                Admin Login
+              </Link>
+              <Link href="/admin/database" className="block px-4 py-2.5 rounded-xl hover:bg-background text-secondary transition-all flex items-center gap-2">
+                <span className="text-lg">🗄️</span> Database
+              </Link>
+            </>
+          )}
+          
         </nav>
         <div className="p-4 border-t border-border bg-surface-alt">
           <div className="flex items-center gap-3 px-2">
-            <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold shadow-lg">
-              A
+            <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold shadow-lg uppercase">
+              {user?.name?.[0] || 'A'}
             </div>
             <div>
-              <div className="text-sm font-bold">Admin User</div>
-              <div className="text-[10px] text-secondary font-bold uppercase">Super Admin</div>
+              <div className="text-sm font-bold">{user?.name || "Admin User"}</div>
+              <div className="text-[10px] text-secondary font-bold uppercase">{user?.role?.replace('_', ' ') || "Admin"}</div>
             </div>
           </div>
         </div>
@@ -69,7 +83,7 @@ export default function AdminLayout({
                 🔔
               </button>
             </div>
-            <button className="btn btn-primary px-5 py-2 text-sm rounded-xl font-bold">
+            <button onClick={logout} className="btn btn-primary px-5 py-2 text-sm rounded-xl font-bold">
               Sign Out
             </button>
           </div>
@@ -83,3 +97,8 @@ export default function AdminLayout({
     </div>
   );
 }
+
+
+
+
+

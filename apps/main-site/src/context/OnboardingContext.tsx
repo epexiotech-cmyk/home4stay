@@ -31,7 +31,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   { id: "gallery", slug: "gallery", title: "Media Gallery", order: 7, route: "/partner/onboarding/gallery", previousStep: "experiences", nextStep: "policies" },
   { id: "policies", slug: "policies", title: "Policies & Terms", order: 8, route: "/partner/onboarding/policies", previousStep: "gallery", nextStep: "pricing" },
   { id: "pricing", slug: "pricing", title: "Pricing Engine", order: 9, route: "/partner/onboarding/pricing", previousStep: "policies", nextStep: "launch" },
-  { id: "launch", slug: "launch", title: "Launch Readiness", order: 10, route: "/partner/onboarding/launch", previousStep: "pricing" }
+  { id: "launch", slug: "launch", title: "PROPERTY ACTIVATION", order: 10, route: "/partner/onboarding/launch", previousStep: "pricing" }
 ];
 
 export type OnboardingStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "LIVE";
@@ -85,6 +85,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const [skippedSteps, setSkippedSteps] = useState<string[]>([]);
   const [onboardingStatus, setOnboardingStatus] = useState<OnboardingStatus>("NOT_STARTED");
   const [draftData, setDraftData] = useState<OnboardingDrafts>(INITIAL_DRAFTS);
+  const draftDataRef = useRef<OnboardingDrafts>(INITIAL_DRAFTS);
   const [stepErrors, setStepErrors] = useState<Record<string, Record<string, string>>>({});
 
   // Derive activeStepId directly from current route path
@@ -97,10 +98,14 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const saveSequence = useRef(0);
   const lastSavedSequence = useRef(0);
 
+  // User-scoped cache keys
+  const getDraftCacheKey = React.useCallback(() => `home4stay_onboarding_draft_${user?.id || "guest"}`, [user?.id]);
+  const getOfflineCacheKey = React.useCallback(() => `home4stay_onboarding_offline_cache_${user?.id || "guest"}`, [user?.id]);
+
   // Flush Offline Local Storage Caches
-  const flushOfflineCache = async () => {
-    if (typeof window === "undefined") return;
-    const cached = localStorage.getItem("home4stay_onboarding_offline_cache");
+  const flushOfflineCache = React.useCallback(async () => {
+    if (typeof window === "undefined" || !user?.id) return;
+    const cached = localStorage.getItem(getOfflineCacheKey());
     if (!cached) return;
 
     try {
@@ -112,14 +117,14 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         body: JSON.stringify({ stepId, data, currentStep: stepId })
       });
       if (res.ok) {
-        localStorage.removeItem("home4stay_onboarding_offline_cache");
+        localStorage.removeItem(getOfflineCacheKey());
       }
     } catch (err) {
       console.error("Failed to flush offline cache back to database:", err);
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [user?.id, getOfflineCacheKey]);
 
   // Sync active step indexes
   const activeStepIndex = ONBOARDING_STEPS.findIndex(s => s.id === activeStepId) !== -1
@@ -158,6 +163,18 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     });
   };
 
+  // Logout Cleanup
+  useEffect(() => {
+    if (!user && !authLoading) {
+      Object.values(debounceTimers.current).forEach(clearTimeout);
+      debounceTimers.current = {};
+      saveSequence.current = 0;
+      lastSavedSequence.current = 0;
+      // We avoid setState in effect by just resetting the ref, the component will unmount/remount
+      draftDataRef.current = INITIAL_DRAFTS;
+    }
+  }, [user, authLoading]);
+
   // Sync network state changes
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -177,7 +194,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []);
+  }, [flushOfflineCache]);
 
   // 1. Initial State Hydration on Mount
   useEffect(() => {
@@ -207,46 +224,68 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
             setCompletedSteps(completed);
             setSkippedSteps(skipped);
 
+            console.log("[HYDRATE_DB] Fetching onboarding session drafts from database", { userId: user?.id });
+            
             // Reconstruct normalized draft shape from DB keys
             const normalized: Record<string, unknown> = {};
+            const populatedFromDb = new Set<string>();
+            
             Object.keys(STEP_TO_DRAFT_MAP).forEach(sId => {
               const draftKey = STEP_TO_DRAFT_MAP[sId];
               const rawData = drafts[sId];
-              if (rawData) {
-                const schema = stepSchemas[sId];
-                if (schema) {
-                  const check = schema.safeParse(rawData);
-                  if (check.success) {
-                    normalized[draftKey] = check.data;
-                  } else {
-                    console.warn(`[CORRUPT_RECOVERY] Step ${sId} schema mismatch. Falling back to default.`);
-                    normalized[draftKey] = INITIAL_DRAFTS[draftKey as keyof OnboardingDrafts];
-                  }
+              const initialValue = INITIAL_DRAFTS[draftKey as keyof OnboardingDrafts];
+
+              if (rawData !== undefined && rawData !== null) {
+                populatedFromDb.add(draftKey);
+                if (typeof rawData === 'object' && !Array.isArray(rawData)) {
+                  normalized[draftKey] = {
+                    ...(initialValue as Record<string, unknown> || {}),
+                    ...rawData
+                  };
                 } else {
                   normalized[draftKey] = rawData;
                 }
               } else {
-                normalized[draftKey] = INITIAL_DRAFTS[draftKey as keyof OnboardingDrafts];
+                normalized[draftKey] = initialValue;
               }
             });
 
-            // LocalStorage recovery merge
-            const localCache = localStorage.getItem("home4stay_onboarding_draft");
+            // LocalStorage recovery ONLY for missing DB keys
+            const localCache = localStorage.getItem(getDraftCacheKey());
             if (localCache) {
               try {
                 const parsed = JSON.parse(localCache) as Record<string, unknown>;
+                console.log("[HYDRATE_LOCAL_CACHE] Falling back to local cache for missing DB records");
                 Object.keys(parsed).forEach(k => {
-                  const val = parsed[k];
-                  if (val && typeof val === "object") {
-                    normalized[k] = val;
+                  if (!populatedFromDb.has(k)) {
+                    const val = parsed[k];
+                    if (val !== undefined && val !== null) {
+                      normalized[k] = val;
+                    }
                   }
                 });
               } catch (e) {
                 console.error("Failed to parse local draft cache recovery:", e);
               }
             }
+            
+            // Refresh local cache to strictly follow authoritative DB state
+            localStorage.setItem(getDraftCacheKey(), JSON.stringify(normalized));
+
+            // HYDRATE Property Name from AuthContext if empty
+            if (user?.propertyName) {
+              const propDraft = normalized.propertyIdentity as Record<string, string> | undefined;
+              if (propDraft && !propDraft.title) {
+                propDraft.title = user.propertyName;
+                propDraft.slug = user.propertyName
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, "-")
+                  .replace(/(^-|-$)/g, "");
+              }
+            }
 
             setDraftData(normalized as OnboardingDrafts);
+            draftDataRef.current = normalized as OnboardingDrafts;
           }
         }
       } catch (err) {
@@ -257,7 +296,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     };
 
     fetchSession();
-  }, [authLoading, user, router]);
+  }, [authLoading, user, router, getDraftCacheKey]);
+
 
   // 2. Route Navigation Guard & Synchronization
   useEffect(() => {
@@ -286,6 +326,12 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     }
   }, [pathname, loading, authLoading, user, dynamicCompletedSteps, skippedSteps, router]);
   const saveDraftToDb = async (stepId: string, data: unknown, sequence: number) => {
+    if (sequence < saveSequence.current) {
+      console.log(`[SAVE_REJECTED_STALE] Aborting debounced save for step ${stepId} (seq ${sequence} < ${saveSequence.current})`);
+      return;
+    }
+    console.log(`[SAVE_SCHEDULED] Saving debounced step ${stepId} (seq ${sequence})`);
+    
     setIsSaving(true);
     try {
       const res = await fetch("/api/partner/onboarding/session", {
@@ -299,17 +345,18 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       });
 
       if (res.ok) {
-        // Discard stale out-of-order writes
+        console.log(`[SAVE_SUCCESS] Debounced save success for step ${stepId} (seq ${sequence})`);
         if (sequence > lastSavedSequence.current) {
           lastSavedSequence.current = sequence;
         }
+        localStorage.setItem(getDraftCacheKey(), JSON.stringify(draftDataRef.current));
       } else {
         console.error(`Failed to sync draft for step ${stepId}`);
       }
     } catch (err) {
       console.warn("DB offline. Caching changes locally under offline recovery.", err);
       localStorage.setItem(
-        "home4stay_onboarding_offline_cache",
+        getOfflineCacheKey(),
         JSON.stringify({ stepId, data, timestamp: Date.now() })
       );
     } finally {
@@ -333,13 +380,14 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
     // Local state optimistic update
     const updatedDrafts = {
-      ...draftData,
+      ...draftDataRef.current,
       [mappedKey]: rawStepData
     };
     setDraftData(updatedDrafts);
+    draftDataRef.current = updatedDrafts;
 
     // Sync backup locally instantly
-    localStorage.setItem("home4stay_onboarding_draft", JSON.stringify(updatedDrafts));
+    localStorage.setItem(getDraftCacheKey(), JSON.stringify(updatedDrafts));
 
     // Clear runtime typing errors for this field
     clearStepErrors(stepId);
@@ -351,7 +399,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
     if (isOffline) {
       localStorage.setItem(
-        "home4stay_onboarding_offline_cache",
+        getOfflineCacheKey(),
         JSON.stringify({ stepId, data: rawStepData, timestamp: Date.now() })
       );
       return;
@@ -367,16 +415,15 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   // 5. Complete Step with Validation Guard
   const completeStep = async (stepId: string): Promise<boolean> => {
-    console.log("[OnboardingContext] completeStep triggered for:", stepId);
+    console.log(`[COMPLETE_STEP] Triggered for step ${stepId}`, { userId: user?.id });
     const mappedKey = STEP_TO_DRAFT_MAP[stepId];
-    const dataToValidate = draftData[mappedKey as keyof OnboardingDrafts];
-    console.log("[OnboardingContext] dataToValidate:", dataToValidate);
+    const dataToValidate = draftDataRef.current[mappedKey as keyof OnboardingDrafts];
+    
     const schema = stepSchemas[stepId];
-
     if (schema) {
       const validation = schema.safeParse(dataToValidate);
       if (!validation.success) {
-        console.warn("[OnboardingContext] Validation failed for step:", stepId, validation.error.format());
+        console.warn(`[COMPLETE_STEP] Validation failed for step: ${stepId}`, validation.error.format());
         const errors: Record<string, string> = {};
         validation.error.issues.forEach((issue: ZodIssue) => {
           const path = (issue.path[0] as string) || "general";
@@ -387,14 +434,16 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       }
     }
 
-    console.log("[OnboardingContext] Validation passed for step:", stepId);
-
+    // Invalidate pending debounces
     if (debounceTimers.current[stepId]) {
       clearTimeout(debounceTimers.current[stepId]);
+      delete debounceTimers.current[stepId];
     }
+    saveSequence.current += 1; // Explicitly invalidate older scheduled saves
 
     setIsSaving(true);
     try {
+      console.log(`[SAVE_FLUSHED] Flushing immediate save for step ${stepId}`, dataToValidate);
       const res = await fetch("/api/partner/onboarding/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -407,6 +456,9 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       });
 
       if (res.ok) {
+        console.log(`[SAVE_SUCCESS] Immediate completeStep save success for ${stepId}`);
+        localStorage.setItem(getDraftCacheKey(), JSON.stringify(draftDataRef.current));
+        
         if (!completedSteps.includes(stepId)) {
           setCompletedSteps(prev => [...prev, stepId]);
         }

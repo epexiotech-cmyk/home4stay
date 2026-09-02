@@ -15,43 +15,6 @@ interface MealPlan {
   recommendation?: string;
 }
 
-const MEAL_PLANS: MealPlan[] = [
-  {
-    id: "EP",
-    name: "Sukoon Stay",
-    label: "ROOM ONLY",
-    description: "Freedom to explore local flavours at your own pace.",
-    priceTag: "Included",
-    inclusions: ["Luxury Heritage Room", "Traditional Welcome Drink", "Complimentary High-Speed Wi-Fi", "Access to Wellness Sanctuary"]
-  },
-  {
-    id: "CP",
-    name: "Subah Savera",
-    label: "BREAKFAST INCLUDED",
-    description: "Wake up to handcrafted Indian breakfast experiences.",
-    priceTag: "+ ₹1,200",
-    inclusions: ["All Sukoon Stay Inclusions", "Traditional & Global Breakfast Spread", "Fresh Seasonal Nectar", "Morning Raga Ambience"],
-    recommendation: "Most Popular"
-  },
-  {
-    id: "MAP",
-    name: "Riwaaz Dining",
-    label: "HALF BOARD",
-    description: "Curated dining inspired by regional Indian flavours.",
-    priceTag: "+ ₹2,800",
-    inclusions: ["All Subah Savera Inclusions", "Curated Regional Dining (Dinner)", "Chef's Signature Amuse-bouche", "Live Instrumental Evening"]
-  },
-  {
-    id: "AP",
-    name: "Maharaja Experience",
-    label: "FULL EXPERIENCE",
-    description: "A complete hospitality journey rooted in Indian tradition.",
-    priceTag: "+ ₹4,200",
-    inclusions: ["All Riwaaz Dining Inclusions", "Gourmet Regional Lunch", "Royal Afternoon High Tea", "Butler Concierge Assistance"],
-    recommendation: "Best Value"
-  }
-];
-
 const HeritageDivider = () => (
   <div className="flex items-center justify-center gap-4 my-8 opacity-20">
     <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-[#D4AF37]" />
@@ -69,12 +32,12 @@ const IndianPattern = () => (
   />
 );
 
-export default function MealPlans() {
+export default function MealPlans({ plans }: { plans?: MealPlan[] }) {
   const { state, setMealPlan } = useBooking();
   const selectedPlanId = state.selectedMealPlanId || "EP";
 
   const handleSelect = (id: string) => {
-    const plan = MEAL_PLANS.find(p => p.id === id);
+    const plan = (plans || []).find(p => p.id === id);
     const priceStr = plan?.priceTag.replace(/[^0-9]/g, "") || "0";
     setMealPlan(id, parseInt(priceStr));
   };
@@ -105,7 +68,7 @@ export default function MealPlans() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {MEAL_PLANS.map((plan) => {
+        {(plans || []).map((plan) => {
           const isSelected = selectedPlanId === plan.id;
           return (
             <div 

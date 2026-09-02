@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { Sparkles, Layers, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DEFAULT_FALLBACK_IMAGE, getValidImageUrl, normalizeImages } from "@/lib/utils";
 
 interface NarrativeCardStackProps {
   images: string[];
@@ -14,14 +15,16 @@ export default function NarrativeCardStack({ images }: NarrativeCardStackProps) 
   const [animatingOut, setAnimatingOut] = useState(false);
 
   // Fallback array if images are scarce
-  const displayImages = images.length >= 3 ? images : [...images, ...images, ...images].slice(0, 4);
+  const validImages = normalizeImages(images);
+  const safeImages = validImages.length > 0 ? validImages : [DEFAULT_FALLBACK_IMAGE];
+  const displayImages = safeImages.length >= 3 ? safeImages : [...safeImages, ...safeImages, ...safeImages].slice(0, 4);
 
   // Story hints mapped per card index for high-fidelity concierge narratives
   const storyHints = [
-    { title: "Architecture", desc: "Designed to merge seamlessly with the mountain horizon." },
-    { title: "Interiors", desc: "Curated with raw local materials and ambient warming tones." },
-    { title: "Surroundings", desc: "Private access trails wrapped in pristine golden light." },
-    { title: "Atmosphere", desc: "Immersive silence tailored for undisturbed rejuvenation." },
+    { title: "Design", desc: "Thoughtfully curated spaces for your comfort." },
+    { title: "Ambiance", desc: "A welcoming atmosphere to relax and unwind." },
+    { title: "Experience", desc: "Tailored to provide a memorable stay." },
+    { title: "Comfort", desc: "Modern amenities blended with elegant touches." },
   ];
 
   const handleNext = () => {
@@ -67,7 +70,7 @@ export default function NarrativeCardStack({ images }: NarrativeCardStackProps) 
             )}
           >
             <Image
-              src={src}
+              src={getValidImageUrl(src) || DEFAULT_FALLBACK_IMAGE}
               alt={`Narrative perspective ${idx + 1}`}
               fill
               sizes="(max-width: 768px) 100vw, 538px"

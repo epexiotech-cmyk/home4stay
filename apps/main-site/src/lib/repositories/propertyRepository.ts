@@ -63,6 +63,12 @@ export class PropertyRepository {
     });
   }
 
+  async findBySubdomain(subdomain: string) {
+    return await prisma.property.findUnique({
+      where: { subdomain },
+    });
+  }
+
   async update(id: string, data: UpdatePropertyDto) {
     const updateData: Prisma.PropertyUpdateInput = {};
     if (data.title) updateData.title = data.title;

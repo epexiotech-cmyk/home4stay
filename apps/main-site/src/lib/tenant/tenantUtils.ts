@@ -6,6 +6,21 @@ import { prisma } from "@/lib/database/prisma";
  * getCurrentProperty
  * Retrieves the property associated with the current user session.
  */
+
+export const PROPERTY_INCLUDES = {
+  pageContent: { include: { sections: true } },
+  mediaAssets: true,
+  rooms: true,
+  amenities: true,
+  experiences: true,
+  policies: true,
+  pricing: true,
+  owner: { include: { hostProfile: true } },
+  mealPlans: true,
+  offers: true,
+  reviews: { where: { isPublished: true } }
+};
+
 export async function getCurrentProperty() {
   const cookieStore = await cookies();
   const token = cookieStore.get("access-token")?.value || cookieStore.get("token")?.value;
@@ -31,11 +46,28 @@ export async function getCurrentProperty() {
  */
 export async function getPropertyBySlug(slug: string) {
   try {
-    return await prisma.property.findUnique({
-      where: { slug },
+    const exact = await prisma.property.findUnique({
+      where: { slug }, include: PROPERTY_INCLUDES
     });
+    return exact;
   } catch (error) {
     console.error(`Failed to retrieve property by slug ${slug}:`, error);
+    return null;
+  }
+}
+
+/**
+ * getPropertyBySubdomain
+ * Retrieves a property safely by subdomain.
+ */
+export async function getPropertyBySubdomain(subdomain: string) {
+  try {
+    const exact = await prisma.property.findUnique({
+      where: { subdomain }, include: PROPERTY_INCLUDES
+    });
+    return exact;
+  } catch (error) {
+    console.error(`Failed to retrieve property by subdomain ${subdomain}:`, error);
     return null;
   }
 }

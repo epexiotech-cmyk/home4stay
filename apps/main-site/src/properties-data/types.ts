@@ -21,14 +21,15 @@ export interface SleepingArrangement {
 
 export interface Owner {
   name: string;
-  avatar: string;
-  rating: number;
-  reviewsCount: number;
-  isSuperhost: boolean;
-  bio: string;
-  message: string;
+  avatar?: string;
+  rating?: number;
+  reviewsCount?: number;
+  isSuperhost?: boolean;
+  bio?: string;
+  message?: string;
   responseTime?: string;
   languages?: string[];
+  isVerified?: boolean;
 }
 
 export interface PropertyTheme {

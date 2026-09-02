@@ -4,12 +4,13 @@ import React from "react";
 import Image from "next/image";
 import { MapPin, Star, Phone, MessageCircle, Sun, Share2, Heart, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DEFAULT_FALLBACK_IMAGE, getValidImageUrl } from "@/lib/utils";
 
 interface BrandedHeroProps {
   name: string;
   image: string;
-  location: string;
-  rating: number;
+  location?: string;
+  rating?: number;
   tagline?: string;
   phone?: string;
   whatsapp?: string;
@@ -24,13 +25,15 @@ export default function BrandedHero({
   phone,
   whatsapp,
 }: BrandedHeroProps) {
+  const safeImage = getValidImageUrl(image) || DEFAULT_FALLBACK_IMAGE;
+
   return (
     <section className="relative h-screen min-h-[700px] w-full overflow-hidden">
       {/* 1. Cinematic Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src={image}
-          alt={name}
+          src={safeImage}
+          alt={name || "Property hero"}
           fill
           priority
           className="object-cover scale-105 animate-slow-zoom"
@@ -48,10 +51,7 @@ export default function BrandedHero({
             <MapPin size={14} className="text-[#0983B0]" />
             <span className="text-[10px] font-black uppercase tracking-widest text-white">{location}</span>
           </div>
-          <div className="glass-matte px-4 py-2 rounded-full border-white/20 flex items-center gap-2">
-            <Sun size={14} className="text-[#FCBC43]" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-white">24°C • Golden Hour</span>
-          </div>
+
         </div>
         <div className="flex items-center gap-3 pointer-events-auto">
           <button className="p-3 rounded-full glass-matte border-white/20 text-white hover:bg-white hover:text-[#0E5A75] transition-all">
@@ -78,16 +78,20 @@ export default function BrandedHero({
           </h1>
 
           <div className="flex flex-col md:flex-row md:items-center gap-8 pt-4">
-            <div className="flex items-center gap-4">
-              <div className="flex gap-1 text-[#FCBC43]">
-                {[...Array(5)].map((_, i) => <Star key={`hero-star-${i}`} size={20} fill={i < Math.floor(rating) ? "currentColor" : "none"} />)}
+            {rating && (
+              <div className="flex items-center gap-4">
+                <div className="flex gap-1 text-[#FCBC43]">
+                  {[...Array(5)].map((_, i) => <Star key={`hero-star-${i}`} size={20} fill={i < Math.floor(rating) ? "currentColor" : "none"} />)}
+                </div>
+                <span className="text-xl font-black text-white">{rating} <span className="text-white/40 text-sm font-bold uppercase tracking-widest ml-2">Verified Rating</span></span>
               </div>
-              <span className="text-xl font-black text-white">{rating} <span className="text-white/40 text-sm font-bold uppercase tracking-widest ml-2">Verified Rating</span></span>
-            </div>
+            )}
             
-            <p className="text-lg md:text-xl font-medium text-white/70 max-w-xl leading-relaxed italic">
-              {`"${tagline || 'Experience a new dimension of luxury hospitality where every moment is crafted to perfection.'}"`}
-            </p>
+            {tagline && (
+              <p className="text-lg md:text-xl font-medium text-white/70 max-w-xl leading-relaxed italic">
+                "{tagline}"
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-6 pt-10">

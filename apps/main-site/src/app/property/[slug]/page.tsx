@@ -14,6 +14,7 @@ import { Star, Sparkles } from "lucide-react";
 import NarrativeCardStack from "@/components/property/NarrativeCardStack";
 import { ICON_MAP } from "@/lib/experiences-config";
 import { resolvePropertyContext, getPropertyBranding } from "@/lib/tenant/contextResolver";
+import { normalizeImages } from "@/lib/utils";
 import { Metadata } from "next";
 import { prisma } from "@/lib/database/prisma";
 import { SubscriptionStatus } from "@prisma/client";
@@ -91,13 +92,19 @@ export default async function PropertyPage({
   const isGrace = subscription?.status === SubscriptionStatus.IN_GRACE_PERIOD;
 
   // Enforce image gallery limitations in grace period
+  const normalizedImages = normalizeImages(property.images);
   const displayImages = isGrace
-    ? (property.images || [branding.heroBackground]).slice(0, 3)
-    : (property.images || [branding.heroBackground]);
+    ? (normalizedImages.length > 0 ? normalizedImages : [branding.heroBackground]).slice(0, 3)
+    : (normalizedImages.length > 0 ? normalizedImages : [branding.heroBackground]);
+
+  
+  const rawGallery = Array.isArray(property.gallery) ? property.gallery : [];
+  // Ensure we only pass valid objects with 'url'
+  const validGallery = rawGallery.filter(item => item && typeof item === 'object' && typeof item.url === 'string' && item.url.trim() !== '');
 
   const displayGallery = isGrace
-    ? (property.gallery || []).slice(0, 3)
-    : (property.gallery || []);
+    ? validGallery.slice(0, 3)
+    : validGallery;
 
   // Block premium inquiry channel if in grace period
   const activeWhatsapp = isGrace ? undefined : (branding.contact?.whatsapp || property.contact?.whatsapp);
@@ -126,11 +133,11 @@ export default async function PropertyPage({
         <BrandedHero 
           name={branding.heroTitle || ""}
           image={branding.heroBackground}
-          location={property.location || "Mountain Highlands"}
-          rating={property.rating || 4.9}
+          location={property.location || undefined}
+          rating={property.rating || undefined}
           tagline={branding.heroTagline}
-          phone={branding.contact?.phone}
-          whatsapp={activeWhatsapp}
+          phone={branding.contact?.phone || property.contact?.phone}
+          whatsapp={activeWhatsapp || property.contact?.whatsapp}
         />
 
         <div className="max-w-[1440px] mx-auto w-full px-6 md:px-10 lg:px-20">
@@ -147,19 +154,12 @@ export default async function PropertyPage({
                 <h2 className="text-6xl font-black text-[#053344] dark:text-white tracking-tighter leading-none">
                   {branding.narrativeHeading} <span className="text-[var(--brand-secondary,#0983B0)]">{branding.narrativeHighlight}</span>
                 </h2>
-                <p className="text-xl text-[#0E5A75]/60 font-medium leading-relaxed italic">
-                  &quot;{property.description || 'Curated settings tailored to blend exceptional environments with unparalleled hospitality excellence.'}&quot;
-                </p>
-                <div className="grid grid-cols-2 gap-8 pt-6">
-                  <div className="space-y-2">
-                    <p className="text-4xl font-black text-[#0E5A75]">12+</p>
-                    <p className="text-[10px] font-black text-[#0E5A75]/40 uppercase tracking-[0.2em]">Luxury Experiences</p>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-4xl font-black text-[#0E5A75]">100%</p>
-                    <p className="text-[10px] font-black text-[#0E5A75]/40 uppercase tracking-[0.2em]">Privacy Guaranteed</p>
-                  </div>
-                </div>
+                {property.description && (
+                  <p className="text-xl text-[#0E5A75]/60 font-medium leading-relaxed italic">
+                    &quot;{property.description}&quot;
+                  </p>
+                )}
+
              </div>
              <div className="relative w-full">
                 <NarrativeCardStack images={displayImages} />
@@ -186,18 +186,11 @@ export default async function PropertyPage({
                 <h3 className="text-3xl font-black text-[#053344] dark:text-white tracking-tight mb-8">Hospitality <br/>Essentials</h3>
                 <p className="text-lg text-[#0E5A75]/60 font-medium mb-10">We believe in invisible but impeccable service. Every amenity is curated for your comfort.</p>
                 <button className="px-10 py-4 rounded-2xl border-2 border-[#0E5A75]/20 text-[#0E5A75] text-[10px] font-black uppercase tracking-widest hover:bg-[#0E5A75]/5 transition-all">
-                  View All 48 Amenities
+                  View All Amenities
                 </button>
              </div>
              <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
-                {(property.amenities || [
-                  { icon: "Wifi", label: "High Speed Fiber Wi-Fi" },
-                  { icon: "Car", label: "Private Secured Parking" },
-                  { icon: "Tv", label: "Premium Entertainment" },
-                  { icon: "Wind", label: "Climate Control" },
-                  { icon: "Coffee", label: "Gourmet Kitchen" },
-                  { icon: "Utensils", label: "Private Dining" },
-                ]).map((item: { icon: string; label: string; detail?: string }, idx: number) => {
+                {((property.amenities && property.amenities.length > 0) ? property.amenities : []).map((item: { icon: string; label: string; detail?: string }, idx: number) => {
                   const Icon = (ICON_MAP as Record<string, React.ComponentType<{ size?: number }>>)[item.icon] || Sparkles;
                   return (
                     <div key={`amenity-item-${idx}`} className="flex gap-6 group">
@@ -218,7 +211,9 @@ export default async function PropertyPage({
           <RoomSelection rooms={property.rooms} />
 
           {/* 6. Gastronomy / Meal Plans */}
-          <MealPlans />
+          {property.mealPlans && property.mealPlans.length > 0 && (
+            <MealPlans plans={property.mealPlans} />
+          )}
 
           {/* 7. Customize Stay (Concierge Upsell) */}
           <CustomizeStaySection propertyId={property.id} />

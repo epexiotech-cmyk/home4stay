@@ -55,21 +55,22 @@ export default function PropertyStepPage() {
       });
 
       const json = await res.json();
-      if (json.success && json.description) {
+      const aiData = json.data || json;
+      if (json.success && aiData.description) {
         // Automatically populate description and tagline in draft state
         const updated = {
           ...propertyDraft,
-          description: json.description,
-          tagline: json.tagline
+          description: aiData.description,
+          tagline: aiData.tagline
         };
         saveStepDraft("property", updated);
-        setLastAiEventId(json.eventId);
-        setGeneratedText({ description: json.description, tagline: json.tagline });
+        setLastAiEventId(aiData.eventId);
+        setGeneratedText({ description: aiData.description, tagline: aiData.tagline });
         setAiSuccess(true);
         // Fade success indicator after 3 seconds
         setTimeout(() => setAiSuccess(false), 3000);
       } else {
-        setAiError(json.error || "Consultant timed out. Please try again.");
+        const errMsg = json.error?.message || json.error || json.message; setAiError(typeof errMsg === "string" ? errMsg : "Consultant timed out. Please try again.");
       }
     } catch {
       setAiError("Connection interrupted. AI Hospitality Consultant is offline.");

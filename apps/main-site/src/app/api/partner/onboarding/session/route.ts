@@ -11,8 +11,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     throw new AppError("Unauthorized: Missing active session", 401, "UNAUTHORIZED");
   }
 
-  if (auth.role !== "owner") {
-    throw new AppError("Forbidden: Only property owners can access onboarding", 403, "FORBIDDEN");
+  if (!["owner", "manager", "partner"].includes(auth.role || "")) {
+    throw new AppError("Forbidden: Insufficient permissions to access onboarding", 403, "FORBIDDEN");
   }
 
   const propertyId = auth.propertyId;
@@ -31,8 +31,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     throw new AppError("Unauthorized: Missing active session", 401, "UNAUTHORIZED");
   }
 
-  if (auth.role !== "owner") {
-    throw new AppError("Forbidden: Only property owners can save onboarding states", 403, "FORBIDDEN");
+  if (!["owner", "manager", "partner"].includes(auth.role || "")) {
+    throw new AppError("Forbidden: Insufficient permissions to save onboarding states", 403, "FORBIDDEN");
   }
 
   const propertyId = auth.propertyId;

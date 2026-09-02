@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 export type BookingState = {
   propertyId: string | null;
   selectedRoomId: string | null;
+  selectedRoomName: string | null;
   selectedMealPlanId: string | null;
   selectedExperiences: Record<string, { title: string, price: number }>;
   guestCount: { adults: number; children: number };
@@ -27,7 +28,7 @@ export type BookingState = {
 type BookingContextType = {
   state: BookingState;
   setPropertyId: (id: string) => void;
-  setRoom: (id: string, price: number) => void;
+  setRoom: (id: string, name: string, price: number) => void;
   setMealPlan: (id: string, price: number) => void;
   toggleExperience: (exp: { id: string, title: string, price: number }) => void;
   updateGuests: (adults: number, children: number) => void;
@@ -41,6 +42,7 @@ export function BookingProvider({ children, initialPropertyId = null }: { childr
   const [state, setState] = useState<BookingState>({
     propertyId: initialPropertyId,
     selectedRoomId: null,
+    selectedRoomName: null,
     selectedMealPlanId: null,
     selectedExperiences: {},
     guestCount: { adults: 2, children: 0 },
@@ -73,6 +75,7 @@ export function BookingProvider({ children, initialPropertyId = null }: { childr
         return {
           propertyId: id,
           selectedRoomId: null,
+    selectedRoomName: null,
           selectedMealPlanId: null,
           selectedExperiences: {},
           guestCount: { adults: 2, children: 0 },
@@ -86,11 +89,11 @@ export function BookingProvider({ children, initialPropertyId = null }: { childr
     });
   }, []);
 
-  const setRoom = useCallback((id: string, price: number) => {
+  const setRoom = useCallback((id: string, name: string, price: number) => {
     setState(prev => {
       const newPricing = { ...prev.pricing, base: price };
       const pricing = calculateTotal({ ...prev, pricing: newPricing });
-      return { ...prev, selectedRoomId: id, pricing };
+      return { ...prev, selectedRoomId: id, selectedRoomName: name, pricing };
     });
   }, [calculateTotal]);
 

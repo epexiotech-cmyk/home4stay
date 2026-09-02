@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_FALLBACK_IMAGE, getValidImageUrl } from "@/lib/utils";
 import React from "react";
 import { Star, ShieldCheck, Award, MessageCircle, Clock, Globe, Phone } from "lucide-react";
 import { Owner } from "@/properties-data/types";
@@ -23,7 +24,7 @@ export default function HostSection({ owner, whatsapp }: HostSectionProps) {
            <div className="flex flex-col items-center text-center gap-6 min-w-[200px]">
               <div className="relative w-32 h-32 md:w-40 md:h-40">
                  <OptimizedImage 
-                   src={owner.avatar} 
+                   src={getValidImageUrl(owner.avatar) || DEFAULT_FALLBACK_IMAGE} 
                    alt={owner.name} 
                    fill 
                    className="rounded-full object-cover border-4 border-[var(--bg)] shadow-xl"
@@ -62,10 +63,12 @@ export default function HostSection({ owner, whatsapp }: HostSectionProps) {
            {/* Right: Bio & Message & Meta */}
            <div className="flex-1 space-y-10">
               <div className="space-y-6">
-                 <div className="flex items-center gap-2 text-theme-primary font-black text-sm uppercase tracking-widest">
-                    <ShieldCheck size={18} />
-                    Verified Identity
-                 </div>
+                 {owner.isVerified && (
+                   <div className="flex items-center gap-2 text-theme-primary font-black text-sm uppercase tracking-widest">
+                      <ShieldCheck size={18} />
+                      Verified Identity
+                   </div>
+                 )}
                  <p className="text-[var(--text-muted)] leading-relaxed text-lg italic">
                     &ldquo;{owner.bio}&rdquo;
                  </p>
@@ -101,10 +104,14 @@ export default function HostSection({ owner, whatsapp }: HostSectionProps) {
                  <div className="absolute -top-4 -left-2 bg-theme-primary text-[var(--primary-foreground)] p-3 rounded-2xl shadow-lg">
                     <MessageCircle size={24} />
                  </div>
-                 <h4 className="text-lg font-bold text-theme-primary mb-4 pl-4">A message from your host</h4>
-                 <p className="text-[var(--text)] leading-relaxed pl-4 font-medium">
-                    {owner.message}
-                 </p>
+                 {owner.message && (
+                   <>
+                     <h4 className="text-lg font-bold text-theme-primary mb-4 pl-4">A message from your host</h4>
+                     <p className="text-[var(--text)] leading-relaxed pl-4 font-medium">
+                        {owner.message}
+                     </p>
+                   </>
+                 )}
                  
                  <div className="flex flex-col sm:flex-row gap-4 mt-8 ml-4">
                     <button className="flex-1 flex items-center justify-center gap-2 bg-[var(--text)] text-[var(--bg)] px-8 py-4 rounded-xl font-bold hover:opacity-90 transition-all active:scale-95 shadow-lg">

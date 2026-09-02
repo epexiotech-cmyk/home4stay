@@ -1,12 +1,15 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function run() {
+async function main() {
   const drafts = await prisma.wizardDraft.findMany({
-    where: { stepId: 'gallery' }
+    where: { userId: { not: null } }
   });
-  console.log("GALLERY DRAFTS:", JSON.stringify(drafts, null, 2));
-  process.exit(0);
+  console.log("Drafts:");
+  for (const d of drafts) {
+     const user = await prisma.user.findUnique({where:{id:d.userId}});
+     console.log(`- ${user?.email}: ${Object.keys(d.data || {})}`);
+  }
 }
 
-run().catch(console.error);
+main().catch(console.error).finally(() => prisma.$disconnect());

@@ -12,6 +12,7 @@ interface PolicyAndFAQSectionProps {
     checkOut?: string;
     cancellation?: string;
     petPolicy?: string;
+    houseRules?: string;
   };
 }
 
@@ -34,26 +35,34 @@ export default function PolicyAndFAQSection({ faqs = [], policies }: PolicyAndFA
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <PolicyCard 
-              icon={Clock} 
-              title="Check-in / Out" 
-              content={`Check-in: ${policies?.checkIn || "12:00 PM"} \n Check-out: ${policies?.checkOut || "10:00 AM"}`} 
-            />
-            <PolicyCard 
-              icon={ShieldAlert} 
-              title="Cancellation" 
-              content={policies?.cancellation || "Standard cancellation rules apply."} 
-            />
-            <PolicyCard 
-              icon={Info} 
-              title="House Rules" 
-              content="Respect quiet hours. No loud music after 10 PM. Please maintain local sensitivity." 
-            />
-            <PolicyCard 
-              icon={HelpCircle} 
-              title="Pet Policy" 
-              content={policies?.petPolicy || "Please check with the host regarding pet friendliness."} 
-            />
+            {policies?.checkIn || policies?.checkOut ? (
+              <PolicyCard 
+                icon={Clock} 
+                title="Check-in / Out" 
+                content={`Check-in: ${policies?.checkIn || "N/A"} \n Check-out: ${policies?.checkOut || "N/A"}`} 
+              />
+            ) : null}
+            {policies?.cancellation && (
+              <PolicyCard 
+                icon={ShieldAlert} 
+                title="Cancellation" 
+                content={policies?.cancellation} 
+              />
+            )}
+            {policies?.houseRules && (
+              <PolicyCard 
+                icon={Info} 
+                title="House Rules" 
+                content={policies?.houseRules} 
+              />
+            )}
+            {policies?.petPolicy && (
+              <PolicyCard 
+                icon={HelpCircle} 
+                title="Pet Policy" 
+                content={policies?.petPolicy} 
+              />
+            )}
           </div>
         </div>
 

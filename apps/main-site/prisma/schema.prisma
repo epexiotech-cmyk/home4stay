@@ -30,6 +30,7 @@ model User {
   properties     Property[]
   guestProfile   Guest?     @relation(fields: [guestProfileId], references: [id])
   guestProfileId String?    @unique @map("guest_profile_id")
+  hostProfile    UserHostProfile?
 
   conciergeRequests ConciergeRequest[]
   conciergeMessages ConciergeMessage[]
@@ -62,6 +63,7 @@ model Property {
   id          String    @id @default(uuid())
   ownerId     String    @map("owner_id")
   slug        String    @unique
+  subdomain   String?   @unique @map("subdomain")
   title       String
   status      String    @default("DRAFT") // DRAFT, SETUP_IN_PROGRESS, READY_TO_LAUNCH, LIVE, SUSPENDED
   publishedAt DateTime? @map("published_at")
@@ -84,6 +86,10 @@ model Property {
   propertyType     String?           @map("property_type")
   shortDescription String?           @map("short_description") @db.Text
   onboardingStatus String            @default("NOT_STARTED") @map("onboarding_status")
+  location           String?
+  contactPhone       String?           @map("contact_phone")
+  contactWhatsapp    String?           @map("contact_whatsapp")
+  aggregateRating    Float?            @map("aggregate_rating")
   amenities        PropertyAmenity[]
   policies         PropertyPolicy?
   pricing          PropertyPricing?
@@ -95,6 +101,9 @@ model Property {
   Booking             Booking[]
   subscriptions       PropertySubscription[]
   paymentTransactions PaymentTransaction[]
+  agreements          PropertyAgreement[]
+  propertyActivation  PropertyActivation?
+  mealPlans           PropertyMealPlan[]
 
   @@index([ownerId])
   @@index([status])
@@ -393,6 +402,9 @@ model Room {
   view       String
   images     Json     @default("[]")
   roomType   String?  @map("room_type")
+  sizeSqFt   Int?     @map("size_sq_ft")
+  bedType    String?  @map("bed_type")
+  tags       Json     @default("[]")
   roomCount  Int      @default(1) @map("room_count")
   isActive   Boolean  @default(true) @map("is_active")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -428,6 +440,7 @@ model PropertyPolicy {
   petsAllowed        Boolean  @default(false) @map("pets_allowed")
   smokingAllowed     Boolean  @default(false) @map("smoking_allowed")
   cancellationPolicy String   @map("cancellation_policy") @db.Text
+  houseRules         String?  @map("house_rules") @db.Text
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
@@ -1206,4 +1219,110 @@ model ReferralRewardRedemption {
   subscription PropertySubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@map("referral_reward_redemptions")
+}
+
+// ==========================================
+// PROPERTY AGREEMENTS (Phase 10B/Compliance)
+// ==========================================
+
+enum AgreementStatus {
+  DRAFT
+  SIGNED
+  SUPERSEDED
+  REVOKED
+}
+
+model PropertyAgreement {
+  id               String          @id @default(uuid())
+  propertyId       String          @map("property_id")
+  agreementType    String          @map("agreement_type")
+  agreementContent String          @map("agreement_content") @db.Text
+  documentUrl      String?         @map("document_url")
+  signatureUrl     String?         @map("signature_url")
+  signatoryName    String          @map("signatory_name")
+  signatoryRole    String          @map("signatory_role")
+  signedAt         DateTime?       @map("signed_at")
+  version          Int             @default(1)
+  contentHash      String?         @map("content_hash")
+  status           AgreementStatus @default(DRAFT)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_agreements")
+}
+
+enum ActivationStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+}
+
+model PropertyActivation {
+  id              String           @id @default(uuid())
+  propertyId      String           @unique @map("property_id")
+  activationKey   String           @unique @map("activation_key")
+  activationToken String           @unique @map("activation_token")
+  activationUrl   String           @map("activation_url")
+  status          ActivationStatus @default(PENDING)
+  activatedAt     DateTime?        @map("activated_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_activations")
+}
+
+model UserHostProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  bio          String?  @db.Text
+  isSuperhost  Boolean  @default(false) @map("is_superhost")
+  rating       Float?
+  reviewsCount Int      @default(0) @map("reviews_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_host_profiles")
+}
+
+model PropertyMealPlan {
+  id          String   @id @default(uuid())
+  propertyId  String   @map("property_id")
+  name        String
+  label       String
+  description String?  @db.Text
+  price       Float    @default(0.0)
+  inclusions  Json     @default("[]")
+  isPopular   Boolean  @default(false) @map("is_popular")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_meal_plans")
+}
+
+model SystemError {
+  id         String    @id @default(uuid())
+  errorId    String    @unique @map("error_id")
+  module     String
+  message    String
+  severity   String    // WARNING, ERROR, CRITICAL
+  route      String?
+  stackTrace String?   @map("stack_trace") @db.Text
+  userId     String?   @map("user_id")
+  status     String    @default("OPEN") // OPEN, RESOLVED
+  resolvedAt DateTime? @map("resolved_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@map("system_errors")
 }

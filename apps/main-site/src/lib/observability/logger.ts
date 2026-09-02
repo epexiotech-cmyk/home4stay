@@ -92,6 +92,33 @@ async function sendToExternalMonitoring(log: LogEntry) {
     pinoLogger.error(`[FATAL ESCALATION] Critical system error: ${log.message}`);
   }
   
+  // Capture application errors directly into the database for the Admin Dashboard
+  if (log.level === 'error' || log.level === 'fatal' || log.level === 'warn') {
+    const { captureErrorToDB } = await import('../errors/capture');
+    
+    // Safely deduce module from route
+    let moduleName = "System";
+    if (log.route) {
+      if (log.route.includes('/api/')) {
+        const parts = log.route.split('/api/');
+        moduleName = parts.length > 1 ? `API /${parts[1].split('/')[0]}` : "API";
+      } else if (log.route.startsWith('/admin')) {
+        moduleName = "Admin Dashboard";
+      } else if (log.route.startsWith('/partner')) {
+        moduleName = "Partner Portal";
+      }
+    }
+
+    await captureErrorToDB({
+      message: log.message || "Unknown error",
+      module: moduleName,
+      severity: log.level === 'warn' ? 'WARNING' : log.level === 'fatal' ? 'CRITICAL' : 'ERROR',
+      route: log.route,
+      stackTrace: log.errorStack,
+      userId: log.userId
+    });
+  }
+  
   // Future Sentry / Datadog / OpenTelemetry logic goes here
   return Promise.resolve();
 }

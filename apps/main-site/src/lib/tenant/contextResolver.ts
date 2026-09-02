@@ -1,8 +1,9 @@
 import { getProperty } from "@/properties-data";
-import { getPropertyBySlug } from "@/lib/tenant/tenantUtils";
+// import { getPropertyBySlug } from "@/lib/tenant/tenantUtils";
 import { prisma } from "@/lib/database/prisma";
 import { getSubdomain } from "@/lib/utils/domains";
 import { Property as BaselineProperty } from "@/properties-data/types";
+import { getPropertyBySlug } from "./tenantUtils";
 
 export interface Section {
   type: string;
@@ -32,6 +33,9 @@ export interface ExtendedProperty extends Partial<BaselineProperty> {
     cancellation?: string;
     petPolicy?: string;
   };
+  mealPlans?: any[];
+  rating?: number;
+  contact?: { phone: string; whatsapp: string };
   seo?: {
     title?: string;
     description?: string;
@@ -49,11 +53,11 @@ export async function resolvePropertyContext(identifier: string): Promise<(Exten
   if (!identifier) return null;
 
   const baselineProperty = getProperty(identifier);
-  
+
   let persistentDbRecord: Record<string, unknown> | null = null;
   try {
     persistentDbRecord = await getPropertyBySlug(identifier) as Record<string, unknown> | null;
-    
+
     if (!persistentDbRecord) {
       persistentDbRecord = await prisma.property.findUnique({
         where: { id: identifier },
@@ -64,11 +68,25 @@ export async function resolvePropertyContext(identifier: string): Promise<(Exten
   }
 
   const merged = { ...(baselineProperty || {}), ...(persistentDbRecord || {}) } as ExtendedProperty;
-  
+
   if (!merged || !merged.name) {
     return null;
   }
-  
+
+  if (!merged.name) {
+    return null;
+  }
+
+  if (!merged.name) {
+    return null;
+  }
+  (baselineProperty as ExtendedProperty | null)?.name ||
+    "";
+
+  if (!merged.name) {
+    return null;
+  }
+
   return merged as ExtendedProperty & { name: string };
 }
 

@@ -39,9 +39,11 @@ async function meHandler(request: NextRequest) {
 
   return successResponse({
     id: user.id,
+    name: user.name,
     email: user.email,
     role: user.role,
     propertyId: property?.id || propertyId,
+    propertyName: property?.title,
     propertySlug: property?.slug,
     onboardingStatus: property?.onboardingStatus,
     onboardingSessionStatus: property?.onboardingSession?.status

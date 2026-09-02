@@ -35,6 +35,7 @@ interface UploadTask {
   status: "pending" | "uploading" | "success" | "error";
   errorMsg?: string;
   file: File;
+  assetType: "LUXURY" | "GALLERY";
 }
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -42,13 +43,16 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export default function GalleryStepPage() {
   const { saveStepDraft, completeStep, stepErrors } = useOnboarding();
-  const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
+  const [luxuryAssets, setLuxuryAssets] = useState<MediaAsset[]>([]);
+  const [galleryAssets, setGalleryAssets] = useState<MediaAsset[]>([]);
   const [uploadQueue, setUploadQueue] = useState<UploadTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dragActive, setDragActive] = useState(false);
+  const [dragActiveLuxury, setDragActiveLuxury] = useState(false);
+  const [dragActiveGallery, setDragActiveGallery] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputLuxuryRef = useRef<HTMLInputElement>(null);
+  const fileInputGalleryRef = useRef<HTMLInputElement>(null);
   const dragIndexRef = useRef<number | null>(null);
 
   const errors = stepErrors.gallery || {};
@@ -60,14 +64,18 @@ export default function GalleryStepPage() {
         const res = await fetch("/api/partner/media");
         const json = await res.json();
         if (json.success) {
-          const sorted = (json.media || []).sort((a: MediaAsset, b: MediaAsset) => a.sortOrder - b.sortOrder);
-          setMediaAssets(sorted);
+          const sorted = (json.data?.media || []).sort((a: MediaAsset, b: MediaAsset) => a.sortOrder - b.sortOrder);
+          
+          const luxury = sorted.filter((a: MediaAsset) => a.assetType === "LUXURY");
+          const gallery = sorted.filter((a: MediaAsset) => a.assetType === "GALLERY");
+          
+          setLuxuryAssets(luxury);
+          setGalleryAssets(gallery);
           
           // Sync existing URLs with onboarding context to populate live preview instantly
-          const urls = sorted.map((item: MediaAsset) => item.url);
-          saveStepDraft("gallery", urls);
+          syncWithOnboardingContext(luxury, gallery, false);
         } else {
-          setApiError(json.error || "Failed to retrieve media library");
+          setApiError(json.error?.message || json.error || "Failed to retrieve media library");
         }
       } catch (err) {
         console.error("Error loading media:", err);
@@ -77,16 +85,21 @@ export default function GalleryStepPage() {
       }
     }
     fetchMedia();
-  }, [saveStepDraft]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync state changes with context drafts
-  const syncWithOnboardingContext = (assetsList: MediaAsset[]) => {
-    const urls = assetsList.map(a => a.url);
-    saveStepDraft("gallery", urls);
+  const syncWithOnboardingContext = (luxury: MediaAsset[], gallery: MediaAsset[], isExplicitUserAction = false) => {
+    const urls = [...luxury, ...gallery].map(a => a.url);
+    // Only write [] to the database if the user explicitly deleted images.
+    // Never allow a failed fetch or empty mount to wipe database arrays.
+    if (urls.length > 0 || isExplicitUserAction) {
+      saveStepDraft("gallery", urls);
+    }
   };
 
   // 2. Multi-File Selection & Validation Rules
-  const handleFiles = (files: FileList) => {
+  const handleFiles = async (files: FileList, assetType: "LUXURY" | "GALLERY") => {
     const newTasks: UploadTask[] = [];
 
     Array.from(files).forEach(file => {
@@ -111,30 +124,32 @@ export default function GalleryStepPage() {
         progress: status === "error" ? 0 : 5,
         status,
         errorMsg,
-        file
+        file,
+        assetType
       });
     });
 
     setUploadQueue(prev => [...prev, ...newTasks]);
 
-    // Automatically trigger upload execution for accepted tasks
-    newTasks.forEach(task => {
+    // Automatically trigger upload execution sequentially to prevent rate limits
+    for (const task of newTasks) {
       if (task.status === "pending") {
-        uploadFileTask(task);
+        await uploadFileTask(task);
       }
-    });
+    }
   };
 
   // 3. Centralized XHR Upload Execution with Real-Time Progress
-  const uploadFileTask = (task: UploadTask) => {
-    setUploadQueue(prev => 
-      prev.map(t => t.id === task.id ? { ...t, status: "uploading" } : t)
-    );
+  const uploadFileTask = (task: UploadTask): Promise<void> => {
+    return new Promise((resolve) => {
+      setUploadQueue(prev => 
+        prev.map(t => t.id === task.id ? { ...t, status: "uploading" } : t)
+      );
 
-    const xhr = new XMLHttpRequest();
-    const formData = new FormData();
-    formData.append("file", task.file);
-    formData.append("assetType", "GALLERY");
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      formData.append("file", task.file);
+      formData.append("assetType", task.assetType);
 
     // Track upload progress natively in browser
     xhr.upload.onprogress = (event) => {
@@ -150,17 +165,26 @@ export default function GalleryStepPage() {
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const res = JSON.parse(xhr.responseText);
-          if (res.success && res.asset) {
+          const uploadedAsset = res.data?.asset;
+          if (res.success && uploadedAsset) {
             setUploadQueue(prev => 
               prev.map(t => t.id === task.id ? { ...t, status: "success", progress: 100 } : t)
             );
             
             // Append newly uploaded asset to gallery list
-            setMediaAssets(prev => {
-              const updated = [...prev, res.asset];
-              syncWithOnboardingContext(updated);
-              return updated;
-            });
+            if (task.assetType === "LUXURY") {
+              setLuxuryAssets(prev => {
+                const updated = [...prev, uploadedAsset];
+                syncWithOnboardingContext(updated, galleryAssets);
+                return updated;
+              });
+            } else {
+              setGalleryAssets(prev => {
+                const updated = [...prev, uploadedAsset];
+                syncWithOnboardingContext(luxuryAssets, updated);
+                return updated;
+              });
+            }
 
             // Automatically clear successful items from upload queue after 2 seconds
             setTimeout(() => {
@@ -179,23 +203,26 @@ export default function GalleryStepPage() {
         let errMsg = "Server connection lost";
         try {
           const res = JSON.parse(xhr.responseText);
-          errMsg = res.error || errMsg;
+          errMsg = res.error?.message || res.error || errMsg;
         } catch {}
         setUploadQueue(prev => 
           prev.map(t => t.id === task.id ? { ...t, status: "error", errorMsg: errMsg } : t)
         );
       }
+      resolve();
     };
 
     xhr.onerror = () => {
       setUploadQueue(prev => 
         prev.map(t => t.id === task.id ? { ...t, status: "error", errorMsg: "Network interrupted" } : t)
       );
+      resolve();
     };
 
     xhr.open("POST", "/api/partner/media", true);
     xhr.withCredentials = true;
     xhr.send(formData);
+    });
   };
 
   // Retry failed upload handler
@@ -212,20 +239,28 @@ export default function GalleryStepPage() {
   };
 
   // 4. Asset Actions: Delete
-  const handleDeleteAsset = async (assetId: string) => {
+  const handleDeleteAsset = async (assetId: string, assetType: "LUXURY" | "GALLERY") => {
     try {
       const res = await fetch(`/api/partner/media?id=${assetId}`, {
         method: "DELETE", credentials: "include"
       });
       const json = await res.json();
       if (json.success) {
-        setMediaAssets(prev => {
-          const updated = prev.filter(a => a.id !== assetId);
-          syncWithOnboardingContext(updated);
-          return updated;
-        });
+        if (assetType === "LUXURY") {
+          setLuxuryAssets(prev => {
+            const updated = prev.filter(a => a.id !== assetId);
+            syncWithOnboardingContext(updated, galleryAssets);
+            return updated;
+          });
+        } else {
+          setGalleryAssets(prev => {
+            const updated = prev.filter(a => a.id !== assetId);
+            syncWithOnboardingContext(luxuryAssets, updated);
+            return updated;
+          });
+        }
       } else {
-        setApiError(json.error || "Failed to delete media asset");
+        setApiError(json.error?.message || json.error || "Failed to delete media asset");
       }
     } catch {
       setApiError("Network error. Could not delete media asset.");
@@ -233,16 +268,22 @@ export default function GalleryStepPage() {
   };
 
   // 5. Asset Actions: Set Primary Cover (Moves image to sort order index 0)
-  const handleSetCover = async (assetIndex: number) => {
+  const handleSetCover = async (assetIndex: number, assetType: "LUXURY" | "GALLERY") => {
     if (assetIndex === 0) return; // Already cover
     
-    const reordered = [...mediaAssets];
-    const targetAsset = reordered.splice(assetIndex, 1)[0];
-    reordered.unshift(targetAsset);
+    let targetList = assetType === "LUXURY" ? [...luxuryAssets] : [...galleryAssets];
+    const targetAsset = targetList.splice(assetIndex, 1)[0];
+    targetList.unshift(targetAsset);
 
-    // Optimistically update frontend and trigger preview repaint
-    setMediaAssets(reordered);
-    syncWithOnboardingContext(reordered);
+    if (assetType === "LUXURY") {
+      setLuxuryAssets(targetList);
+      syncWithOnboardingContext(targetList, galleryAssets);
+    } else {
+      setGalleryAssets(targetList);
+      syncWithOnboardingContext(luxuryAssets, targetList);
+    }
+    
+    const reordered = targetList;
 
     // Save ordering to database
     try {
@@ -267,11 +308,11 @@ export default function GalleryStepPage() {
     e.preventDefault();
   };
 
-  const handleDrop = async (e: React.DragEvent, index: number) => {
+  const handleDrop = async (e: React.DragEvent, index: number, assetType: "LUXURY" | "GALLERY") => {
     const sourceIndex = dragIndexRef.current;
     if (sourceIndex === null || sourceIndex === index) return;
 
-    const shuffled = [...mediaAssets];
+    let shuffled = assetType === "LUXURY" ? [...luxuryAssets] : [...galleryAssets];
     const sourceAsset = shuffled.splice(sourceIndex, 1)[0];
     shuffled.splice(index, 0, sourceAsset);
 
@@ -279,8 +320,13 @@ export default function GalleryStepPage() {
     dragIndexRef.current = null;
 
     // Optimistically update frontend
-    setMediaAssets(shuffled);
-    syncWithOnboardingContext(shuffled);
+    if (assetType === "LUXURY") {
+      setLuxuryAssets(shuffled);
+      syncWithOnboardingContext(shuffled, galleryAssets);
+    } else {
+      setGalleryAssets(shuffled);
+      syncWithOnboardingContext(luxuryAssets, shuffled);
+    }
 
     // Persist new layout list to database
     try {
@@ -296,28 +342,152 @@ export default function GalleryStepPage() {
   };
 
   // 7. Drag-and-drop area state helpers
-  const handleDrag = (e: React.DragEvent) => {
+  const handleDragLuxury = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    if (e.type === "dragenter" || e.type === "dragover") setDragActiveLuxury(true);
+    else if (e.type === "dragleave") setDragActiveLuxury(false);
   };
-
-  const handleDropFile = (e: React.DragEvent) => {
+  const handleDropFileLuxury = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(e.dataTransfer.files);
-    }
+    setDragActiveLuxury(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFiles(e.dataTransfer.files, "LUXURY");
+  };
+  const triggerFileSelectLuxury = () => fileInputLuxuryRef.current?.click();
+
+  const handleDragGallery = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") setDragActiveGallery(true);
+    else if (e.type === "dragleave") setDragActiveGallery(false);
+  };
+  const handleDropFileGallery = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActiveGallery(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFiles(e.dataTransfer.files, "GALLERY");
+  };
+  const triggerFileSelectGallery = () => fileInputGalleryRef.current?.click();
+
+
+  const renderUploadQueue = (assetType: "LUXURY" | "GALLERY") => {
+    const filteredQueue = uploadQueue.filter(t => t.assetType === assetType);
+    if (filteredQueue.length === 0) return null;
+    return (
+      <div className="space-y-3 bg-slate-50 dark:bg-slate-900/30 p-5 rounded-2xl border border-border">
+          <div className="flex justify-between items-center pb-2 border-b border-border/50">
+            <span className="text-[9px] font-black text-secondary uppercase tracking-widest flex items-center gap-1.5">
+              <Loader2 size={12} className="animate-spin text-primary" />
+              <span>Uploading Queue ({filteredQueue.length} Active)</span>
+            </span>
+          </div>
+          <div className="space-y-3 max-h-48 overflow-y-auto scrollbar-hide">
+            {filteredQueue.map(task => (
+              <div key={task.id} className="text-[10px] font-medium text-secondary space-y-1.5">
+                <div className="flex justify-between items-center gap-4">
+                  <span className="truncate max-w-[200px] font-bold">{task.name}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[8px] text-secondary/40">{(task.size / 1024 / 1024).toFixed(2)}MB</span>
+                    {task.status === "uploading" && <span className="text-primary font-black uppercase text-[8px] tracking-wider animate-pulse">Uploading...</span>}
+                    {task.status === "success" && <span className="text-success font-black uppercase text-[8px] tracking-wider flex items-center gap-0.5"><Check size={10} className="stroke-[3px]" /> Success</span>}
+                    {task.status === "error" && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-error font-black uppercase text-[8px] tracking-wider">{task.errorMsg || "Failed"}</span>
+                        {task.errorMsg !== "File size exceeds 5MB limit" && task.errorMsg !== "Accepts JPEG, PNG, WebP, or GIF" && (
+                          <button onClick={(e) => { e.stopPropagation(); handleRetryUpload(task); }} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-600"><RefreshCw size={10} /></button>
+                        )}
+                      </div>
+                    )}
+                    <button onClick={(e) => { e.stopPropagation(); handleRemoveTask(task.id); }} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-secondary/40 hover:text-error"><X size={10} /></button>
+                  </div>
+                </div>
+                <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className={cn("h-full transition-all duration-300 rounded-full", task.status === "error" ? "bg-error" : task.status === "success" ? "bg-success" : "bg-primary")} style={{ width: `${task.progress}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+    );
   };
 
-  const triggerFileSelect = () => {
-    fileInputRef.current?.click();
+  const renderAssetGrid = (assets: MediaAsset[], type: "LUXURY" | "GALLERY") => {
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-[10px] font-black text-secondary uppercase tracking-widest flex items-center gap-1.5">
+            <Layers size={14} className="text-primary" />
+            <span>{type === "LUXURY" ? "Luxury Images" : "Active Property Gallery"} ({assets.length} Photos)</span>
+          </span>
+          {assets.length > 0 && (
+            <span className="text-[8px] font-bold text-secondary/40 uppercase tracking-widest">
+              Drag to re-order &bull; Top left photo is primary cover
+            </span>
+          )}
+        </div>
+        {assets.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4">
+            {assets.map((asset, index) => {
+              const isCover = index === 0;
+              return (
+                <div 
+                  key={asset.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e)}
+                  onDrop={(e) => handleDrop(e, index, type)}
+                  className={cn(
+                    "group relative aspect-[4/3] rounded-2xl overflow-hidden border bg-slate-50 cursor-grab active:cursor-grabbing hover-lift transition-all duration-300 select-none",
+                    isCover ? "border-[#FCBC43] ring-4 ring-[#FCBC43]/15" : "border-border"
+                  )}
+                >
+                  <img src={asset.url} alt={asset.fileName} className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent flex flex-col justify-between p-4 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="flex justify-between items-start gap-2">
+                      {isCover ? (
+                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FCBC43] text-black text-[8px] font-black uppercase tracking-wider shadow-sm">
+                          <Crown size={9} className="fill-black" />
+                          <span>Cover Photo</span>
+                        </div>
+                      ) : (
+                        <button type="button" onClick={(e) => { e.stopPropagation(); handleSetCover(index, type); }} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm text-slate-800 hover:bg-[#FCBC43] hover:text-black text-[8px] font-black uppercase tracking-wider shadow-sm transition-all">
+                          <Crown size={9} />
+                          <span>Make Cover</span>
+                        </button>
+                      )}
+                      <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteAsset(asset.id, type); }} className="w-6 h-6 rounded-full bg-white/95 backdrop-blur-sm text-slate-500 hover:text-error hover:bg-white flex items-center justify-center shadow-sm transition-colors">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest px-1.5 py-0.5 bg-black/45 rounded-md">{asset.assetType || "Gallery"}</span>
+                      <h4 className="text-[10px] font-black text-white leading-tight mt-1 truncate max-w-full">{asset.fileName}</h4>
+                    </div>
+                  </div>
+                  {isCover && (
+                    <div className="absolute top-4 left-4 sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FCBC43] text-black text-[8px] font-black uppercase tracking-wider shadow-sm group-hover:hidden transition-all duration-300">
+                      <Crown size={9} className="fill-black" />
+                      <span>Cover</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="border-2 border-dashed border-border rounded-2xl p-10 text-center space-y-3">
+            <ImageIcon className="text-slate-300 mx-auto animate-pulse" size={28} />
+            <div className="space-y-1">
+              <h4 className="text-xs font-black text-secondary uppercase tracking-wider">No photos uploaded yet</h4>
+              <p className="text-[9px] font-bold text-secondary/40 uppercase tracking-widest">
+                Upload your first {type === "LUXURY" ? "premium stay visual" : "gallery photo"}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   // 8. Wizard Setup Navigation
@@ -363,38 +533,38 @@ export default function GalleryStepPage() {
 
       {errors.general && <ValidationMessage error={errors.general} />}
 
-      {/* 1. INTERACTIVE DRAG & DROP UPLOAD ZONE */}
+      {/* 1. INTERACTIVE DRAG & DROP UPLOAD ZONE (LUXURY) */}
       <div 
-        onDragEnter={handleDrag}
-        onDragOver={handleDrag}
-        onDragLeave={handleDrag}
-        onDrop={handleDropFile}
-        onClick={triggerFileSelect}
+        onDragEnter={handleDragLuxury}
+        onDragOver={handleDragLuxury}
+        onDragLeave={handleDragLuxury}
+        onDrop={handleDropFileLuxury}
+        onClick={triggerFileSelectLuxury}
         className={cn(
           "relative border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 group select-none",
-          dragActive 
+          dragActiveLuxury 
             ? "border-primary bg-primary/5 ring-4 ring-primary/10 scale-[1.01]" 
             : "border-border hover:border-primary/50 hover:bg-slate-50/50 dark:hover:bg-slate-900/10"
         )}
       >
         <input 
-          ref={fileInputRef}
+          ref={fileInputLuxuryRef}
           type="file" 
           multiple
           accept="image/*"
           className="hidden" 
-          onChange={(e) => e.target.files && handleFiles(e.target.files)}
+          onChange={(e) => e.target.files && handleFiles(e.target.files, "LUXURY")}
         />
         
         <div className={cn(
           "w-12 h-12 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-400 group-hover:text-primary transition-all duration-300",
-          dragActive && "bg-primary/10 text-primary scale-110"
+          dragActiveLuxury && "bg-primary/10 text-primary scale-110"
         )}>
-          <Upload size={20} className={cn(dragActive && "animate-bounce")} />
+          <Upload size={20} className={cn(dragActiveLuxury && "animate-bounce")} />
         </div>
 
         <h4 className="text-xs font-black text-secondary uppercase tracking-wider mt-4">
-          {dragActive ? "Drop stay photos here" : "Drag & Drop Luxury Photos"}
+          {dragActiveLuxury ? "Drop luxury photos here" : "Drag & Drop Luxury Photos"}
         </h4>
         
         <p className="text-[10px] font-medium text-secondary/40 mt-1">
@@ -408,184 +578,54 @@ export default function GalleryStepPage() {
         </span>
       </div>
 
-      {/* 2. MULTI-UPLOAD ACTIVE QUEUE */}
-      {uploadQueue.length > 0 && (
-        <div className="space-y-3 bg-slate-50 dark:bg-slate-900/30 p-5 rounded-2xl border border-border">
-          <div className="flex justify-between items-center pb-2 border-b border-border/50">
-            <span className="text-[9px] font-black text-secondary uppercase tracking-widest flex items-center gap-1.5">
-              <Loader2 size={12} className="animate-spin text-primary" />
-              <span>Uploading Queue ({uploadQueue.length} Active)</span>
-            </span>
-          </div>
+{renderUploadQueue("LUXURY")}
 
-          <div className="space-y-3 max-h-48 overflow-y-auto scrollbar-hide">
-            {uploadQueue.map(task => (
-              <div key={task.id} className="text-[10px] font-medium text-secondary space-y-1.5">
-                <div className="flex justify-between items-center gap-4">
-                  <span className="truncate max-w-[200px] font-bold">{task.name}</span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[8px] text-secondary/40">
-                      {(task.size / 1024 / 1024).toFixed(2)}MB
-                    </span>
-                    
-                    {task.status === "uploading" && (
-                      <span className="text-primary font-black uppercase text-[8px] tracking-wider animate-pulse">
-                        Uploading...
-                      </span>
-                    )}
 
-                    {task.status === "success" && (
-                      <span className="text-success font-black uppercase text-[8px] tracking-wider flex items-center gap-0.5">
-                        <Check size={10} className="stroke-[3px]" /> Success
-                      </span>
-                    )}
 
-                    {task.status === "error" && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-error font-black uppercase text-[8px] tracking-wider">
-                          {task.errorMsg || "Failed"}
-                        </span>
-                        {task.errorMsg !== "File size exceeds 5MB limit" && task.errorMsg !== "Accepts JPEG, PNG, WebP, or GIF" && (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleRetryUpload(task); }} 
-                            className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-600"
-                          >
-                            <RefreshCw size={10} />
-                          </button>
-                        )}
-                      </div>
-                    )}
 
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleRemoveTask(task.id); }}
-                      className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-secondary/40 hover:text-error"
-                    >
-                      <X size={10} />
-                    </button>
-                  </div>
-                </div>
+      {renderAssetGrid(luxuryAssets, "LUXURY")}
 
-                {/* Progress bar */}
-                <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className={cn(
-                      "h-full transition-all duration-300 rounded-full",
-                      task.status === "error" ? "bg-error" : task.status === "success" ? "bg-success" : "bg-primary"
-                    )}
-                    style={{ width: `${task.progress}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <hr className="border-border my-8" />
 
-      {/* 3. ACTIVE GALLERY ASSET MANAGER WORKSPACE */}
-      <div>
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-[10px] font-black text-secondary uppercase tracking-widest flex items-center gap-1.5">
-            <Layers size={14} className="text-primary" />
-            <span>Active Property Gallery ({mediaAssets.length} Photos)</span>
-          </span>
-          {mediaAssets.length > 0 && (
-            <span className="text-[8px] font-bold text-secondary/40 uppercase tracking-widest">
-              Drag to re-order &bull; Top left photo is primary cover
-            </span>
-          )}
-        </div>
-
-        {mediaAssets.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4">
-            {mediaAssets.map((asset, index) => {
-              const isCover = index === 0;
-
-              return (
-                <div 
-                  key={asset.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragOver={(e) => handleDragOver(e)}
-                  onDrop={(e) => handleDrop(e, index)}
-                  className={cn(
-                    "group relative aspect-[4/3] rounded-2xl overflow-hidden border bg-slate-50 cursor-grab active:cursor-grabbing hover-lift transition-all duration-300 select-none",
-                    isCover ? "border-[#FCBC43] ring-4 ring-[#FCBC43]/15" : "border-border"
-                  )}
-                >
-                  {/* Photo thumbnail */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img 
-                    src={asset.url} 
-                    alt={asset.fileName}
-                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 pointer-events-none" 
-                  />
-
-                  {/* Actions overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent flex flex-col justify-between p-4 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    
-                    {/* Top Ribbons */}
-                    <div className="flex justify-between items-start gap-2">
-                      {isCover ? (
-                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FCBC43] text-black text-[8px] font-black uppercase tracking-wider shadow-sm">
-                          <Crown size={9} className="fill-black" />
-                          <span>Cover Photo</span>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); handleSetCover(index); }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm text-slate-800 hover:bg-[#FCBC43] hover:text-black text-[8px] font-black uppercase tracking-wider shadow-sm transition-all"
-                        >
-                          <Crown size={9} />
-                          <span>Make Cover</span>
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteAsset(asset.id); }}
-                        className="w-6 h-6 rounded-full bg-white/95 backdrop-blur-sm text-slate-500 hover:text-error hover:bg-white flex items-center justify-center shadow-sm transition-colors"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-
-                    {/* Bottom Metadata stats */}
-                    <div className="space-y-1">
-                      <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest px-1.5 py-0.5 bg-black/45 rounded-md">
-                        {asset.assetType || "Gallery"}
-                      </span>
-                      <h4 className="text-[10px] font-black text-white leading-tight mt-1 truncate max-w-full">
-                        {asset.fileName}
-                      </h4>
-                    </div>
-
-                  </div>
-
-                  {/* Non-hover Cover Badge indication */}
-                  {isCover && (
-                    <div className="absolute top-4 left-4 sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FCBC43] text-black text-[8px] font-black uppercase tracking-wider shadow-sm group-hover:hidden transition-all duration-300">
-                      <Crown size={9} className="fill-black" />
-                      <span>Cover</span>
-                    </div>
-                  )}
-
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="border-2 border-dashed border-border rounded-2xl p-10 text-center space-y-3">
-            <ImageIcon className="text-slate-300 mx-auto animate-pulse" size={28} />
-            <div className="space-y-1">
-              <h4 className="text-xs font-black text-secondary uppercase tracking-wider">No photos uploaded yet</h4>
-              <p className="text-[9px] font-bold text-secondary/40 uppercase tracking-widest">
-                Upload your first premium stay visual to power the live website preview
-              </p>
-            </div>
-          </div>
-        )}
+      <div className="space-y-3">
+        <h3 className="text-2xl font-bold text-primary tracking-tight">Active Property Gallery</h3>
+        <p className="text-xs font-medium text-secondary/60 leading-relaxed max-w-xl">Upload general property media to be displayed in the property details page.</p>
       </div>
+
+      <div 
+        onDragEnter={handleDragGallery}
+        onDragOver={handleDragGallery}
+        onDragLeave={handleDragGallery}
+        onDrop={handleDropFileGallery}
+        onClick={triggerFileSelectGallery}
+        className={cn(
+          "relative border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 group select-none",
+          dragActiveGallery 
+            ? "border-primary bg-primary/5 ring-4 ring-primary/10 scale-[1.01]" 
+            : "border-border hover:border-primary/50 hover:bg-slate-50/50 dark:hover:bg-slate-900/10"
+        )}
+      >
+        <input 
+          ref={fileInputGalleryRef}
+          type="file" 
+          multiple
+          accept="image/*"
+          className="hidden" 
+          onChange={(e) => e.target.files && handleFiles(e.target.files, "GALLERY")}
+        />
+        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-400 group-hover:text-primary transition-all duration-300", dragActiveGallery && "bg-primary/10 text-primary scale-110")}>
+          <Upload size={20} className={cn(dragActiveGallery && "animate-bounce")} />
+        </div>
+        <h4 className="text-xs font-black text-secondary uppercase tracking-wider mt-4">
+          {dragActiveGallery ? "Drop gallery photos here" : "Drag & Drop Gallery Photos"}
+        </h4>
+        <p className="text-[10px] font-medium text-secondary/40 mt-1">Or click to browse from local computer</p>
+        <span className="text-[8px] font-bold text-secondary/30 uppercase tracking-widest mt-3 flex items-center gap-1">
+          <span>Max file size: 5MB</span><span>&bull;</span><span>Formats: JPEG, PNG, WebP, GIF</span>
+        </span>
+      </div>
+      {renderUploadQueue("GALLERY")}
+      {renderAssetGrid(galleryAssets, "GALLERY")}
 
       {/* 4. Wizard SETUP NEXT Navigation */}
       <div className="flex justify-between items-center pt-4">

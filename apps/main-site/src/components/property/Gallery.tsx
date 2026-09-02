@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_FALLBACK_IMAGE, getValidImageUrl } from "@/lib/utils";
 import React, { useState, useMemo, useEffect } from "react";
 import { Grid, X, ChevronLeft, ChevronRight, Maximize2, Share2, Heart } from "lucide-react";
 import { GalleryImage } from "@/properties-data/types";
@@ -21,7 +22,7 @@ export default function Gallery({ images, gallery, name }: GalleryProps) {
   const processedGallery: GalleryImage[] = useMemo(() => {
     if (gallery && gallery.length > 0) return gallery;
     return images.map((url, idx) => ({
-      url,
+      url: getValidImageUrl(url) || DEFAULT_FALLBACK_IMAGE,
       category: idx === 0 ? "Exterior" : idx % 2 === 0 ? "Living Room" : "Bedrooms",
       description: `${name} - Image ${idx + 1}`
     }));

@@ -56,9 +56,34 @@ export async function proxy(request: NextRequest) {
   const subdomain = getSubdomain(host);
 
   if (subdomain && subdomain !== 'www' && !url.pathname.startsWith(`/api/`) && !url.pathname.startsWith(`/admin`) && !url.pathname.startsWith(`/partner`) && !url.pathname.startsWith(`/images`) && !url.pathname.startsWith(`/property/`)) {
-    url.pathname = `/property/${subdomain}${url.pathname === '/' ? '' : url.pathname}`;
-    response = NextResponse.rewrite(url);
-  }
+    try {
+      const hostHeader = request.headers.get("host") || "";
+      const isLocalhost = hostHeader.includes("localhost");
+      const portMatch = hostHeader.match(/:(\d+)$/);
+      const port = portMatch ? `:${portMatch[1]}` : "";
+      const fetchHost = isLocalhost ? `127.0.0.1${port}` : hostHeader;
+      const protocol = isLocalhost ? "http" : (request.headers.get("x-forwarded-proto") || "https");
+      const hostUrl = `${protocol}://${fetchHost}`;
+      const resolveUrl = new URL(`/api/edge/resolve-subdomain?subdomain=${subdomain}`, hostUrl);
+      const resolveRes = await fetch(resolveUrl.toString(), { cache: "no-store" });
+      if (resolveRes.ok) {
+        const { slug } = await resolveRes.json();
+        if (slug) {
+          url.pathname = `/property/${slug}${url.pathname === '/' ? '' : url.pathname}`;
+          response = NextResponse.rewrite(url);
+        } else {
+          url.pathname = `/property/not-found`;
+          response = NextResponse.rewrite(url);
+        }
+      } else {
+        url.pathname = `/property/not-found`;
+        response = NextResponse.rewrite(url);
+      }
+    } catch (err) {
+      console.error("Subdomain resolve error:", err);
+      url.pathname = `/property/not-found`;
+      response = NextResponse.rewrite(url);
+    }
 
   // Request Context Headers
   response.headers.set("X-Request-Id", requestId);
@@ -97,4 +122,5 @@ export async function proxy(request: NextRequest) {
   response.headers.set("x-middleware-request-x-client-ip", clientIp);
 
   return response;
+}
 }
