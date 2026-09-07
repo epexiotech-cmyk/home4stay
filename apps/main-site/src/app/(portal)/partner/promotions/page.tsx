@@ -38,10 +38,62 @@ export default function PartnerPromotionsPage() {
   const [offers, setOffers] = useState<PromotionOffer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    couponCode: "",
+    discountType: "PERCENTAGE",
+    discountValue: "",
+    minimumBookingAmount: "",
+    startDate: "",
+    endDate: ""
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const propertyId = user?.propertyId || "shivay-resort-101";
+  const handleCreate = async () => {
+    if (!propertyId) {
+      alert("Property ID not found.");
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      const payload = {
+        propertyId,
+        title: formData.title,
+        couponCode: formData.couponCode,
+        discountType: formData.discountType,
+        discountValue: Number(formData.discountValue),
+        minimumBookingAmount: Number(formData.minimumBookingAmount),
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
+        isActive: true
+      };
+      
+      const res = await fetch("/api/property/promotions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        setIsAdding(false);
+        setFormData({ title: "", couponCode: "", discountType: "PERCENTAGE", discountValue: "", minimumBookingAmount: "", startDate: "", endDate: "" });
+        fetchOffers();
+      } else {
+        const err = await res.json();
+        alert("Failed to create offer: " + JSON.stringify(err));
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to create offer");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const propertyId = user?.propertyId;
 
   const fetchOffers = useCallback(async () => {
+    if (!propertyId) return;
     try {
       const res = await fetch(`/api/property/promotions?propertyId=${propertyId}`);
       if (res.ok) {
@@ -154,26 +206,34 @@ export default function PartnerPromotionsPage() {
               </div>
               <div className="p-10 space-y-8">
                  <div className="grid grid-cols-2 gap-6">
-                    <Input label="Campaign Title" placeholder="e.g. Summer Escape" />
-                    <Input label="Coupon Code" placeholder="e.g. SUMMER20" />
+                    <Input label="Campaign Title" placeholder="e.g. Summer Escape" value={formData.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, title: e.target.value})} />
+                    <Input label="Coupon Code" placeholder="e.g. SUMMER20" value={formData.couponCode} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, couponCode: e.target.value})} />
                  </div>
                  <div className="grid grid-cols-3 gap-6">
                     <div className="space-y-3">
                        <label className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60 ml-4">Type</label>
-                       <select className="w-full px-6 py-4 rounded-2xl bg-[#0E5A75]/5 border border-black/5 text-sm font-bold text-[#0E5A75] focus:outline-none">
-                         <option>Percentage</option>
-                         <option>Flat Discount</option>
+                       <select 
+                         className="w-full px-6 py-4 rounded-2xl bg-[#0E5A75]/5 border border-black/5 text-sm font-bold text-[#0E5A75] focus:outline-none"
+                         value={formData.discountType}
+                         onChange={(e) => setFormData({...formData, discountType: e.target.value})}
+                       >
+                         <option value="PERCENTAGE">Percentage</option>
+                         <option value="FLAT">Flat Discount</option>
                        </select>
                     </div>
-                    <Input label="Value" placeholder="e.g. 15" />
-                    <Input label="Min. Spend" placeholder="e.g. 5000" />
+                    <Input label="Value" placeholder="e.g. 15" value={formData.discountValue} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, discountValue: e.target.value})} />
+                    <Input label="Min. Spend" placeholder="e.g. 5000" value={formData.minimumBookingAmount} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, minimumBookingAmount: e.target.value})} />
                  </div>
                  <div className="grid grid-cols-2 gap-6">
-                    <Input label="Start Date" type="date" />
-                    <Input label="End Date" type="date" />
+                    <Input label="Start Date" type="date" value={formData.startDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, startDate: e.target.value})} />
+                    <Input label="End Date" type="date" value={formData.endDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, endDate: e.target.value})} />
                  </div>
-                 <button className="w-full py-5 rounded-[24px] bg-[#159665] text-white font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-all">
-                    Activate Campaign
+                 <button 
+                   onClick={handleCreate}
+                   disabled={isSubmitting}
+                   className="w-full py-5 rounded-[24px] bg-[#159665] text-white font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50"
+                 >
+                    {isSubmitting ? "Activating..." : "Activate Campaign"}
                  </button>
               </div>
             </motion.div>

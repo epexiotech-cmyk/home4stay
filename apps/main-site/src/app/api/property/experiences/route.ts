@@ -4,6 +4,8 @@ import { propertyExperienceService } from "@/lib/services/propertyExperienceServ
 import { withErrorHandler, AppError } from "@/lib/errors/handler";
 import { successResponse } from "@/lib/utils/apiResponse";
 import { z } from "zod";
+import { propertyExperienceSchema, updatePropertyExperienceSchema } from "@/lib/validators/property.validators";
+import { revalidatePath } from "next/cache";
 
 const getExperiencesQuerySchema = z.object({
   propertyId: z.string().min(1, "propertyId is required"),
@@ -17,39 +19,31 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   return successResponse(experiences);
 });
 
-const experienceSchema = z.object({
-  propertyId: z.string().min(1, "propertyId is required"),
-  title: z.string().min(1, "title is required"),
-  description: z.string().min(1, "description is required"),
-  price: z.number().nonnegative(),
-  duration: z.string(),
-  images: z.array(z.string()).default([]),
-});
+
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager"]);
   if (!auth.authorized) return auth.response!;
 
   const body = await request.json();
-  const data = experienceSchema.parse(body);
+  const data = propertyExperienceSchema.parse(body);
 
   const access = await requirePropertyAccess(request, data.propertyId);
   if (!access.authorized) return access.response!;
 
   const experience = await propertyExperienceService.createExperience(data);
+  try { revalidatePath("/property/[slug]", "page"); } catch (e) {}
   return successResponse(experience, { status: 201 });
 });
 
-const updateExperienceSchema = experienceSchema.partial().extend({
-  id: z.string().min(1, "id is required"),
-});
+
 
 export const PATCH = withErrorHandler(async (request: NextRequest) => {
   const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager"]);
   if (!auth.authorized) return auth.response!;
 
   const body = await request.json();
-  const { id, ...updateData } = updateExperienceSchema.parse(body);
+  const { id, ...updateData } = updatePropertyExperienceSchema.extend({ id: z.string().min(1) }).parse(body);
 
   const exp = await propertyExperienceService.getExperienceById(id);
   if (!exp) throw new AppError("Experience not found", 404, "NOT_FOUND");
@@ -58,6 +52,7 @@ export const PATCH = withErrorHandler(async (request: NextRequest) => {
   if (!access.authorized) return access.response!;
 
   const updated = await propertyExperienceService.updateExperience(id, updateData);
+  try { revalidatePath("/property/[slug]", "page"); } catch (e) {}
   return successResponse(updated);
 });
 
@@ -79,5 +74,6 @@ export const DELETE = withErrorHandler(async (request: NextRequest) => {
   if (!access.authorized) return access.response!;
 
   await propertyExperienceService.deleteExperience(id);
+  try { revalidatePath("/property/[slug]", "page"); } catch (e) {}
   return successResponse({ success: true, deleted: id });
 });

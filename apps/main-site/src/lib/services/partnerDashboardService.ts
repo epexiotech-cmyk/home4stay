@@ -1,48 +1,120 @@
 import { prisma } from "@/lib/database/prisma";
-import { getTenantData } from "@/lib/mock/tenantData";
+import { endOfDay, startOfDay, startOfMonth, format } from "date-fns";
 
 export class PartnerDashboardService {
   static async getDashboardStats(propertyId: string) {
-    const dbBookings = await prisma.booking.findMany({ where: { propertyId } });
-    
-    const confirmedBookings = dbBookings.filter((b: any) => b.status === "CONFIRMED" || b.status === "confirmed" || b.status === "CHECKED_IN" || b.status === "checked_in");
-    const dbRevenue = confirmedBookings.reduce((sum: number, b: any) => sum + b.amount, 0);
-    const dbPending = dbBookings.filter((b: any) => b.paymentStatus === "PENDING" || b.paymentStatus === "pending").reduce((sum: number, b: any) => sum + b.amount, 0);
-    
-    const tenantData = getTenantData(propertyId);
-    const mockStats = tenantData.stats;
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const todayStart = startOfDay(now);
+    const todayEnd = endOfDay(now);
+
+    const [
+      revenueData,
+      totalRoomsAgg,
+      activeBookingsCount,
+      approvalsCount,
+      todayCheckIns,
+      todayCheckOuts
+    ] = await Promise.all([
+      prisma.booking.aggregate({
+        _sum: { amount: true },
+        where: {
+          propertyId,
+          status: { in: ["CONFIRMED", "CHECKED_IN"] },
+          createdAt: { gte: monthStart }
+        }
+      }),
+      prisma.room.aggregate({
+        _sum: { roomCount: true },
+        where: { propertyId, isActive: true }
+      }),
+      prisma.booking.count({
+        where: {
+          propertyId,
+          status: { in: ["CONFIRMED", "CHECKED_IN"] },
+          startDate: { lte: todayEnd },
+          endDate: { gt: todayStart }
+        }
+      }),
+      prisma.booking.count({
+        where: {
+          propertyId,
+          paymentStatus: "UNDER_OWNER_VERIFICATION"
+        }
+      }),
+      prisma.booking.findMany({
+        where: { propertyId, startDate: { gte: todayStart, lte: todayEnd } },
+        select: { id: true, startDate: true, room: { select: { name: true } } }
+      }),
+      prisma.booking.findMany({
+        where: { propertyId, endDate: { gte: todayStart, lte: todayEnd } },
+        select: { id: true, endDate: true, room: { select: { name: true } } }
+      })
+    ]);
+
+    const revenueMtd = revenueData._sum.amount || 0;
+    const totalRooms = totalRoomsAgg._sum.roomCount || 0;
+    const occupancy = totalRooms > 0 ? Math.round((activeBookingsCount / totalRooms) * 100) : 0;
+
+    const todayOps = [
+      ...todayCheckIns.map(b => ({
+        status: "pending",
+        task: `Check-in: ${b.room?.name || "Room"}`,
+        time: format(b.startDate, "hh:mm a")
+      })),
+      ...todayCheckOuts.map(b => ({
+        status: "pending",
+        task: `Check-out: ${b.room?.name || "Room"}`,
+        time: format(b.endDate, "hh:mm a")
+      }))
+    ];
 
     return {
-      ...mockStats,
-      totalRevenue: mockStats.totalRevenue + dbRevenue,
-      revenueMtd: mockStats.revenueMtd + dbRevenue,
-      pendingPayments: mockStats.pendingPayments + dbPending,
-      avgBookingValue: confirmedBookings.length > 0 
-        ? Math.round((mockStats.totalRevenue + dbRevenue) / (confirmedBookings.length + 5)) 
-        : mockStats.avgBookingValue
+      revenueMtd,
+      revenueTrend: 0,
+      avgDaily: activeBookingsCount > 0 ? Math.round(revenueMtd / activeBookingsCount) : 0,
+      targetPercent: null,
+      occupancy,
+      todayOps,
+      approvals: approvalsCount
     };
   }
 
   static async getFinancials(propertyId: string) {
-    const dbBookings = await prisma.booking.findMany({ where: { propertyId } });
-    
-    const confirmedBookings = dbBookings.filter((b: any) => b.status === "CONFIRMED" || b.status === "confirmed" || b.status === "CHECKED_IN" || b.status === "checked_in");
-    const dbRevenue = confirmedBookings.reduce((sum: number, b: any) => sum + b.amount, 0);
-    const dbPending = dbBookings.filter((b: any) => b.paymentStatus === "PENDING" || b.paymentStatus === "pending").reduce((sum: number, b: any) => sum + b.amount, 0);
+    const [revenueData, pendingData, confirmedBookings] = await Promise.all([
+      prisma.booking.aggregate({
+        _sum: { amount: true },
+        where: {
+          propertyId,
+          status: { in: ["CONFIRMED", "CHECKED_IN"] }
+        }
+      }),
+      prisma.booking.aggregate({
+        _sum: { amount: true },
+        where: {
+          propertyId,
+          paymentStatus: "UNDER_OWNER_VERIFICATION"
+        }
+      }),
+      prisma.booking.count({
+        where: {
+          propertyId,
+          status: { in: ["CONFIRMED", "CHECKED_IN"] }
+        }
+      })
+    ]);
 
-    const tenantData = getTenantData(propertyId);
-    const mockStats = tenantData.stats;
+    const totalRevenue = revenueData._sum.amount || 0;
+    const pendingPayments = pendingData._sum.amount || 0;
 
     return {
-      transactions: tenantData.transactions, 
-      invoices: tenantData.invoices,
+      transactions: [], 
+      invoices: [],
       stats: {
-        totalRevenue: mockStats.totalRevenue + dbRevenue,
-        pendingPayments: mockStats.pendingPayments + dbPending,
-        gstCollected: mockStats.gstCollected + Math.round(dbRevenue * 0.18),
-        avgBookingValue: confirmedBookings.length > 0
-          ? Math.round((mockStats.totalRevenue + dbRevenue) / (confirmedBookings.length + 5))
-          : mockStats.avgBookingValue
+        totalRevenue,
+        pendingPayments,
+        gstCollected: Math.round(totalRevenue * 0.18),
+        avgBookingValue: confirmedBookings > 0 ? Math.round(totalRevenue / confirmedBookings) : 0
       }
     };
   }

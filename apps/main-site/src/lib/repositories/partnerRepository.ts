@@ -84,7 +84,8 @@ export class PartnerRepository {
         data: {
           status: "LIVE",
           publishedAt: new Date(),
-          title: propertyDraft.title || undefined
+          title: propertyDraft.title || undefined,
+          onboardingStatus: "COMPLETED"
         }
       }),
       prisma.user.update({

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import { 
   Plus, 
@@ -49,52 +50,7 @@ interface RoomType {
 
 // --- Mock Data ---
 
-const PROPERTIES: Property[] = [
-  {
-    id: "shivay-resort-101",
-    name: "Shivay Resort",
-    type: "Resort",
-    location: "Manali, Himachal Pradesh",
-    rooms: 12,
-    occupancy: "84%",
-    rating: 4.8,
-    status: "active",
-    image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=800"
-  },
-  {
-    id: "royal-villa-202",
-    name: "Royal Villa",
-    type: "Villa",
-    location: "Goa",
-    rooms: 4,
-    occupancy: "90%",
-    rating: 4.6,
-    status: "active",
-    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800"
-  },
-  {
-    id: "taj-villa-303",
-    name: "Taj Villa",
-    type: "Villa",
-    location: "Agra, Uttar Pradesh",
-    rooms: 6,
-    occupancy: "75%",
-    rating: 4.9,
-    status: "active",
-    image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=800"
-  },
-  {
-    id: "ocean-view-404",
-    name: "Ocean View Resort",
-    type: "Resort",
-    location: "Varkala, Kerala",
-    rooms: 15,
-    occupancy: "88%",
-    rating: 4.7,
-    status: "active",
-    image: "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=800"
-  }
-];
+
 
 const ROOM_TYPES: RoomType[] = [
   { id: "RT-1", name: "Royal Heritage Suite", count: 4, basePrice: 12500, amenities: ["Wifi", "Bathtub", "Balcony", "AC"] },
@@ -130,8 +86,39 @@ const Badge = ({ children, variant = "default", className }: { children: React.R
 // --- Main Page ---
 
 export default function PropertiesPage() {
+  const { user } = useAuth();
+  const [properties, setProperties] = useState<Property[]>([]);
   const [activeProperty, setActiveProperty] = useState<Property | null>(null);
   const [showRoomDetail, setShowRoomDetail] = useState(false);
+
+  useEffect(() => {
+    if (!user?.propertyId) return;
+    const fetchProperty = async () => {
+      try {
+        const res = await fetch(`/api/properties/${user.propertyId}`);
+        if (res.ok) {
+          const json = await res.json();
+          const p = json.data || json;
+          const mappedProperty: Property = {
+            id: p.id,
+            name: p.title || p.name || user.propertyName || "My Property",
+            type: p.type || "Resort",
+            location: p.location || "Location",
+            rooms: p.rooms?.length || 0,
+            occupancy: "N/A",
+            rating: 5.0,
+            status: "active",
+            image: p.images?.[0] || "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=800"
+          };
+          setProperties([mappedProperty]);
+          setActiveProperty(mappedProperty);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchProperty();
+  }, [user]);
 
   return (
     <div className="space-y-10 pb-20">
@@ -162,7 +149,7 @@ export default function PropertiesPage() {
 
       {/* 3. Main Content: Property Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {PROPERTIES.map((property) => (
+        {properties.map((property) => (
           <PropertyCard 
             key={property.id} 
             property={property} 

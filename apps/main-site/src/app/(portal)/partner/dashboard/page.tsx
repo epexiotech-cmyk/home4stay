@@ -76,7 +76,7 @@ const HeroRevenue = ({ stats }: { stats: DashboardStats | null }) => (
         </div>
         <div className="flex-1 md:flex-none p-4 rounded-[24px] bg-[#0E5A75] text-white shadow-xl shadow-[#0E5A75]/20">
           <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Target</p>
-          <p className="text-xl font-bold">{stats?.targetPercent || 0}%</p>
+          <p className="text-xl font-bold">{stats?.targetPercent != null ? `${stats.targetPercent}%` : 'Not Set'}</p>
         </div>
       </div>
     </div>
@@ -238,8 +238,8 @@ export default function PartnerDashboard() {
     const fetchData = async () => {
       try {
         const [bookingsRes, statsRes] = await Promise.all([
-          fetch('/api/bookings'),
-          fetch('/api/partner/dashboard')
+          fetch(`/api/bookings?propertyId=${user.propertyId}`),
+          fetch(`/api/partner/dashboard?propertyId=${user.propertyId}`)
         ]);
         
         if (bookingsRes.ok) {

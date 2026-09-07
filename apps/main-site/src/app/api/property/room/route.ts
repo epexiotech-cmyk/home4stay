@@ -4,6 +4,7 @@ import { requireRole, requirePropertyAccess } from "@/lib/auth/rbac";
 import { withErrorHandler } from "@/lib/errors/handler";
 import { successResponse } from "@/lib/utils/apiResponse";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { propertyRoomSchema } from "@/lib/validators/property.validators";
 
 const getRoomsQuerySchema = z.object({
@@ -48,6 +49,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   if (!access.authorized) return access.response!;
 
   const room = await propertyRoomService.createRoom(data as any);
+  try { revalidatePath("/property/[slug]", "page"); } catch (e) {}
   return successResponse(room, { status: 201 });
 });
 
@@ -59,6 +61,7 @@ export const PATCH = withErrorHandler(async (request: NextRequest) => {
   const { id, ...updateData } = updateRoomSchema.parse(body);
 
   const updatedRoom = await propertyRoomService.updateRoom(id, updateData as any);
+  try { revalidatePath("/property/[slug]", "page"); } catch (e) {}
   return successResponse(updatedRoom);
 });
 
@@ -70,5 +73,6 @@ export const DELETE = withErrorHandler(async (request: NextRequest) => {
   const { id } = deleteRoomQuerySchema.parse({ id: searchParams.get("id") });
 
   await propertyRoomService.deleteRoom(id);
+  try { revalidatePath("/property/[slug]", "page"); } catch (e) {}
   return successResponse({ success: true, deletedId: id });
 });

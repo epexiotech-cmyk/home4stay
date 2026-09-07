@@ -2,14 +2,16 @@ import { prisma } from "../database/prisma";
 import { Prisma } from "@prisma/client";
 
 export class PropertyRoomInventoryRepository {
-  async findByRoomId(roomId: string) {
-    return await prisma.roomInventory.findUnique({
+  async findByRoomId(roomId: string, tx?: Prisma.TransactionClient) {
+    const db = tx || prisma;
+    return await db.roomInventory.findUnique({
       where: { roomId }
     });
   }
 
-  async findManyByRoomIds(roomIds: string[]) {
-    return await prisma.roomInventory.findMany({
+  async findManyByRoomIds(roomIds: string[], tx?: Prisma.TransactionClient) {
+    const db = tx || prisma;
+    return await db.roomInventory.findMany({
       where: { roomId: { in: roomIds } }
     });
   }
@@ -39,39 +41,20 @@ export class PropertyRoomInventoryRepository {
     });
   }
 
-  async decrementInventory(roomId: string, count: number, tx?: Prisma.TransactionClient) {
-    const db = tx || prisma;
-    return await db.roomInventory.update({
-      where: { roomId },
-      data: { availableCount: { decrement: count } }
-    });
-  }
-
-  async incrementInventory(roomId: string, count: number, tx?: Prisma.TransactionClient) {
-    const db = tx || prisma;
-    return await db.roomInventory.update({
-      where: { roomId },
-      data: { availableCount: { increment: count } }
-    });
-  }
-
   // Persistence helper for Availability Engine
-  async countOverlappingBookings(roomId: string, startDate: Date, endDate: Date) {
-    const overlapping = await prisma.booking.aggregate({
+  async countOverlappingBookings(roomId: string, startDate: Date, endDate: Date, tx?: Prisma.TransactionClient) {
+    const db = tx || prisma;
+    const overlapping = await db.booking.aggregate({
       where: {
         roomId,
         OR: [
-          { status: { in: ['CONFIRMED', 'CHECKED_IN'] } },
+          { status: { in: ['CONFIRMED', 'CHECKED_IN', 'PENDING'] } },
           { 
             temporaryInventoryLockedUntil: { gt: new Date() } 
           }
         ],
         startDate: { lt: endDate },
         endDate: { gt: startDate }
-      },
-      _sum: {
-        // Typically in hotel domains, a booking books 1 physical room.
-        // If a booking model had `roomCount`, we'd sum it. We'll count records for now.
       },
       _count: true
     });

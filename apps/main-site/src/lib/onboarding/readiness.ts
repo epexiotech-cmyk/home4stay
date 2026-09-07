@@ -145,7 +145,7 @@ export class LaunchReadinessService {
       improvements.push("Add a curated AI tagline banner to make your home page banner float and stand out.");
     }
 
-    const isReady = true; // patched for testing
+    const isReady = blockingIssues.length === 0;
 
     return {
       isReady,

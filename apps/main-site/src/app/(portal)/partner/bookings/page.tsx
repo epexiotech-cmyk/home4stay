@@ -54,6 +54,37 @@ interface Booking {
   utrNumber?: string | null;
 }
 
+
+const parsePrismaBooking = (b: Record<string, unknown>) => {
+  const guestsArray = Array.isArray(b.guests) ? b.guests : [];
+  const primaryGuest = guestsArray.find((g: Record<string, unknown>) => g.isPrimaryGuest) || guestsArray[0];
+  const guestName = primaryGuest && primaryGuest.guest ? (primaryGuest.guest.firstName + ' ' + (primaryGuest.guest.lastName || '')).trim() : 'Unknown Guest';
+  return {
+    id: String(b.id || '').substring(0, 8).toUpperCase(),
+    rawId: String(b.id || ''),
+    guestName,
+    source: (b.source || 'Direct') as BookingSource,
+    propertyName: b.property?.name || 'Unknown Property',
+    roomName: b.room?.name || 'Unknown Room',
+    roomFeatures: [],
+    mealPlan: (b.mealPlan || b.meal_plan) as "EP" | "CP" | "MAP" | "AP",
+    checkIn: new Date(b.startDate || b.start_date || new Date()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+    checkOut: new Date(b.endDate || b.end_date || new Date()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+    guests: {
+      adults: guestsArray.filter((g: Record<string, unknown>) => g.occupancyRole === 'Adult' || g.occupancy_role === 'Adult').length || 0,
+      children: guestsArray.filter((g: Record<string, unknown>) => g.occupancyRole === 'Child' || g.occupancy_role === 'Child').length || 0
+    },
+    amount: b.amount || 0,
+    paymentStatus: String(b.paymentStatus || b.payment_status || 'pending').toLowerCase() as PaymentStatus,
+    status: (b.status || 'PENDING') as BookingStatus,
+    createdAt: new Date(b.createdAt || b.created_at || new Date()).toLocaleDateString(),
+    paymentMode: b.paymentMode || b.payment_mode,
+    paymentReference: b.paymentReference || b.payment_reference,
+    utrNumber: b.utrNumber || b.utr_number,
+    guestPhone: primaryGuest && primaryGuest.guest ? primaryGuest.guest.phone : undefined
+  };
+};
+
 interface DbBooking {
   id: string;
   guest_name: string;
@@ -70,6 +101,7 @@ interface DbBooking {
   payment_mode?: string | null;
   payment_reference?: string | null;
   utr_number?: string | null;
+  guests?: { occupancyRole?: string; occupancy_role?: string }[];
 }
 
 // --- Sub-components ---
@@ -152,26 +184,8 @@ export default function BookingsPage() {
       if (response.ok) {
         const data = await response.json();
         // Map DB schema to UI interface
-        const mapped = data.map((b: DbBooking) => ({
-          id: b.id.substring(0, 8).toUpperCase(),
-          rawId: b.id,
-          guestName: b.guest_name,
-          source: b.source as BookingSource,
-          propertyName: b.property_name,
-          roomName: b.room_name,
-          roomFeatures: [], // Features can be dynamic
-          mealPlan: b.meal_plan,
-          checkIn: new Date(b.start_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-          checkOut: new Date(b.end_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-          guests: { adults: 2, children: 0 }, 
-          amount: b.amount,
-          paymentStatus: b.payment_status.toLowerCase() as PaymentStatus,
-          status: b.status as BookingStatus,
-          createdAt: new Date(b.created_at).toLocaleDateString(),
-          paymentMode: b.payment_mode,
-          paymentReference: b.payment_reference,
-          utrNumber: b.utr_number
-        }));
+        const actualData = data.data?.data || data.data || data || [];
+        const mapped = actualData.map((b: Record<string, unknown>) => parsePrismaBooking(b));
         setBookings(mapped);
       }
     } catch (error) {
@@ -535,7 +549,7 @@ export default function BookingsPage() {
 
 
 function BookingCard({ booking, onReload }: { booking: Booking, onReload: () => void }) {
-  const [isPendingAction, setIsPendingAction] = useState<"APPROVE" | "REJECT" | null>(null);
+  const [isPendingAction, setIsPendingAction] = useState<"APPROVE" | "REJECT" | "CHECK_IN" | "CHECK_OUT" | null>(null);
 
   const handleApprove = async () => {
     if (isPendingAction) return;
@@ -574,6 +588,44 @@ function BookingCard({ booking, onReload }: { booking: Booking, onReload: () => 
         onReload();
       } else {
         alert(data.error || "Rejection failed.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error occurred.");
+    } finally {
+      setIsPendingAction(null);
+    }
+  };
+
+  const handlerCheckIn = async () => {
+    if (isPendingAction) return;
+    setIsPendingAction("CHECK_IN");
+    try {
+      const res = await fetch(`/api/bookings/${booking.rawId}/checkin`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        onReload();
+      } else {
+        alert(data.error || "Check-in failed.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error occurred.");
+    } finally {
+      setIsPendingAction(null);
+    }
+  };
+
+  const handlerCheckOut = async () => {
+    if (isPendingAction) return;
+    setIsPendingAction("CHECK_OUT");
+    try {
+      const res = await fetch(`/api/bookings/${booking.rawId}/checkout`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        onReload();
+      } else {
+        alert(data.error || "Check-out failed.");
       }
     } catch (err) {
       console.error(err);
@@ -687,9 +739,9 @@ function BookingCard({ booking, onReload }: { booking: Booking, onReload: () => 
       {/* 4. Action Bar */}
       <div className="px-6 py-4 border-t border-[#0E5A75]/5 flex flex-wrap items-center justify-between gap-4 bg-white/30 dark:bg-transparent">
         <div className="flex items-center gap-2">
-          <ActionButtonIcon icon={Smartphone} label="WhatsApp" color="hover:text-[#25D366] hover:bg-[#25D366]/5" />
-          <ActionButtonIcon icon={Phone} label="Call" color="hover:text-[#0983B0] hover:bg-[#0983B0]/5" />
-          <ActionButtonIcon icon={FileText} label="Invoice" color="hover:text-[#0E5A75] hover:bg-[#0E5A75]/5" />
+          {booking.guestPhone && <ActionButtonIcon onClick={() => window.open(`https://wa.me/${booking.guestPhone}`, '_blank')} icon={Smartphone} label="WhatsApp" color="hover:text-[#25D366] hover:bg-[#25D366]/5" />}
+          {booking.guestPhone && <ActionButtonIcon onClick={() => window.open(`tel:${booking.guestPhone}`, '_self')} icon={Phone} label="Call" color="hover:text-[#0983B0] hover:bg-[#0983B0]/5" />}
+          <ActionButtonIcon onClick={() => window.open(`/api/bookings/${booking.rawId}/invoice/download`, '_blank')} icon={FileText} label="Invoice" color="hover:text-[#0E5A75] hover:bg-[#0E5A75]/5" />
         </div>
         
         <div className="flex items-center gap-2">
@@ -712,10 +764,20 @@ function BookingCard({ booking, onReload }: { booking: Booking, onReload: () => 
               </button>
             </>
           ) : booking.status === "confirmed" ? (
-            <button className="px-8 py-2.5 rounded-xl bg-[#0E5A75] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#0A4459] transition-all shadow-lg shadow-[#0E5A75]/20">Start Check-In</button>
-          ) : (
-            <button className="px-6 py-2.5 rounded-xl border border-[#0E5A75]/20 text-[#0E5A75] text-xs font-bold uppercase tracking-wider hover:bg-[#0E5A75]/5 transition-all">View Details</button>
-          )}
+            <button 
+              onClick={handlerCheckIn}
+              disabled={isPendingAction !== null}
+              className="px-8 py-2.5 rounded-xl bg-[#0E5A75] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#0A4459] transition-all shadow-lg shadow-[#0E5A75]/20 flex items-center gap-2 disabled:opacity-50">
+              {isPendingAction === "CHECK_IN" ? <Loader2 size={12} className="animate-spin" /> : "Start Check-In"}
+            </button>
+          ) : booking.status === "checked_in" ? (
+            <button 
+              onClick={handlerCheckOut}
+              disabled={isPendingAction !== null}
+              className="px-8 py-2.5 rounded-xl bg-[#F24633] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#C93322] transition-all shadow-lg shadow-[#F24633]/20 flex,items-center gap-2 disabled:opacity-50">
+              {isPendingAction === "CHECK_OUT" ? <Loader2 size={12} className="animate-spin" /> : "Check-Out"}
+            </button>
+          ) : null}
           <button className="p-2.5 rounded-xl hover:bg-[#0E5A75]/5 text-[#0E5A75]/40 hover:text-[#0E5A75] transition-all"><MoreVertical size={18} /></button>
         </div>
       </div>

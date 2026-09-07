@@ -44,7 +44,13 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const access = await requirePropertyAccess(request, data.propertyId);
   if (!access.authorized) return access.response!;
 
-  const newOffer = await propertyPromotionService.createOffer(data);
+  const createData = {
+    ...data,
+    slug: data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.floor(Math.random() * 1000),
+    offerType: 'discount',
+  };
+
+  const newOffer = await propertyPromotionService.createOffer(createData);
   return successResponse(newOffer, { status: 201 });
 });
 

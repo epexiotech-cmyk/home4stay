@@ -1,109 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  role      String   @default("owner") // super_admin, admin, manager, owner, customer
-  password  String
-  phone     String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // KYC & Trust System
-  kycStatus               String    @default("NOT_VERIFIED") @map("kyc_status")
-  verifiedBadge           Boolean   @default(false) @map("verified_badge")
-  verificationLevel       Int       @default(0) @map("verification_level")
-  trustedGuestScore       Int       @default(0) @map("trusted_guest_score")
-  verificationCompletedAt DateTime? @map("verification_completed_at")
-
-  reset_password_token   String?   @map("reset_password_token")
-  reset_password_expires DateTime? @map("reset_password_expires")
-
-  properties     Property[]
-  guestProfile   Guest?     @relation(fields: [guestProfileId], references: [id])
-  guestProfileId String?    @unique @map("guest_profile_id")
-  hostProfile    UserHostProfile?
-
-  conciergeRequests ConciergeRequest[]
-  conciergeMessages ConciergeMessage[]
-
-  propertyAccesses PropertyUserAccess[]
-  sessions         Session[]
-  auditLogs        AuditLog[]
-  legalAcceptances LegalAcceptanceLog[]
-  invoices         Invoice[]
-
-  referralProfile     ReferralProfile?
-  referrerEvents      ReferralEvent[]            @relation("ReferrerEvents")
-  referredEvents      ReferralEvent[]            @relation("ReferredEvents")
-  referralLedger      ReferralCreditLedger[]
-  referralRedemptions ReferralRewardRedemption[]
-
-  // Business Billing Identity
-  legalBusinessName String? @map("legal_business_name")
-  gstin             String?
-  billingAddress    String? @map("billing_address")
-  billingState      String? @map("billing_state")
-  billingPincode    String? @map("billing_pincode")
-  billingContact    String? @map("billing_contact")
+  id                      String                     @id @default(uuid())
+  email                   String                     @unique
+  name                    String?
+  role                    String                     @default("owner")
+  password                String
+  phone                   String?
+  createdAt               DateTime                   @default(now()) @map("created_at")
+  updatedAt               DateTime                   @updatedAt @map("updated_at")
+  kycStatus               String                     @default("NOT_VERIFIED") @map("kyc_status")
+  verifiedBadge           Boolean                    @default(false) @map("verified_badge")
+  verificationLevel       Int                        @default(0) @map("verification_level")
+  trustedGuestScore       Int                        @default(0) @map("trusted_guest_score")
+  verificationCompletedAt DateTime?                  @map("verification_completed_at")
+  reset_password_token    String?                    @map("reset_password_token")
+  reset_password_expires  DateTime?                  @map("reset_password_expires")
+  guestProfileId          String?                    @unique @map("guest_profile_id")
+  legalBusinessName       String?                    @map("legal_business_name")
+  gstin                   String?
+  billingAddress          String?                    @map("billing_address")
+  billingState            String?                    @map("billing_state")
+  billingPincode          String?                    @map("billing_pincode")
+  billingContact          String?                    @map("billing_contact")
+  status                  String                     @default("ACTIVE")
+  auditLogs               AuditLog[]
+  conciergeMessages       ConciergeMessage[]
+  conciergeRequests       ConciergeRequest[]
+  invoices                Invoice[]
+  legalAcceptances        LegalAcceptanceLog[]
+  properties              Property[]
+  propertyAccesses        PropertyUserAccess[]
+  referralLedger          ReferralCreditLedger[]
+  referredEvents          ReferralEvent[]            @relation("ReferredEvents")
+  referrerEvents          ReferralEvent[]            @relation("ReferrerEvents")
+  referralProfile         ReferralProfile?
+  referralRedemptions     ReferralRewardRedemption[]
+  sessions                Session[]
+  hostProfile             UserHostProfile?
+  guestProfile            Guest?                     @relation(fields: [guestProfileId], references: [id])
 
   @@index([reset_password_token])
   @@map("users")
 }
 
 model Property {
-  id          String    @id @default(uuid())
-  ownerId     String    @map("owner_id")
-  slug        String    @unique
-  subdomain   String?   @unique @map("subdomain")
-  title       String
-  status      String    @default("DRAFT") // DRAFT, SETUP_IN_PROGRESS, READY_TO_LAUNCH, LIVE, SUSPENDED
-  publishedAt DateTime? @map("published_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-
-  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  pageContent       PropertyPageContent?
-  mediaAssets       MediaAsset[]
-  cmsVersions       CmsVersion[]
-  conciergeRequests ConciergeRequest[]
-  experiences       PropertyExperience[]
-  rooms             Room[]
-  reviews           PropertyReview[]
-  offers            PropertyOffer[]
-  onboardingSession OnboardingSession?
-
-  // Phase B1 Extensions
-  propertyType     String?           @map("property_type")
-  shortDescription String?           @map("short_description") @db.Text
-  onboardingStatus String            @default("NOT_STARTED") @map("onboarding_status")
-  location           String?
-  contactPhone       String?           @map("contact_phone")
-  contactWhatsapp    String?           @map("contact_whatsapp")
-  aggregateRating    Float?            @map("aggregate_rating")
-  amenities        PropertyAmenity[]
-  policies         PropertyPolicy?
-  pricing          PropertyPricing?
-
-  userAccesses        PropertyUserAccess[]
-  aiGenerationEvents  AiGenerationEvent[]
-  aiPreferenceSignals AiPreferenceSignal[]
-  paymentConfigs      PropertyPaymentConfig[]
-  Booking             Booking[]
-  subscriptions       PropertySubscription[]
-  paymentTransactions PaymentTransaction[]
-  agreements          PropertyAgreement[]
-  propertyActivation  PropertyActivation?
-  mealPlans           PropertyMealPlan[]
+  id                       String                    @id @default(uuid())
+  ownerId                  String                    @map("owner_id")
+  slug                     String                    @unique
+  title                    String
+  status                   String                    @default("DRAFT")
+  publishedAt              DateTime?                 @map("published_at")
+  createdAt                DateTime                  @default(now()) @map("created_at")
+  updatedAt                DateTime                  @updatedAt @map("updated_at")
+  propertyType             String?                   @map("property_type")
+  shortDescription         String?                   @map("short_description")
+  onboardingStatus         String                    @default("NOT_STARTED") @map("onboarding_status")
+  subdomain                String?                   @unique @map("subdomain")
+  aggregateRating          Float?                    @map("aggregate_rating")
+  contactPhone             String?                   @map("contact_phone")
+  contactWhatsapp          String?                   @map("contact_whatsapp")
+  location                 String?
+  aiGenerationEvents       AiGenerationEvent[]
+  aiPreferenceSignals      AiPreferenceSignal[]
+  Booking                  Booking[]
+  cmsVersions              CmsVersion[]
+  conciergeRequests        ConciergeRequest[]
+  conciergeServiceCatalogs ConciergeServiceCatalog[]
+  mediaAssets              MediaAsset[]
+  onboardingSession        OnboardingSession?
+  paymentTransactions      PaymentTransaction[]
+  owner                    User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  propertyActivation       PropertyActivation?
+  agreements               PropertyAgreement[]
+  amenities                PropertyAmenity[]
+  experiences              PropertyExperience[]
+  mealPlans                PropertyMealPlan[]
+  offers                   PropertyOffer[]
+  pageContent              PropertyPageContent?
+  paymentConfigs           PropertyPaymentConfig[]
+  policies                 PropertyPolicy?
+  pricing                  PropertyPricing?
+  reviews                  PropertyReview[]
+  subscriptions            PropertySubscription[]
+  userAccesses             PropertyUserAccess[]
+  rooms                    Room[]
 
   @@index([ownerId])
   @@index([status])
@@ -112,32 +100,30 @@ model Property {
 }
 
 model PropertyPageContent {
-  id                 String   @id @default(uuid())
-  propertyId         String   @unique @map("property_id")
-  themeVariant       String   @default("Mountain Luxury") @map("theme_variant")
-  spacingPreset      String   @default("relaxed-luxury") @map("spacing_preset")
-  animationPreset    String   @default("cinematic-fade-physics") @map("animation_preset")
-  publishedVersionId String?  @map("published_version_id")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  property Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  sections PropertySection[]
+  id                 String            @id @default(uuid())
+  propertyId         String            @unique @map("property_id")
+  themeVariant       String            @default("Mountain Luxury") @map("theme_variant")
+  spacingPreset      String            @default("relaxed-luxury") @map("spacing_preset")
+  animationPreset    String            @default("cinematic-fade-physics") @map("animation_preset")
+  publishedVersionId String?           @map("published_version_id")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  property           Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  sections           PropertySection[]
 
   @@map("property_page_contents")
 }
 
 model PropertySection {
-  id                    String   @id @default(uuid())
-  propertyPageContentId String   @map("property_page_content_id")
-  type                  String // hero, narrative, carousel, gallery, testimonials, faq, amenities, seo
-  enabled               Boolean  @default(true)
-  sortOrder             Int      @default(0) @map("sort_order")
-  data                  Json     @default("{}")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
-
-  pageContent PropertyPageContent @relation(fields: [propertyPageContentId], references: [id], onDelete: Cascade)
+  id                    String              @id @default(uuid())
+  propertyPageContentId String              @map("property_page_content_id")
+  type                  String
+  enabled               Boolean             @default(true)
+  sortOrder             Int                 @default(0) @map("sort_order")
+  data                  Json                @default("{}")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+  pageContent           PropertyPageContent @relation(fields: [propertyPageContentId], references: [id], onDelete: Cascade)
 
   @@index([propertyPageContentId])
   @@index([sortOrder])
@@ -145,26 +131,23 @@ model PropertySection {
 }
 
 model MediaAsset {
-  id         String  @id @default(uuid())
-  propertyId String  @map("property_id")
-  type       String  @default("image") // Backwards compatibility (image/video)
-  url        String // Backwards compatibility (public web url)
-  blurData   String? @map("blur_data")
-  width      Int?    @default(800)
-  height     Int?    @default(600)
-  tags       String  @default("General") // comma separated tag profiles
-  uploadedBy String  @default("partner_owner") @map("uploaded_by")
-
-  // Production-grade media asset fields
-  assetType  String   @default("IMAGE") @map("asset_type") // HERO, GALLERY, ROOM, EXPERIENCE, LOGO, COVER
+  id         String   @id @default(uuid())
+  propertyId String   @map("property_id")
+  type       String   @default("image")
+  url        String
+  blurData   String?  @map("blur_data")
+  width      Int?     @default(800)
+  height     Int?     @default(600)
+  tags       String   @default("General")
+  uploadedBy String   @default("partner_owner") @map("uploaded_by")
+  assetType  String   @default("IMAGE") @map("asset_type")
   fileName   String   @default("") @map("file_name")
   storageKey String   @default("") @map("storage_key")
   mimeType   String   @default("image/jpeg") @map("mime_type")
   fileSize   Int      @default(0) @map("file_size")
   sortOrder  Int      @default(0) @map("sort_order")
   createdAt  DateTime @default(now()) @map("created_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId])
   @@index([tags])
@@ -175,12 +158,11 @@ model CmsVersion {
   id          String   @id @default(uuid())
   propertyId  String   @map("property_id")
   versionName String   @default("Initial Snapshot") @map("version_name")
-  snapshot    Json // full JSON archive of document state at publish time
+  snapshot    Json
   published   Boolean  @default(false)
   createdBy   String   @default("concierge_curator_v2") @map("created_by")
   createdAt   DateTime @default(now()) @map("created_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId])
   @@map("cms_versions")
@@ -200,31 +182,30 @@ model Theme {
 }
 
 model Guest {
-  id                      String    @id @default(uuid())
-  fullName                String    @map("full_name")
-  mobile                  String    @unique
-  email                   String?   @unique
+  id                      String         @id @default(uuid())
+  fullName                String         @map("full_name")
+  mobile                  String         @unique
+  email                   String?        @unique
   gender                  String?
   dob                     DateTime?
-  nationality             String    @default("Indian")
-  addressLine1            String?   @map("address_line1")
-  addressLine2            String?   @map("address_line2")
+  nationality             String         @default("Indian")
+  addressLine1            String?        @map("address_line1")
+  addressLine2            String?        @map("address_line2")
   city                    String?
   state                   String?
   pincode                 String?
-  country                 String    @default("India")
-  identityType            String?   @map("identity_type")
-  identityNumberMasked    String?   @map("identity_number_masked")
-  kycStatus               String    @default("PENDING") @map("kyc_status")
-  aadhaarVerified         Boolean   @default(false) @map("aadhaar_verified")
-  aadhaarReferenceId      String?   @map("aadhaar_reference_id")
-  policeVerificationReady Boolean   @default(false) @map("police_verification_ready")
-  createdAt               DateTime  @default(now()) @map("created_at")
-  updatedAt               DateTime  @updatedAt @map("updated_at")
-
-  kycData     GuestKYC?
-  bookings    BookingGuest[]
-  userAccount User?
+  country                 String         @default("India")
+  identityType            String?        @map("identity_type")
+  identityNumberMasked    String?        @map("identity_number_masked")
+  kycStatus               String         @default("PENDING") @map("kyc_status")
+  aadhaarVerified         Boolean        @default(false) @map("aadhaar_verified")
+  aadhaarReferenceId      String?        @map("aadhaar_reference_id")
+  policeVerificationReady Boolean        @default(false) @map("police_verification_ready")
+  createdAt               DateTime       @default(now()) @map("created_at")
+  updatedAt               DateTime       @updatedAt @map("updated_at")
+  bookings                BookingGuest[]
+  kycData                 GuestKYC?
+  userAccount             User?
 
   @@map("guests")
 }
@@ -244,42 +225,38 @@ model GuestKYC {
   auditTrail            Json      @default("[]") @map("audit_trail")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
-
-  guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  guest                 Guest     @relation(fields: [guestId], references: [id], onDelete: Cascade)
 
   @@map("guest_kyc")
 }
 
 model Booking {
-  id            String   @id @default(uuid())
-  propertyId    String   @map("property_id")
-  roomId        String   @map("room_id")
-  startDate     DateTime @map("start_date")
-  endDate       DateTime @map("end_date")
-  status        String   @default("DRAFT") // DRAFT, PENDING_KYC, CONFIRMED, CHECKED_IN
-  source        String   @default("Direct")
-  mealPlan      String   @default("EP") @map("meal_plan")
-  paymentStatus String   @default("PENDING") @map("payment_status")
-  amount        Float
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  paymentMode                   String?   @map("payment_mode")
-  paymentReference              String?   @map("payment_reference")
-  utrNumber                     String?   @map("utr_number")
-  paymentSubmittedAt            DateTime? @map("payment_submitted_at")
-  paymentVerifiedAt             DateTime? @map("payment_verified_at")
-  paymentExpiresAt              DateTime? @map("payment_expires_at")
-  temporaryInventoryLockedUntil DateTime? @map("temporary_inventory_locked_until")
-
-  guests            BookingGuest[]
-  conciergeRequests ConciergeRequest[]
-  conciergeServices BookingConciergeService[]
-  invoices          InvoiceRecord[]
-  notifications     Notification[]
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  room     Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  id                            String                    @id @default(uuid())
+  propertyId                    String                    @map("property_id")
+  roomId                        String                    @map("room_id")
+  startDate                     DateTime                  @map("start_date")
+  endDate                       DateTime                  @map("end_date")
+  status                        String                    @default("DRAFT")
+  source                        String                    @default("Direct")
+  mealPlan                      String                    @default("EP") @map("meal_plan")
+  paymentStatus                 String                    @default("PENDING") @map("payment_status")
+  amount                        Float
+  createdAt                     DateTime                  @default(now()) @map("created_at")
+  updatedAt                     DateTime                  @updatedAt @map("updated_at")
+  paymentMode                   String?                   @map("payment_mode")
+  paymentReference              String?                   @map("payment_reference")
+  utrNumber                     String?                   @map("utr_number")
+  paymentSubmittedAt            DateTime?                 @map("payment_submitted_at")
+  paymentVerifiedAt             DateTime?                 @map("payment_verified_at")
+  paymentExpiresAt              DateTime?                 @map("payment_expires_at")
+  temporaryInventoryLockedUntil DateTime?                 @map("temporary_inventory_locked_until")
+  conciergeServices             BookingConciergeService[]
+  guests                        BookingGuest[]
+  property                      Property                  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  room                          Room                      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  conciergeRequests             ConciergeRequest[]
+  invoices                      InvoiceRecord[]
+  notifications                 Notification[]
 
   @@index([propertyId])
   @@index([roomId])
@@ -293,14 +270,13 @@ model BookingConciergeService {
   id          String   @id @default(uuid())
   bookingId   String   @map("booking_id")
   serviceType String   @map("service_type")
-  status      String   @default("REQUESTED") // REQUESTED, CONFIRMED, REJECTED, COMPLETED
+  status      String   @default("REQUESTED")
   pricingMode String   @default("PREPAID") @map("pricing_mode")
   amount      Float    @default(0)
   configData  Json     @default("{}") @map("config_data")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([bookingId])
   @@map("booking_concierge_services")
@@ -312,34 +288,32 @@ model BookingGuest {
   guestId        String  @map("guest_id")
   isPrimaryGuest Boolean @default(false) @map("is_primary_guest")
   occupancyRole  String  @default("Adult") @map("occupancy_role")
-
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  guest   Guest   @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  booking        Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  guest          Guest   @relation(fields: [guestId], references: [id], onDelete: Cascade)
 
   @@unique([bookingId, guestId])
   @@map("booking_guests")
 }
 
 model ConciergeRequest {
-  id                String    @id @default(uuid())
-  userId            String    @map("user_id")
-  bookingId         String?   @map("booking_id")
-  propertyId        String?   @map("property_id")
-  category          String // Airport Pickup, Housekeeping, Local Tour, etc.
-  priority          String    @default("NORMAL") // NORMAL, URGENT, VIP_PRIORITY
+  id                String             @id @default(uuid())
+  userId            String             @map("user_id")
+  bookingId         String?            @map("booking_id")
+  propertyId        String?            @map("property_id")
+  category          String
+  priority          String             @default("NORMAL")
   title             String
   description       String
-  status            String    @default("SUBMITTED") // SUBMITTED, UNDER_REVIEW, ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED
-  assignedTo        String?   @map("assigned_to")
-  preferredDateTime DateTime? @map("preferred_date_time")
-  metadata          Json      @default("{}") // For category specific details
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-
-  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  booking  Booking?           @relation(fields: [bookingId], references: [id])
-  property Property?          @relation(fields: [propertyId], references: [id])
-  messages ConciergeMessage[]
+  status            String             @default("SUBMITTED")
+  assignedTo        String?            @map("assigned_to")
+  preferredDateTime DateTime?          @map("preferred_date_time")
+  metadata          Json               @default("{}")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  messages          ConciergeMessage[]
+  booking           Booking?           @relation(fields: [bookingId], references: [id])
+  property          Property?          @relation(fields: [propertyId], references: [id])
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
@@ -347,16 +321,15 @@ model ConciergeRequest {
 }
 
 model ConciergeMessage {
-  id         String   @id @default(uuid())
-  requestId  String   @map("request_id")
-  senderId   String   @map("sender_id")
-  senderType String   @map("sender_type")
+  id         String           @id @default(uuid())
+  requestId  String           @map("request_id")
+  senderId   String           @map("sender_id")
+  senderType String           @map("sender_type")
   message    String
-  attachment String? // URL to image/document
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  request ConciergeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  sender  User             @relation(fields: [senderId], references: [id])
+  attachment String?
+  createdAt  DateTime         @default(now()) @map("created_at")
+  request    ConciergeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  sender     User             @relation(fields: [senderId], references: [id])
 
   @@index([requestId])
   @@map("concierge_messages")
@@ -377,14 +350,13 @@ model PropertyExperience {
   duration           String?
   maxGuests          Int?     @map("max_guests")
   requiresScheduling Boolean  @default(false) @map("requires_scheduling")
-  availabilityType   String   @default("always") @map("availability_type") // always, seasonal, weekend, custom
-  customAvailability Json?    @map("custom_availability") // For custom date ranges/days
+  availabilityType   String   @default("always") @map("availability_type")
+  customAvailability Json?    @map("custom_availability")
   isActive           Boolean  @default(true) @map("is_active")
   sortOrder          Int      @default(0) @map("sort_order")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property           Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId])
   @@index([category])
@@ -394,24 +366,23 @@ model PropertyExperience {
 }
 
 model Room {
-  id         String   @id @default(uuid())
-  propertyId String   @map("property_id")
+  id         String    @id @default(uuid())
+  propertyId String    @map("property_id")
   name       String
   price      Float
   capacity   String
   view       String
-  images     Json     @default("[]")
-  roomType   String?  @map("room_type")
-  sizeSqFt   Int?     @map("size_sq_ft")
-  bedType    String?  @map("bed_type")
-  tags       Json     @default("[]")
-  roomCount  Int      @default(1) @map("room_count")
-  isActive   Boolean  @default(true) @map("is_active")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-
-  property Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  Booking  Booking[]
+  images     Json      @default("[]")
+  roomType   String?   @map("room_type")
+  roomCount  Int       @default(1) @map("room_count")
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  bedType    String?   @map("bed_type")
+  sizeSqFt   Int?      @map("size_sq_ft")
+  tags       Json      @default("[]")
+  Booking    Booking[]
+  property   Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId])
   @@map("rooms")
@@ -425,8 +396,7 @@ model PropertyAmenity {
   isAvailable Boolean  @default(true) @map("is_available")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId])
   @@map("property_amenities")
@@ -439,12 +409,11 @@ model PropertyPolicy {
   checkOutTime       String   @map("check_out_time")
   petsAllowed        Boolean  @default(false) @map("pets_allowed")
   smokingAllowed     Boolean  @default(false) @map("smoking_allowed")
-  cancellationPolicy String   @map("cancellation_policy") @db.Text
-  houseRules         String?  @map("house_rules") @db.Text
+  cancellationPolicy String   @map("cancellation_policy")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  houseRules         String?  @map("house_rules")
+  property           Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@map("property_policies")
 }
@@ -457,8 +426,7 @@ model PropertyPricing {
   taxRate    Float    @default(0.0) @map("tax_rate")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@map("property_pricing")
 }
@@ -479,8 +447,7 @@ model PropertyReview {
   isFeatured      Boolean   @default(false) @map("is_featured")
   responseMessage String?   @map("response_message")
   responseAt      DateTime? @map("response_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property        Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId])
   @@map("property_reviews")
@@ -493,8 +460,8 @@ model PropertyOffer {
   slug                  String
   description           String
   bannerImage           String?  @map("banner_image")
-  offerType             String   @map("offer_type") // discount, package, seasonal, early_bird
-  discountType          String   @map("discount_type") // percentage, flat
+  offerType             String   @map("offer_type")
+  discountType          String   @map("discount_type")
   discountValue         Float    @map("discount_value")
   couponCode            String   @map("coupon_code")
   minimumBookingAmount  Float    @map("minimum_booking_amount")
@@ -506,8 +473,7 @@ model PropertyOffer {
   applicableExperiences Json     @default("[]") @map("applicable_experiences")
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property              Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId])
   @@index([couponCode])
@@ -521,20 +487,15 @@ model RoomInventory {
   @@map("room_inventory")
 }
 
-// =========================================================================
-// PRODUCTION-GRADE AUTHENTICATION & RBAC SCHEMA ADDITIONS
-// =========================================================================
-
 model PropertyUserAccess {
   id         String   @id @default(uuid())
   propertyId String   @map("property_id")
   userId     String   @map("user_id")
-  role       String   @default("manager") // owner, manager, receptionist, billing, housekeeping
+  role       String   @default("manager")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([propertyId, userId])
   @@index([userId])
@@ -553,8 +514,7 @@ model Session {
   expiresAt        DateTime @map("expires_at")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([refreshTokenHash])
@@ -564,16 +524,15 @@ model Session {
 model AuditLog {
   id           String   @id @default(uuid())
   userId       String?  @map("user_id")
-  action       String // e.g., USER_LOGIN, USER_LOGOUT, ROLE_CHANGE
+  action       String
   resourceType String?  @map("resource_type")
   resourceId   String?  @map("resource_id")
   ipAddress    String?  @map("ip_address")
   userAgent    String?  @map("user_agent")
-  status       String // SUCCESS, FAILURE
+  status       String
   metadata     Json?    @map("metadata")
   createdAt    DateTime @default(now()) @map("created_at")
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user         User?    @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([action])
@@ -582,44 +541,41 @@ model AuditLog {
 }
 
 model OnboardingSession {
-  id          String   @id @default(uuid())
-  propertyId  String   @unique @map("property_id")
-  status      String   @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED, LIVE
-  currentStep String   @default("welcome") @map("current_step")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  property Property                @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  progress PropertySetupProgress[]
-  drafts   WizardDraft[]
+  id          String                  @id @default(uuid())
+  propertyId  String                  @unique @map("property_id")
+  status      String                  @default("NOT_STARTED")
+  currentStep String                  @default("welcome") @map("current_step")
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+  property    Property                @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  progress    PropertySetupProgress[]
+  drafts      WizardDraft[]
 
   @@map("onboarding_sessions")
 }
 
 model PropertySetupProgress {
-  id                  String    @id @default(uuid())
-  onboardingSessionId String    @map("onboarding_session_id")
-  stepId              String    @map("step_id") // welcome, property, theme, rooms, amenities, experiences, gallery, policies, pricing, launch
-  status              String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, SKIPPED
-  completedAt         DateTime? @map("completed_at")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-
-  session OnboardingSession @relation(fields: [onboardingSessionId], references: [id], onDelete: Cascade)
+  id                  String            @id @default(uuid())
+  onboardingSessionId String            @map("onboarding_session_id")
+  stepId              String            @map("step_id")
+  status              String            @default("PENDING")
+  completedAt         DateTime?         @map("completed_at")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+  session             OnboardingSession @relation(fields: [onboardingSessionId], references: [id], onDelete: Cascade)
 
   @@unique([onboardingSessionId, stepId])
   @@map("property_setup_progress")
 }
 
 model WizardDraft {
-  id                  String   @id @default(uuid())
-  onboardingSessionId String   @map("onboarding_session_id")
-  stepId              String   @map("step_id") // welcome, property, theme, rooms, etc.
-  data                Json     @default("{}")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
-
-  session OnboardingSession @relation(fields: [onboardingSessionId], references: [id], onDelete: Cascade)
+  id                  String            @id @default(uuid())
+  onboardingSessionId String            @map("onboarding_session_id")
+  stepId              String            @map("step_id")
+  data                Json              @default("{}")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+  session             OnboardingSession @relation(fields: [onboardingSessionId], references: [id], onDelete: Cascade)
 
   @@unique([onboardingSessionId, stepId])
   @@map("wizard_drafts")
@@ -628,7 +584,7 @@ model WizardDraft {
 model AiGenerationEvent {
   id                 String   @id @default(uuid())
   propertyId         String   @map("property_id")
-  generationType     String   @map("generation_type") // PROPERTY_DESCRIPTION, TAGLINE, SEO_METADATA, AMENITIES, EXPERIENCES, THEME_RECOMMENDATION
+  generationType     String   @map("generation_type")
   inputContext       Json     @default("{}") @map("input_context")
   generatedOutput    Json     @default("{}") @map("generated_output")
   selectedTheme      String?  @map("selected_theme")
@@ -640,8 +596,7 @@ model AiGenerationEvent {
   editDistance       Float    @default(0.0) @map("edit_distance")
   generationDuration Int      @default(0) @map("generation_duration")
   createdAt          DateTime @default(now()) @map("created_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property           Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId])
   @@index([generationType])
@@ -651,12 +606,11 @@ model AiGenerationEvent {
 model AiPreferenceSignal {
   id         String   @id @default(uuid())
   propertyId String   @map("property_id")
-  category   String // theme, vibe, amenities, tone, experiences
+  category   String
   signalKey  String   @map("signal_key")
   score      Float    @default(1.0)
   updatedAt  DateTime @updatedAt @map("updated_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@unique([propertyId, category, signalKey])
   @@map("ai_preference_signals")
@@ -665,18 +619,17 @@ model AiPreferenceSignal {
 model PropertyPaymentConfig {
   id            String   @id @default(uuid())
   propertyId    String   @map("property_id")
-  provider      String // e.g., "SMART_UPI", "RAZORPAY", etc.
+  provider      String
   upiId         String?  @map("upi_id")
   merchantName  String?  @map("merchant_name")
   bankName      String?  @map("bank_name")
   gatewayKey    String?  @map("gateway_key")
-  gatewaySecret String?  @map("gateway_secret") // encrypted
-  webhookSecret String?  @map("webhook_secret") // encrypted
+  gatewaySecret String?  @map("gateway_secret")
+  webhookSecret String?  @map("webhook_secret")
   isActive      Boolean  @default(true) @map("is_active")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property      Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId])
   @@map("property_payment_configs")
@@ -686,12 +639,11 @@ model InvoiceRecord {
   id               String   @id @default(uuid())
   bookingId        String   @map("booking_id")
   invoiceNumber    String   @unique @map("invoice_number")
-  status           String   @default("DRAFT") // DRAFT, PAID, CANCELLED
+  status           String   @default("DRAFT")
   generatedAt      DateTime @default(now()) @map("generated_at")
   paymentReference String?  @map("payment_reference")
   utrNumber        String?  @map("utr_number")
-
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking          Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([bookingId])
   @@map("invoice_records")
@@ -699,15 +651,14 @@ model InvoiceRecord {
 
 model Notification {
   id        String   @id @default(uuid())
-  userId    String   @map("user_id") // Recipient User ID
+  userId    String   @map("user_id")
   bookingId String?  @map("booking_id")
   title     String
   message   String
-  type      String // e.g. PAYMENT_SUBMITTED, BOOKING_CONFIRMED, BOOKING_EXPIRED
+  type      String
   isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at")
-
-  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isRead])
@@ -721,7 +672,7 @@ model EmailJob {
   htmlBody    String    @map("html_body")
   attempts    Int       @default(0)
   maxRetries  Int       @default(3) @map("max_retries")
-  status      String    @default("PENDING") // PENDING, SENT, FAILED
+  status      String    @default("PENDING")
   error       String?
   createdAt   DateTime  @default(now()) @map("created_at")
   processedAt DateTime? @map("processed_at")
@@ -730,9 +681,470 @@ model EmailJob {
   @@map("email_jobs")
 }
 
-// ==========================================
-// PHASE 1 — PAYMENT FOUNDATION ARCHITECTURE
-// ==========================================
+model PaymentProvider {
+  id            String               @id @default(uuid())
+  providerType  PaymentProviderType  @map("provider_type")
+  displayName   String               @map("display_name")
+  isEnabled     Boolean              @default(true) @map("is_enabled")
+  isManual      Boolean              @default(false) @map("is_manual")
+  isSandbox     Boolean              @default(false) @map("is_sandbox")
+  isDefault     Boolean              @default(false) @map("is_default")
+  priority      Int                  @default(0) @map("priority")
+  apiKey        String?              @map("api_key")
+  secretKey     String?              @map("secret_key")
+  webhookSecret String?              @map("webhook_secret")
+  merchantId    String?              @map("merchant_id")
+  merchantName  String?              @map("merchant_name")
+  upiId         String?              @map("upi_id")
+  qrImageUrl    String?              @map("qr_image_url")
+  instructions  String?              @map("instructions")
+  supportNumber String?              @map("support_number")
+  supportEmail  String?              @map("support_email")
+  gatewayConfig Json?                @map("gateway_config")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  transactions  PaymentTransaction[]
+
+  @@map("payment_providers")
+}
+
+model PropertySubscription {
+  id                  String                     @id @default(uuid())
+  propertyId          String                     @map("property_id")
+  selectedPlanId      String                     @map("selected_plan_id")
+  status              SubscriptionStatus         @default(INACTIVE)
+  billingCycle        BillingCycle               @map("billing_cycle")
+  amount              Float
+  currency            String                     @default("INR")
+  startsAt            DateTime?                  @map("starts_at")
+  expiresAt           DateTime?                  @map("expires_at")
+  activatedAt         DateTime?                  @map("activated_at")
+  suspendedAt         DateTime?                  @map("suspended_at")
+  createdBy           String?                    @map("created_by")
+  createdAt           DateTime                   @default(now()) @map("created_at")
+  updatedAt           DateTime                   @updatedAt @map("updated_at")
+  invoices            Invoice[]
+  transactions        PaymentTransaction[]
+  property            Property                   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  referralRedemptions ReferralRewardRedemption[]
+
+  @@index([propertyId])
+  @@index([status])
+  @@map("property_subscriptions")
+}
+
+model SubscriptionPlan {
+  id                   String    @id @default(uuid())
+  name                 String
+  slug                 String    @unique
+  description          String
+  shortDescription     String?   @map("short_description")
+  isActive             Boolean   @default(true) @map("is_active")
+  isFeatured           Boolean   @default(false) @map("is_featured")
+  displayOrder         Int       @default(0) @map("display_order")
+  monthlyPrice         Float     @map("monthly_price")
+  quarterlyPrice       Float     @map("quarterly_price")
+  yearlyPrice          Float     @map("yearly_price")
+  lifetimePrice        Float     @map("lifetime_price")
+  maxProperties        Int       @default(1) @map("max_properties")
+  maxImagesPerProperty Int       @default(10) @map("max_images_per_property")
+  maxVideosPerProperty Int       @default(1) @map("max_videos_per_property")
+  maxRoomListings      Int       @default(5) @map("max_room_listings")
+  maxBookingsPerMonth  Int       @default(100) @map("max_bookings_per_month")
+  featureFlags         Json      @default("{}") @map("feature_flags")
+  customBadge          String?   @map("custom_badge")
+  supportPriority      String    @default("NORMAL") @map("support_priority")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  deletedAt            DateTime? @map("deleted_at")
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("subscription_plans")
+}
+
+model PaymentTransaction {
+  id                   String                 @id @default(uuid())
+  propertyId           String                 @map("property_id")
+  subscriptionId       String?                @map("subscription_id")
+  providerId           String?                @map("provider_id")
+  paymentStatus        PaymentStatus          @default(PENDING) @map("payment_status")
+  amount               Float
+  currency             String                 @default("INR")
+  utrNumber            String?                @map("utr_number")
+  paymentScreenshotUrl String?                @map("payment_screenshot_url")
+  gatewayTransactionId String?                @map("gateway_transaction_id")
+  gatewayOrderId       String?                @map("gateway_order_id")
+  gatewayResponse      Json?                  @map("gateway_response")
+  adminReviewNote      String?                @map("admin_review_note")
+  reviewedBy           String?                @map("reviewed_by")
+  reviewedAt           DateTime?              @map("reviewed_at")
+  paidAt               DateTime?              @map("paid_at")
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+  invoices             Invoice[]
+  auditLogs            PaymentAuditLog[]
+  reconciliation       PaymentReconciliation?
+  property             Property               @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  provider             PaymentProvider?       @relation(fields: [providerId], references: [id])
+  subscription         PropertySubscription?  @relation(fields: [subscriptionId], references: [id])
+  reconciliationLogs   ReconciliationLog[]
+
+  @@index([propertyId])
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([paymentStatus, createdAt])
+  @@map("payment_transactions")
+}
+
+model PaymentAuditLog {
+  id            String             @id @default(uuid())
+  transactionId String             @map("transaction_id")
+  action        String
+  oldStatus     String?            @map("old_status")
+  newStatus     String?            @map("new_status")
+  performedBy   String?            @map("performed_by")
+  metadata      Json?              @map("metadata")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  transaction   PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@map("payment_audit_logs")
+}
+
+model AutomationJobLog {
+  id               String   @id @default(uuid())
+  jobType          String   @map("job_type")
+  status           String
+  recordsProcessed Int      @default(0) @map("records_processed")
+  errorMessage     String?  @map("error_message")
+  logs             Json?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("automation_job_logs")
+}
+
+model PaymentReconciliation {
+  id                   String             @id @default(uuid())
+  transactionId        String             @unique @map("transaction_id")
+  gatewayTransactionId String?            @map("gateway_transaction_id")
+  bankReference        String?            @map("bank_reference")
+  settlementReference  String?            @map("settlement_reference")
+  reconciliationStatus String             @default("UNRECONCILED")
+  verificationState    String             @default("PENDING")
+  mismatchReason       String?            @map("mismatch_reason")
+  callbackLogs         Json?              @map("callback_logs")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+  transaction          PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("payment_reconciliations")
+}
+
+model LegalDocument {
+  id           String               @id @default(uuid())
+  documentType LegalDocumentType    @map("document_type")
+  title        String
+  slug         String
+  version      String
+  content      String
+  isActive     Boolean              @default(false) @map("is_active")
+  publishedAt  DateTime?            @map("published_at")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+  acceptances  LegalAcceptanceLog[]
+
+  @@unique([documentType, version])
+  @@index([slug])
+  @@index([documentType, isActive])
+  @@map("legal_documents")
+}
+
+model LegalAcceptanceLog {
+  id              String        @id @default(uuid())
+  userId          String        @map("user_id")
+  documentId      String        @map("document_id")
+  acceptedVersion String        @map("accepted_version")
+  acceptedAt      DateTime      @default(now()) @map("accepted_at")
+  ipAddress       String?       @map("ip_address")
+  userAgent       String?       @map("user_agent")
+  metadata        Json?         @default("{}") @map("metadata")
+  document        LegalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([documentId])
+  @@map("legal_acceptance_logs")
+}
+
+model FinancialSettings {
+  id                    String   @id @default(uuid())
+  companyName           String   @map("company_name")
+  legalBusinessName     String   @map("legal_business_name")
+  GSTIN                 String
+  PAN                   String
+  address               String
+  supportEmail          String   @map("support_email")
+  supportPhone          String   @map("support_phone")
+  invoicePrefix         String   @map("invoice_prefix")
+  invoiceStartingNumber Int      @default(1) @map("invoice_starting_number")
+  defaultGSTPercent     Float    @default(18.0) @map("default_gst_percent")
+  SACCode               String   @map("sac_code")
+  bankDetails           Json     @map("bank_details")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  defaultStateCode      String?  @default("24") @map("default_state_code")
+  placeOfSupplyMode     String?  @default("STATE_MATCH") @map("place_of_supply_mode")
+  enableGSTSplitting    Boolean  @default(true) @map("enable_gst_splitting")
+  enableIGST            Boolean  @default(true) @map("enable_igst")
+  invoiceTerms          String?  @map("invoice_terms")
+  refundTerms           String?  @map("refund_terms")
+  SLAUptimeTarget       Float?   @default(99.9) @map("sla_uptime_target")
+  SLAMaintenanceWindow  String?  @default("Sunday 02:00 AM - 04:00 AM IST") @map("sla_maintenance_window")
+  liabilityCapMonths    Int?     @default(6) @map("liability_cap_months")
+  dataRetentionDays     Int?     @default(365) @map("data_retention_days")
+
+  @@map("financial_settings")
+}
+
+model Invoice {
+  id                 String                @id @default(uuid())
+  invoiceNumber      String                @unique @map("invoice_number")
+  userId             String                @map("user_id")
+  subscriptionId     String?               @map("subscription_id")
+  transactionId      String?               @map("transaction_id")
+  invoiceType        InvoiceType           @map("invoice_type")
+  status             InvoiceStatus         @default(DRAFT)
+  subtotal           Float
+  gstPercent         Float                 @map("gst_percent")
+  gstAmount          Float                 @map("gst_amount")
+  totalAmount        Float                 @map("total_amount")
+  currency           String                @default("INR")
+  billingName        String                @map("billing_name")
+  billingAddress     String                @map("billing_address")
+  GSTIN              String?
+  invoicePdfUrl      String?               @map("invoice_pdf_url")
+  metadata           Json                  @default("{}")
+  issuedAt           DateTime?             @map("issued_at")
+  paidAt             DateTime?             @map("paid_at")
+  createdAt          DateTime              @default(now()) @map("created_at")
+  updatedAt          DateTime              @updatedAt @map("updated_at")
+  irn                String?
+  eInvoiceQrUrl      String?               @map("e_invoice_qr_url")
+  govAckId           String?               @map("gov_ack_id")
+  subscription       PropertySubscription? @relation(fields: [subscriptionId], references: [id])
+  transaction        PaymentTransaction?   @relation(fields: [transactionId], references: [id])
+  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reconciliationLogs ReconciliationLog[]
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([transactionId])
+  @@index([invoiceNumber])
+  @@map("invoices")
+}
+
+model SettlementRecord {
+  id                  String               @id @default(uuid())
+  providerType        String               @map("provider_type")
+  settlementReference String               @unique @map("settlement_reference")
+  settlementDate      DateTime             @map("settlement_date")
+  settlementAmount    Float                @map("settlement_amount")
+  currency            String               @default("INR")
+  status              ReconciliationStatus @default(PENDING)
+  metadata            Json                 @default("{}")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  reconciliationLogs  ReconciliationLog[]
+
+  @@map("settlement_records")
+}
+
+model ReconciliationLog {
+  id                   String               @id @default(uuid())
+  transactionId        String?              @map("transaction_id")
+  invoiceId            String?              @map("invoice_id")
+  settlementRecordId   String?              @map("settlement_record_id")
+  reconciliationStatus ReconciliationStatus @map("reconciliation_status")
+  expectedAmount       Float                @map("expected_amount")
+  receivedAmount       Float                @map("received_amount")
+  mismatchAmount       Float                @map("mismatch_amount")
+  notes                String?
+  reconciledAt         DateTime?            @map("reconciled_at")
+  metadata             Json                 @default("{}")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+  invoice              Invoice?             @relation(fields: [invoiceId], references: [id])
+  settlementRecord     SettlementRecord?    @relation(fields: [settlementRecordId], references: [id])
+  transaction          PaymentTransaction?  @relation(fields: [transactionId], references: [id])
+
+  @@index([transactionId])
+  @@index([invoiceId])
+  @@index([settlementRecordId])
+  @@map("reconciliation_logs")
+}
+
+model ReferralProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  referralCode    String   @unique @map("referral_code")
+  totalCredits    Int      @default(0) @map("total_credits")
+  lifetimeCredits Int      @default(0) @map("lifetime_credits")
+  pendingCredits  Int      @default(0) @map("pending_credits")
+  redeemedCredits Int      @default(0) @map("redeemed_credits")
+  createdAt       DateTime @default(now()) @map("created_at")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("referral_profiles")
+}
+
+model ReferralEvent {
+  id                       String              @id @default(uuid())
+  referrerUserId           String              @map("referrer_user_id")
+  referredUserId           String              @map("referred_user_id")
+  referredPropertyId       String?             @map("referred_property_id")
+  qualifyingSubscriptionId String?             @map("qualifying_subscription_id")
+  status                   ReferralEventStatus @default(PENDING)
+  creditsAwarded           Int                 @default(0) @map("credits_awarded")
+  awardedAt                DateTime?           @map("awarded_at")
+  metadata                 Json                @default("{}")
+  createdAt                DateTime            @default(now()) @map("created_at")
+  referred                 User                @relation("ReferredEvents", fields: [referredUserId], references: [id], onDelete: Cascade)
+  referrer                 User                @relation("ReferrerEvents", fields: [referrerUserId], references: [id], onDelete: Cascade)
+
+  @@map("referral_events")
+}
+
+model ReferralCreditLedger {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  eventType    String   @map("event_type")
+  credits      Int
+  balanceAfter Int      @map("balance_after")
+  referenceId  String?  @map("reference_id")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("referral_credit_ledger")
+}
+
+model ReferralRewardRedemption {
+  id               String               @id @default(uuid())
+  userId           String               @map("user_id")
+  subscriptionId   String               @map("subscription_id")
+  creditsUsed      Int                  @map("credits_used")
+  rewardType       String               @map("reward_type")
+  discountAmount   Float                @map("discount_amount")
+  billingCycle     String               @map("billing_cycle")
+  remainingCredits Int                  @map("remaining_credits")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  subscription     PropertySubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("referral_reward_redemptions")
+}
+
+model PropertyAgreement {
+  id               String          @id @default(uuid())
+  propertyId       String          @map("property_id")
+  agreementType    String          @map("agreement_type")
+  agreementContent String          @map("agreement_content")
+  documentUrl      String?         @map("document_url")
+  signatureUrl     String?         @map("signature_url")
+  signatoryName    String          @map("signatory_name")
+  signatoryRole    String          @map("signatory_role")
+  signedAt         DateTime?       @map("signed_at")
+  version          Int             @default(1)
+  contentHash      String?         @map("content_hash")
+  status           AgreementStatus @default(DRAFT)
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  property         Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_agreements")
+}
+
+model PropertyActivation {
+  id              String           @id @default(uuid())
+  propertyId      String           @unique @map("property_id")
+  activationKey   String           @unique @map("activation_key")
+  activationToken String           @unique @map("activation_token")
+  activationUrl   String           @map("activation_url")
+  status          ActivationStatus @default(PENDING)
+  activatedAt     DateTime?        @map("activated_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  property        Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_activations")
+}
+
+model UserHostProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  bio          String?
+  isSuperhost  Boolean  @default(false) @map("is_superhost")
+  rating       Float?
+  reviewsCount Int      @default(0) @map("reviews_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_host_profiles")
+}
+
+model PropertyMealPlan {
+  id          String   @id @default(uuid())
+  propertyId  String   @map("property_id")
+  name        String
+  label       String
+  description String?
+  price       Float    @default(0.0)
+  inclusions  Json     @default("[]")
+  isPopular   Boolean  @default(false) @map("is_popular")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_meal_plans")
+}
+
+model SystemError {
+  id         String    @id @default(uuid())
+  errorId    String    @unique @map("error_id")
+  module     String
+  message    String
+  severity   String
+  route      String?
+  stackTrace String?   @map("stack_trace")
+  userId     String?   @map("user_id")
+  status     String    @default("OPEN")
+  resolvedAt DateTime? @map("resolved_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@map("system_errors")
+}
+
+model ConciergeServiceCatalog {
+  id          String   @id @default(uuid())
+  propertyId  String   @map("property_id")
+  title       String
+  description String?
+  price       Float
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("concierge_service_catalogs")
+}
 
 enum PaymentProviderType {
   MANUAL_UPI
@@ -777,232 +1189,12 @@ enum BillingCycle {
   LIFETIME
 }
 
-model PaymentProvider {
-  id            String              @id @default(uuid())
-  providerType  PaymentProviderType @map("provider_type")
-  displayName   String              @map("display_name")
-  isEnabled     Boolean             @default(true) @map("is_enabled")
-  isManual      Boolean             @default(false) @map("is_manual")
-  isSandbox     Boolean             @default(false) @map("is_sandbox")
-  isDefault     Boolean             @default(false) @map("is_default")
-  priority      Int                 @default(0) @map("priority")
-  apiKey        String?             @map("api_key")
-  secretKey     String?             @map("secret_key")
-  webhookSecret String?             @map("webhook_secret")
-  merchantId    String?             @map("merchant_id")
-  merchantName  String?             @map("merchant_name")
-  upiId         String?             @map("upi_id")
-  qrImageUrl    String?             @map("qr_image_url")
-  instructions  String?             @map("instructions")
-  supportNumber String?             @map("support_number")
-  supportEmail  String?             @map("support_email")
-  gatewayConfig Json?               @map("gateway_config")
-  createdAt     DateTime            @default(now()) @map("created_at")
-  updatedAt     DateTime            @updatedAt @map("updated_at")
-
-  transactions PaymentTransaction[]
-
-  @@map("payment_providers")
-}
-
-model PropertySubscription {
-  id             String             @id @default(uuid())
-  propertyId     String             @map("property_id")
-  selectedPlanId String             @map("selected_plan_id")
-  status         SubscriptionStatus @default(INACTIVE)
-  billingCycle   BillingCycle       @map("billing_cycle")
-  amount         Float
-  currency       String             @default("INR")
-  startsAt       DateTime?          @map("starts_at")
-  expiresAt      DateTime?          @map("expires_at")
-  activatedAt    DateTime?          @map("activated_at")
-  suspendedAt    DateTime?          @map("suspended_at")
-  createdBy      String?            @map("created_by")
-  createdAt      DateTime           @default(now()) @map("created_at")
-  updatedAt      DateTime           @updatedAt @map("updated_at")
-
-  property            Property                   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  transactions        PaymentTransaction[]
-  invoices            Invoice[]
-  referralRedemptions ReferralRewardRedemption[]
-
-  @@index([propertyId])
-  @@index([status])
-  @@map("property_subscriptions")
-}
-
-model SubscriptionPlan {
-  id               String  @id @default(uuid())
-  name             String
-  slug             String  @unique
-  description      String
-  shortDescription String? @map("short_description")
-  isActive         Boolean @default(true) @map("is_active")
-  isFeatured       Boolean @default(false) @map("is_featured")
-  displayOrder     Int     @default(0) @map("display_order")
-
-  // Pricing Options
-  monthlyPrice   Float @map("monthly_price")
-  quarterlyPrice Float @map("quarterly_price")
-  yearlyPrice    Float @map("yearly_price")
-  lifetimePrice  Float @map("lifetime_price")
-
-  // Limits
-  maxProperties        Int @default(1) @map("max_properties")
-  maxImagesPerProperty Int @default(10) @map("max_images_per_property")
-  maxVideosPerProperty Int @default(1) @map("max_videos_per_property")
-  maxRoomListings      Int @default(5) @map("max_room_listings")
-  maxBookingsPerMonth  Int @default(100) @map("max_bookings_per_month")
-
-  // Flags & badges
-  featureFlags    Json    @default("{}") @map("feature_flags")
-  customBadge     String? @map("custom_badge")
-  supportPriority String  @default("NORMAL") @map("support_priority")
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  @@index([slug])
-  @@index([isActive])
-  @@map("subscription_plans")
-}
-
-model PaymentTransaction {
-  id                   String        @id @default(uuid())
-  propertyId           String        @map("property_id")
-  subscriptionId       String?       @map("subscription_id")
-  providerId           String?       @map("provider_id")
-  paymentStatus        PaymentStatus @default(PENDING) @map("payment_status")
-  amount               Float
-  currency             String        @default("INR")
-  utrNumber            String?       @map("utr_number")
-  paymentScreenshotUrl String?       @map("payment_screenshot_url")
-  gatewayTransactionId String?       @map("gateway_transaction_id")
-  gatewayOrderId       String?       @map("gateway_order_id")
-  gatewayResponse      Json?         @map("gateway_response")
-  adminReviewNote      String?       @map("admin_review_note")
-  reviewedBy           String?       @map("reviewed_by")
-  reviewedAt           DateTime?     @map("reviewed_at")
-  paidAt               DateTime?     @map("paid_at")
-  createdAt            DateTime      @default(now()) @map("created_at")
-  updatedAt            DateTime      @updatedAt @map("updated_at")
-
-  property           Property               @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  subscription       PropertySubscription?  @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  provider           PaymentProvider?       @relation(fields: [providerId], references: [id], onDelete: SetNull)
-  auditLogs          PaymentAuditLog[]
-  reconciliation     PaymentReconciliation?
-  invoices           Invoice[]
-  reconciliationLogs ReconciliationLog[]
-
-  @@index([propertyId])
-  @@index([subscriptionId])
-  @@index([providerId])
-  @@index([paymentStatus])
-  @@index([createdAt])
-  @@index([paymentStatus, createdAt])
-  @@map("payment_transactions")
-}
-
-model PaymentAuditLog {
-  id            String   @id @default(uuid())
-  transactionId String   @map("transaction_id")
-  action        String
-  oldStatus     String?  @map("old_status")
-  newStatus     String?  @map("new_status")
-  performedBy   String?  @map("performed_by")
-  metadata      Json?    @map("metadata")
-  createdAt     DateTime @default(now()) @map("created_at")
-
-  transaction PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-
-  @@index([transactionId])
-  @@map("payment_audit_logs")
-}
-
-model AutomationJobLog {
-  id               String   @id @default(uuid())
-  jobType          String   @map("job_type") // EXPIRY_SCAN, GRACE_SCAN, REMINDER_SCAN, SUSPENSION_PROCESSING
-  status           String // SUCCESS, FAILED
-  recordsProcessed Int      @default(0) @map("records_processed")
-  errorMessage     String?  @map("error_message")
-  logs             Json? // Detailed execution trace messages
-  createdAt        DateTime @default(now()) @map("created_at")
-
-  @@map("automation_job_logs")
-}
-
-model PaymentReconciliation {
-  id                   String   @id @default(uuid())
-  transactionId        String   @unique @map("transaction_id")
-  gatewayTransactionId String?  @map("gateway_transaction_id")
-  bankReference        String?  @map("bank_reference")
-  settlementReference  String?  @map("settlement_reference")
-  reconciliationStatus String   @default("UNRECONCILED") // UNRECONCILED, MATCHED, MISMATCHED, SYSTEM_ADJUSTED
-  verificationState    String   @default("PENDING") // PENDING, VERIFIED, FAILED
-  mismatchReason       String?  @map("mismatch_reason")
-  callbackLogs         Json?    @map("callback_logs") // JSON array of logs
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @updatedAt @map("updated_at")
-
-  transaction PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-
-  @@map("payment_reconciliations")
-}
-
-// ==========================================
-// PHASE 10A — LEGAL AGREEMENTS & COMPLIANCE
-// ==========================================
-
 enum LegalDocumentType {
   TERMS_AND_CONDITIONS
   PRIVACY_POLICY
   REFUND_POLICY
   SUBSCRIPTION_AGREEMENT
 }
-
-model LegalDocument {
-  id           String            @id @default(uuid())
-  documentType LegalDocumentType @map("document_type")
-  title        String
-  slug         String
-  version      String
-  content      String            @db.Text
-  isActive     Boolean           @default(false) @map("is_active")
-  publishedAt  DateTime?         @map("published_at")
-  createdAt    DateTime          @default(now()) @map("created_at")
-  updatedAt    DateTime          @updatedAt @map("updated_at")
-
-  acceptances LegalAcceptanceLog[]
-
-  @@unique([documentType, version])
-  @@index([slug])
-  @@index([documentType, isActive])
-  @@map("legal_documents")
-}
-
-model LegalAcceptanceLog {
-  id              String   @id @default(uuid())
-  userId          String   @map("user_id")
-  documentId      String   @map("document_id")
-  acceptedVersion String   @map("accepted_version")
-  acceptedAt      DateTime @default(now()) @map("accepted_at")
-  ipAddress       String?  @map("ip_address")
-  userAgent       String?  @map("user_agent")
-  metadata        Json?    @default("{}") @map("metadata")
-
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  document LegalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([documentId])
-  @@map("legal_acceptance_logs")
-}
-
-// ==========================================
-// PHASE 10B — GST INVOICE ENGINE & FINANCIAL
-// ==========================================
 
 enum InvoiceType {
   SUBSCRIPTION
@@ -1019,134 +1211,12 @@ enum InvoiceStatus {
   REFUNDED
 }
 
-model FinancialSettings {
-  id                    String   @id @default(uuid())
-  companyName           String   @map("company_name")
-  legalBusinessName     String   @map("legal_business_name")
-  GSTIN                 String
-  PAN                   String
-  address               String
-  supportEmail          String   @map("support_email")
-  supportPhone          String   @map("support_phone")
-  invoicePrefix         String   @map("invoice_prefix")
-  invoiceStartingNumber Int      @default(1) @map("invoice_starting_number")
-  defaultGSTPercent     Float    @default(18.0) @map("default_gst_percent")
-  SACCode               String   @map("sac_code")
-  bankDetails           Json     @map("bank_details")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
-
-  // Tax split, place of supply, SLA, and liability configurations (Phase 10A.5)
-  defaultStateCode     String? @default("24") @map("default_state_code")
-  placeOfSupplyMode    String? @default("STATE_MATCH") @map("place_of_supply_mode")
-  enableGSTSplitting   Boolean @default(true) @map("enable_gst_splitting")
-  enableIGST           Boolean @default(true) @map("enable_igst")
-  invoiceTerms         String? @map("invoice_terms") @db.Text
-  refundTerms          String? @map("refund_terms") @db.Text
-  SLAUptimeTarget      Float?  @default(99.9) @map("sla_uptime_target")
-  SLAMaintenanceWindow String? @default("Sunday 02:00 AM - 04:00 AM IST") @map("sla_maintenance_window")
-  liabilityCapMonths   Int?    @default(6) @map("liability_cap_months")
-  dataRetentionDays    Int?    @default(365) @map("data_retention_days")
-
-  @@map("financial_settings")
-}
-
-model Invoice {
-  id             String        @id @default(uuid())
-  invoiceNumber  String        @unique @map("invoice_number")
-  userId         String        @map("user_id")
-  subscriptionId String?       @map("subscription_id")
-  transactionId  String?       @map("transaction_id")
-  invoiceType    InvoiceType   @map("invoice_type")
-  status         InvoiceStatus @default(DRAFT)
-  subtotal       Float
-  gstPercent     Float         @map("gst_percent")
-  gstAmount      Float         @map("gst_amount")
-  totalAmount    Float         @map("total_amount")
-  currency       String        @default("INR")
-  billingName    String        @map("billing_name")
-  billingAddress String        @map("billing_address")
-  GSTIN          String?
-  invoicePdfUrl  String?       @map("invoice_pdf_url")
-  metadata       Json          @default("{}")
-  issuedAt       DateTime?     @map("issued_at")
-  paidAt         DateTime?     @map("paid_at")
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-
-  // E-invoice compliance fields (Phase 10A.5)
-  irn           String?
-  eInvoiceQrUrl String? @map("e_invoice_qr_url")
-  govAckId      String? @map("gov_ack_id")
-
-  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscription       PropertySubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  transaction        PaymentTransaction?   @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-  reconciliationLogs ReconciliationLog[]
-
-  @@index([userId])
-  @@index([subscriptionId])
-  @@index([transactionId])
-  @@index([invoiceNumber])
-  @@map("invoices")
-}
-
-// ==========================================
-// PHASE 10C — ACCOUNTING & RECONCILIATION
-// ==========================================
-
 enum ReconciliationStatus {
   MATCHED
   MISMATCH
   PENDING
   FAILED
 }
-
-model SettlementRecord {
-  id                  String               @id @default(uuid())
-  providerType        String               @map("provider_type")
-  settlementReference String               @unique @map("settlement_reference")
-  settlementDate      DateTime             @map("settlement_date")
-  settlementAmount    Float                @map("settlement_amount")
-  currency            String               @default("INR")
-  status              ReconciliationStatus @default(PENDING)
-  metadata            Json                 @default("{}")
-  createdAt           DateTime             @default(now()) @map("created_at")
-  updatedAt           DateTime             @updatedAt @map("updated_at")
-
-  reconciliationLogs ReconciliationLog[]
-
-  @@map("settlement_records")
-}
-
-model ReconciliationLog {
-  id                   String               @id @default(uuid())
-  transactionId        String?              @map("transaction_id")
-  invoiceId            String?              @map("invoice_id")
-  settlementRecordId   String?              @map("settlement_record_id")
-  reconciliationStatus ReconciliationStatus @map("reconciliation_status")
-  expectedAmount       Float                @map("expected_amount")
-  receivedAmount       Float                @map("received_amount")
-  mismatchAmount       Float                @map("mismatch_amount")
-  notes                String?
-  reconciledAt         DateTime?            @map("reconciled_at")
-  metadata             Json                 @default("{}")
-  createdAt            DateTime             @default(now()) @map("created_at")
-  updatedAt            DateTime             @updatedAt @map("updated_at")
-
-  transaction      PaymentTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-  invoice          Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
-  settlementRecord SettlementRecord?   @relation(fields: [settlementRecordId], references: [id], onDelete: SetNull)
-
-  @@index([transactionId])
-  @@index([invoiceId])
-  @@index([settlementRecordId])
-  @@map("reconciliation_logs")
-}
-
-// ==========================================
-// PHASE 11 — REFERRALS & REWARDS
-// ==========================================
 
 enum ReferralEventStatus {
   PENDING
@@ -1156,75 +1226,6 @@ enum ReferralEventStatus {
   FRAUD_FLAGGED
 }
 
-model ReferralProfile {
-  id              String   @id @default(uuid())
-  userId          String   @unique @map("user_id")
-  referralCode    String   @unique @map("referral_code")
-  totalCredits    Int      @default(0) @map("total_credits")
-  lifetimeCredits Int      @default(0) @map("lifetime_credits")
-  pendingCredits  Int      @default(0) @map("pending_credits")
-  redeemedCredits Int      @default(0) @map("redeemed_credits")
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("referral_profiles")
-}
-
-model ReferralEvent {
-  id                       String              @id @default(uuid())
-  referrerUserId           String              @map("referrer_user_id")
-  referredUserId           String              @map("referred_user_id")
-  referredPropertyId       String?             @map("referred_property_id")
-  qualifyingSubscriptionId String?             @map("qualifying_subscription_id")
-  status                   ReferralEventStatus @default(PENDING)
-  creditsAwarded           Int                 @default(0) @map("credits_awarded")
-  awardedAt                DateTime?           @map("awarded_at")
-  metadata                 Json                @default("{}")
-  createdAt                DateTime            @default(now()) @map("created_at")
-
-  referrer User @relation("ReferrerEvents", fields: [referrerUserId], references: [id], onDelete: Cascade)
-  referred User @relation("ReferredEvents", fields: [referredUserId], references: [id], onDelete: Cascade)
-
-  @@map("referral_events")
-}
-
-model ReferralCreditLedger {
-  id           String   @id @default(uuid())
-  userId       String   @map("user_id")
-  eventType    String   @map("event_type")
-  credits      Int
-  balanceAfter Int      @map("balance_after")
-  referenceId  String?  @map("reference_id")
-  notes        String?  @db.Text
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("referral_credit_ledger")
-}
-
-model ReferralRewardRedemption {
-  id               String   @id @default(uuid())
-  userId           String   @map("user_id")
-  subscriptionId   String   @map("subscription_id")
-  creditsUsed      Int      @map("credits_used")
-  rewardType       String   @map("reward_type")
-  discountAmount   Float    @map("discount_amount")
-  billingCycle     String   @map("billing_cycle")
-  remainingCredits Int      @map("remaining_credits")
-  createdAt        DateTime @default(now()) @map("created_at")
-
-  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscription PropertySubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-
-  @@map("referral_reward_redemptions")
-}
-
-// ==========================================
-// PROPERTY AGREEMENTS (Phase 10B/Compliance)
-// ==========================================
-
 enum AgreementStatus {
   DRAFT
   SIGNED
@@ -1232,97 +1233,8 @@ enum AgreementStatus {
   REVOKED
 }
 
-model PropertyAgreement {
-  id               String          @id @default(uuid())
-  propertyId       String          @map("property_id")
-  agreementType    String          @map("agreement_type")
-  agreementContent String          @map("agreement_content") @db.Text
-  documentUrl      String?         @map("document_url")
-  signatureUrl     String?         @map("signature_url")
-  signatoryName    String          @map("signatory_name")
-  signatoryRole    String          @map("signatory_role")
-  signedAt         DateTime?       @map("signed_at")
-  version          Int             @default(1)
-  contentHash      String?         @map("content_hash")
-  status           AgreementStatus @default(DRAFT)
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-
-  @@index([propertyId])
-  @@map("property_agreements")
-}
-
 enum ActivationStatus {
   PENDING
   ACTIVE
   REVOKED
-}
-
-model PropertyActivation {
-  id              String           @id @default(uuid())
-  propertyId      String           @unique @map("property_id")
-  activationKey   String           @unique @map("activation_key")
-  activationToken String           @unique @map("activation_token")
-  activationUrl   String           @map("activation_url")
-  status          ActivationStatus @default(PENDING)
-  activatedAt     DateTime?        @map("activated_at")
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-
-  @@map("property_activations")
-}
-
-model UserHostProfile {
-  id           String   @id @default(uuid())
-  userId       String   @unique @map("user_id")
-  bio          String?  @db.Text
-  isSuperhost  Boolean  @default(false) @map("is_superhost")
-  rating       Float?
-  reviewsCount Int      @default(0) @map("reviews_count")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_host_profiles")
-}
-
-model PropertyMealPlan {
-  id          String   @id @default(uuid())
-  propertyId  String   @map("property_id")
-  name        String
-  label       String
-  description String?  @db.Text
-  price       Float    @default(0.0)
-  inclusions  Json     @default("[]")
-  isPopular   Boolean  @default(false) @map("is_popular")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-
-  @@index([propertyId])
-  @@map("property_meal_plans")
-}
-
-model SystemError {
-  id         String    @id @default(uuid())
-  errorId    String    @unique @map("error_id")
-  module     String
-  message    String
-  severity   String    // WARNING, ERROR, CRITICAL
-  route      String?
-  stackTrace String?   @map("stack_trace") @db.Text
-  userId     String?   @map("user_id")
-  status     String    @default("OPEN") // OPEN, RESOLVED
-  resolvedAt DateTime? @map("resolved_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-
-  @@map("system_errors")
 }

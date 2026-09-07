@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { requirePropertyAccess } from "@/lib/auth/rbac";
 import { MediaService } from "@/lib/services/mediaService";
 import { successResponse } from "@/lib/utils/apiResponse";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/database/prisma";
 import { withErrorHandler, AppError } from "@/lib/errors/handler";
 
 interface ContextProps {
@@ -28,5 +30,10 @@ export const DELETE = withErrorHandler(async (request: NextRequest, { params }: 
 
   const result = await MediaService.deleteMedia(mediaId);
 
+  try {
+    const prop = await prisma.property.findUnique({ where: { id: asset.propertyId } });
+    if (prop?.slug) revalidatePath(`/property/${prop.slug}`, "page");
+  } catch (e) {}
+  
   return successResponse({ deletedId: result.deletedId });
 });

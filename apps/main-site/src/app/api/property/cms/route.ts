@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/rbac";
 import { propertyCmsService } from "@/lib/services/propertyCmsService";
 import { propertyCmsUpdateSchema } from "@/lib/validators/property.validators";
@@ -30,6 +31,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   // Update the property in the database
   const updatedProperty = await propertyCmsService.updateCmsData(data.propertyId, data);
+  try {
+    revalidatePath("/property/[slug]", "page");
+  } catch (e) {}
+
 
   return successResponse({
     success: true,

@@ -99,8 +99,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const lastSavedSequence = useRef(0);
 
   // User-scoped cache keys
-  const getDraftCacheKey = React.useCallback(() => `home4stay_onboarding_draft_${user?.id || "guest"}`, [user?.id]);
-  const getOfflineCacheKey = React.useCallback(() => `home4stay_onboarding_offline_cache_${user?.id || "guest"}`, [user?.id]);
+  const getDraftCacheKey = React.useCallback(() => `home4stay_onboarding_draft_${user?.propertyId || "guest"}`, [user?.propertyId]);
+  const getOfflineCacheKey = React.useCallback(() => `home4stay_onboarding_offline_cache_${user?.propertyId || "guest"}`, [user?.propertyId]);
 
   // Flush Offline Local Storage Caches
   const flushOfflineCache = React.useCallback(async () => {
@@ -145,15 +145,11 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     return schema.safeParse(data).success;
   };
 
-  // Dynamically calculate completion checklist
-  const dynamicCompletedSteps = ONBOARDING_STEPS.filter(step => {
-    if (step.id === "welcome") return true;
-    return evaluateStepValidity(step.id, draftData) || completedSteps.includes(step.id);
-  }).map(s => s.id);
+  // Removed completedSteps to ensure DB PropertySetupProgress is the single source of truth.
 
-  // Dynamic progress percentage tracking
+  // Dynamic progress percentage tracking based ONLY on authoritative DB state
   const progressPercentage = Math.round(
-    ((dynamicCompletedSteps.length + skippedSteps.filter(id => !dynamicCompletedSteps.includes(id)).length) / ONBOARDING_STEPS.length) * 100
+    ((completedSteps.length + skippedSteps.filter(id => !completedSteps.includes(id)).length) / ONBOARDING_STEPS.length) * 100
   );
 
   // Enqueue saves to prevent parallel race conditions
@@ -305,26 +301,24 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
     const currentStepConfig = ONBOARDING_STEPS.find(s => s.route === pathname);
     if (currentStepConfig) {
-      /*
       // Guard: Ensure preceding steps are completed
       const precedingSteps = ONBOARDING_STEPS.filter(s => s.order < currentStepConfig.order);
       const isAuthorized = precedingSteps.every(
-        s => dynamicCompletedSteps.includes(s.id) || skippedSteps.includes(s.id)
+        s => completedSteps.includes(s.id) || skippedSteps.includes(s.id)
       );
 
-      console.log("[OnboardingContext Guard] Path:", pathname, "Preceding:", precedingSteps.map(s => s.id), "dynamicCompletedSteps:", dynamicCompletedSteps, "isAuthorized:", isAuthorized);
+      console.log("[OnboardingContext Guard] Path:", pathname, "Preceding:", precedingSteps.map(s => s.id), "completedSteps:", completedSteps, "isAuthorized:", isAuthorized);
 
       if (!isAuthorized) {
         const firstIncomplete = ONBOARDING_STEPS.find(
-          s => !dynamicCompletedSteps.includes(s.id) && !skippedSteps.includes(s.id)
+          s => !completedSteps.includes(s.id) && !skippedSteps.includes(s.id)
         ) || ONBOARDING_STEPS[0];
         
         console.warn("[OnboardingContext Guard] Redirecting from", pathname, "to first incomplete:", firstIncomplete.route);
         router.replace(firstIncomplete.route);
       }
-      */
     }
-  }, [pathname, loading, authLoading, user, dynamicCompletedSteps, skippedSteps, router]);
+  }, [pathname, loading, authLoading, user, completedSteps, skippedSteps, router]);
   const saveDraftToDb = async (stepId: string, data: unknown, sequence: number) => {
     if (sequence < saveSequence.current) {
       console.log(`[SAVE_REJECTED_STALE] Aborting debounced save for step ${stepId} (seq ${sequence} < ${saveSequence.current})`);
@@ -548,7 +542,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
     const precedingSteps = ONBOARDING_STEPS.filter(s => s.order < targetStep.order);
     const isAccessible = precedingSteps.every(
-      s => dynamicCompletedSteps.includes(s.id) || skippedSteps.includes(s.id)
+      s => completedSteps.includes(s.id) || skippedSteps.includes(s.id)
     );
 
     if (isAccessible) {
@@ -598,7 +592,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         steps: ONBOARDING_STEPS,
         activeStep,
         activeStepIndex,
-        completedSteps: dynamicCompletedSteps,
+        completedSteps,
         skippedSteps,
         onboardingStatus,
         draftData: draftDataWithAliases,

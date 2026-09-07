@@ -56,6 +56,11 @@ class BookingEngine {
           };
         }
 
+        // Enforce source state
+        if (booking.paymentStatus !== "UNDER_OWNER_VERIFICATION") {
+            throw new Error(`Cannot verify payment from state: ${booking.paymentStatus}`);
+        }
+
         // Multi-tenant property access guard
         if (ownerUserId) {
           const user = await tx.user.findUnique({ where: { id: ownerUserId } });
@@ -89,9 +94,12 @@ class BookingEngine {
         // Allocate thread-safe sequential invoice serial number
         const invoiceNumber = await InvoiceNumberingService.generateInvoiceNumber({ regionCode: "IN" });
 
-        // Atomic state update
-        await tx.booking.update({
-          where: { id: bookingId },
+        // Atomic state update with conditional check
+        const updateResult = await tx.booking.updateMany({
+          where: { 
+            id: bookingId,
+            paymentStatus: "UNDER_OWNER_VERIFICATION" 
+          },
           data: {
             status: "confirmed",
             paymentStatus: "paid",
@@ -99,6 +107,10 @@ class BookingEngine {
             temporaryInventoryLockedUntil: null // Release lease lock safely
           }
         });
+
+        if (updateResult.count === 0) {
+          throw new Error("Concurrency conflict: The booking payment state was modified by another request.");
+        }
 
         // Create Invoice Record
         await tx.invoiceRecord.create({
@@ -306,15 +318,7 @@ class BookingEngine {
         const guestEmail = primaryGuestJoin?.guest.email || "billing@home4stay.homes";
         const guestUserId = primaryGuestJoin?.guest.id || "";
 
-        // Restore room hold capacity (+1)
-        await tx.roomInventory.update({
-          where: { roomId: booking.roomId },
-          data: {
-            availableCount: {
-              increment: 1
-            }
-          }
-        });
+
 
         // Update booking record
         await tx.booking.update({
@@ -444,15 +448,7 @@ class BookingEngine {
         const guestEmail = primaryGuestJoin?.guest.email || "billing@home4stay.homes";
         const guestUserId = primaryGuestJoin?.guest.id || "";
 
-        // Release Inventory lease holds
-        await tx.roomInventory.update({
-          where: { roomId: booking.roomId },
-          data: {
-            availableCount: {
-              increment: 1
-            }
-          }
-        });
+
 
         // Mark booking as expired
         await tx.booking.update({

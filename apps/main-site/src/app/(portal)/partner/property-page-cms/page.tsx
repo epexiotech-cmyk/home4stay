@@ -31,6 +31,9 @@ export default function PartnerCmsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("identity");
   const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [versions, setVersions] = useState<any[]>([]);
+  const [isRestoring, setIsRestoring] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [cmsData, setCmsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,6 +48,11 @@ export default function PartnerCmsPage() {
           const data = await res.json();
           setCmsData(data);
         }
+        const vRes = await fetch(`/api/property/${propertyId}/cms/publish`);
+        if (vRes.ok) {
+          const vData = await vRes.json();
+          setVersions(vData.versions || []);
+        }
       } catch (err) {
         console.error("Failed to fetch CMS data:", err);
       } finally {
@@ -53,6 +61,71 @@ export default function PartnerCmsPage() {
     }
     fetchCmsData();
   }, [propertyId]);
+
+
+  const handlePublish = async () => {
+    setIsPublishing(true);
+    try {
+      const res = await fetch(`/api/property/${propertyId}/cms/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          versionName: `Release Build  ${new Date().toLocaleDateString()}`,
+          snapshotPayload: cmsData
+        })
+      });
+      if (res.ok) {
+        setIsPublished(true);
+        setTimeout(() => setIsPublished(false), 3000);
+        // Refresh versions
+        const vRes = await fetch(`/api/property/${propertyId}/cms/publish`);
+        if (vRes.ok) {
+          const vData = await vRes.json();
+          setVersions(vData.versions || []);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to publish CMS data:", err);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handlePreview = async () => {
+    try {
+      const res = await fetch(`/api/property/${propertyId}/cms/preview`);
+      if (res.ok) {
+        const data = await res.json();
+        const token = data.previewToken;
+        window.open(`https://${cmsData?.name?.toLowerCase().replace(/\s+/g, '')}.home4stay.com?draft=${token}`, '_blank');
+      }
+    } catch (err) {
+      console.error("Preview generation failed", err);
+    }
+  };
+
+  const handleRestore = async (versionId: string) => {
+    setIsRestoring(true);
+    try {
+      const res = await fetch(`/api/property/${propertyId}/cms/restore`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ versionId })
+      });
+      if (res.ok) {
+        // Refresh CMS Data
+        const cmsRes = await fetch(`/api/property/cms?propertyId=${propertyId}`);
+        if (cmsRes.ok) {
+          setCmsData(await cmsRes.json());
+        }
+        alert("Draft restored successfully. You can now preview and publish.");
+      }
+    } catch (err) {
+      console.error("Restore failed", err);
+    } finally {
+      setIsRestoring(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -66,8 +139,7 @@ export default function PartnerCmsPage() {
         })
       });
       if (res.ok) {
-        setIsPublished(true);
-        setTimeout(() => setIsPublished(false), 3000);
+        // Saved draft successfully
       }
     } catch (err) {
       console.error("Failed to save CMS data:", err);
@@ -105,23 +177,35 @@ export default function PartnerCmsPage() {
           </p>
         </div>
         
+        
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#0E5A75]/5 text-[#0E5A75] font-black text-xs uppercase tracking-widest hover:bg-[#0E5A75]/10 transition-all border border-[#0E5A75]/10">
+          <button onClick={handlePreview} className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#0E5A75]/5 text-[#0E5A75] font-black text-xs uppercase tracking-widest hover:bg-[#0E5A75]/10 transition-all border border-[#0E5A75]/10">
             <Eye size={16} />
-            Preview Live
+            Preview Draft
           </button>
           <button 
             onClick={handleSave}
             disabled={isSaving}
             className={cn(
+              "flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl bg-white text-[#0E5A75] border border-[#0E5A75]"
+            )}
+          >
+            {isSaving ? <RefreshCcw size={16} className="animate-spin" /> : <Save size={16} />}
+            {isSaving ? "Saving..." : "Save Draft"}
+          </button>
+          <button 
+            onClick={handlePublish}
+            disabled={isPublishing}
+            className={cn(
               "flex items-center gap-2 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl",
               isPublished ? "bg-[#159665] text-white" : "bg-[#0E5A75] hover:bg-[#0A4459] text-white"
             )}
           >
-            {isSaving ? <RefreshCcw size={16} className="animate-spin" /> : (isPublished ? <CheckCircle2 size={16} /> : <Save size={16} />)}
-            {isSaving ? "Publishing..." : (isPublished ? "Site Updated" : "Commit Changes")}
+            {isPublishing ? <RefreshCcw size={16} className="animate-spin" /> : (isPublished ? <CheckCircle2 size={16} /> : <Globe size={16} />)}
+            {isPublishing ? "Publishing..." : (isPublished ? "Live" : "Publish Live")}
           </button>
         </div>
+
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
@@ -161,9 +245,33 @@ export default function PartnerCmsPage() {
               <span className="text-xs font-black uppercase tracking-widest">CMS Integrity</span>
             </div>
             <p className="text-[10px] font-bold text-[#B8860B]/70 leading-relaxed uppercase tracking-tighter">
-              All changes are published instantly to your public property page. Ensure high-quality imagery and consistent hospitality messaging.
+              Changes are saved to draft. You must explicitly publish to make them live.
             </p>
           </div>
+          <div className="p-8 rounded-[40px] bg-[#0E5A75]/5 border border-[#0E5A75]/10 mt-8">
+            <div className="flex items-center gap-3 text-[#0E5A75] mb-3">
+              <RefreshCcw size={20} />
+              <span className="text-xs font-black uppercase tracking-widest">History</span>
+            </div>
+            <div className="space-y-2 mt-4 max-h-[300px] overflow-y-auto">
+              {versions.map((v, i) => (
+                <div key={v.id} className="p-3 bg-white rounded-xl flex justify-between items-center shadow-sm">
+                   <div>
+                     <p className="text-[10px] font-bold text-[#053344]">{new Date(v.createdAt).toLocaleDateString()}</p>
+                     <p className="text-[9px] text-[#0E5A75]/60 uppercase">{v.versionName || "Snapshot"}</p>
+                   </div>
+                   <button 
+                     disabled={isRestoring}
+                     onClick={() => handleRestore(v.id)}
+                     className="text-[9px] font-bold text-[#0983B0] hover:underline"
+                   >
+                     Restore
+                   </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
 
         {/* Content Area */}
@@ -182,7 +290,7 @@ export default function PartnerCmsPage() {
               {activeTab === "amenities" && <AmenitiesSection data={cmsData} setData={setCmsData} />}
               {activeTab === "faqs" && <FaqSection data={cmsData} setData={setCmsData} />}
               {activeTab === "seo" && <SeoSection data={cmsData} setData={setCmsData} />}
-              {activeTab === "gallery" && <GallerySection data={cmsData} />}
+              {activeTab === "gallery" && <GallerySection data={cmsData} setData={setCmsData} />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -443,26 +551,96 @@ function SeoSection({ data, setData }: { data: any; setData: (data: any) => void
   );
 }
 
-function GallerySection({ data }: { data: any }) {
+function GallerySection({ data, setData }: { data: any; setData: (data: any) => void }) {
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState<string | null>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        const res = await fetch("/api/media/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            propertyId: data.propertyId,
+            fileBase64: base64String,
+            fileName: file.name,
+            tags: "Gallery"
+          })
+        });
+        
+        if (res.ok) {
+          const resData = await res.json();
+          // Update local state so it appears immediately
+          const newImage = { id: resData.asset.id, url: resData.asset.url, type: 'IMAGE' };
+          setData({ ...data, images: [...(data.images || []), newImage] });
+        } else {
+          console.error("Upload failed");
+        }
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error(err);
+      setIsUploading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!id) return;
+    setIsDeleting(id);
+    try {
+      const res = await fetch(`/api/media/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setData({ ...data, images: (data.images || []).filter((img: any) => img.id !== id) });
+      }
+    } catch (err) {
+      console.error("Delete failed");
+    }
+    setIsDeleting(null);
+  };
+
   return (
     <div className="p-10 space-y-10">
       <SectionHeader title="Visual Gallery" desc="Showcase your property's soul through curated photography." />
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {data?.images?.map((url: string, idx: number) => (
+        {data?.images?.map((img: any, idx: number) => {
+          const url = typeof img === 'string' ? img : img.url;
+          const id = typeof img === 'string' ? null : img.id;
+          return (
           <div key={idx} className="relative aspect-square rounded-[32px] overflow-hidden group">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Gallery" />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center gap-2">
               <button className="p-3 rounded-2xl bg-white/20 text-white hover:bg-white/40 transition-all"><Plus size={18} /></button>
-              <button className="p-3 rounded-2xl bg-red-500/20 text-white hover:bg-red-500/40 transition-all"><Trash2 size={18} /></button>
+              {id && (
+                <button 
+                  onClick={() => handleDelete(id)}
+                  disabled={isDeleting === id}
+                  className="p-3 rounded-2xl bg-red-500/20 text-white hover:bg-red-500/40 transition-all"
+                >
+                  {isDeleting === id ? <RefreshCcw size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                </button>
+              )}
             </div>
           </div>
-        ))}
-        <div className="aspect-square rounded-[32px] border-2 border-dashed border-[#0E5A75]/20 flex flex-col items-center justify-center gap-2 bg-[#0E5A75]/5 hover:bg-[#0E5A75]/10 transition-all cursor-pointer">
-          <Plus size={24} className="text-[#0E5A75]/40" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]">Add Visual</span>
-        </div>
+        )})}
+        
+        <label className="aspect-square rounded-[32px] border-2 border-dashed border-[#0E5A75]/20 flex flex-col items-center justify-center gap-2 bg-[#0E5A75]/5 hover:bg-[#0E5A75]/10 transition-all cursor-pointer relative">
+          <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={isUploading} />
+          {isUploading ? (
+            <RefreshCcw size={24} className="text-[#0E5A75]/40 animate-spin" />
+          ) : (
+            <Plus size={24} className="text-[#0E5A75]/40" />
+          )}
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]">{isUploading ? "Uploading..." : "Add Visual"}</span>
+        </label>
       </div>
     </div>
   );

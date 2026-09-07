@@ -15,7 +15,7 @@ export const POST = withErrorHandler(async (
   ]);
   
   if (!authorized || !userId) {
-    return response as any;
+    return response as NonNullable<typeof response>;
   }
 
   // 2. Delegate state transition and ledger recording to central booking engine

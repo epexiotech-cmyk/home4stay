@@ -59,7 +59,7 @@ export default async function PropertyPage({
   const draftToken = sParams?.draft;
   
   // The slug is either passed directly or rewritten by middleware from the subdomain.
-  const property = await resolvePropertyContext(slug);
+  const property = await resolvePropertyContext(slug, draftToken);
 
   if (!property || !property.name) {
     notFound();
@@ -67,18 +67,8 @@ export default async function PropertyPage({
 
   // 1. PUBLIC VISIBILITY ENGINE + SECURE PREVIEW GATEWAY
   const isLive = property.status === "LIVE";
-  if (!isLive) {
-    const expectedToken = crypto
-      .createHmac("sha256", process.env.JWT_SECRET || "secret")
-      .update(slug)
-      .digest("hex")
-      .slice(0, 16);
-
-    const isAuthorizedPreview = draftToken === expectedToken;
-
-    if (!isAuthorizedPreview) {
-      notFound();
-    }
+  if (!isLive && !draftToken) {
+    notFound();
   }
 
   const branding = getPropertyBranding(property);
@@ -161,12 +151,15 @@ export default async function PropertyPage({
                 )}
 
              </div>
+             {displayImages.length > 0 && (
              <div className="relative w-full">
                 <NarrativeCardStack images={displayImages} />
              </div>
+             )}
           </section>
 
           {/* 3. Gallery Section */}
+          {validGallery.length > 0 && (
           <section id="gallery" className="py-32 border-b border-black/5 dark:border-white/5">
             <div className="flex items-center justify-between mb-16">
                <div>
@@ -179,6 +172,7 @@ export default async function PropertyPage({
             </div>
             <Gallery images={displayImages} gallery={displayGallery} name={property.name} />
           </section>
+          )}
 
           {/* 4. Amenities & Hospitality */}
           <section className="py-32 grid grid-cols-1 lg:grid-cols-3 gap-20 border-b border-black/5 dark:border-white/5">

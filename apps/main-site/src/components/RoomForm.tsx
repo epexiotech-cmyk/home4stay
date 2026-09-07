@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Loader2, IndianRupee, Users, Waves, BedDouble } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface RoomFormProps {
   slug: string;
@@ -10,6 +11,7 @@ interface RoomFormProps {
 
 export default function RoomForm({ slug }: RoomFormProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -26,7 +28,7 @@ export default function RoomForm({ slug }: RoomFormProps) {
       const res = await fetch("/api/property/room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, ...formData }),
+        body: JSON.stringify({ propertyId: user?.propertyId, slug, name: formData.name, price: Number(formData.price), capacity: formData.capacity, view: formData.view }),
       });
 
       const result = await res.json();

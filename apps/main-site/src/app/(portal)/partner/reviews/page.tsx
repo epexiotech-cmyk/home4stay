@@ -52,9 +52,10 @@ export default function PartnerReviewsPage() {
   const [replyText, setReplyText] = useState("");
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
-  const propertyId = user?.propertyId || "shivay-resort-101";
+  const propertyId = user?.propertyId;
 
   const fetchReviews = useCallback(async () => {
+    if (!propertyId) return;
     try {
       const res = await fetch(`/api/property/reviews?propertyId=${propertyId}`);
       if (res.ok) {

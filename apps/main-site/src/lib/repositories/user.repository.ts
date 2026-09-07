@@ -51,7 +51,8 @@ export class UserRepository {
   async createPartner(
     userData: Prisma.UserCreateInput,
     propertyData: { title: string; slug: string },
-    legalAcceptances: { documentId: string; ipAddress: string; userAgent: string; acceptedVersion: string }[]
+    legalAcceptances: { documentId: string; ipAddress: string; userAgent: string; acceptedVersion: string }[],
+    staffAccounts?: { role: string; email: string; passwordHash: string; name: string }[]
   ) {
     try {
       return await prisma.$transaction(async (tx) => {
@@ -69,6 +70,23 @@ export class UserRepository {
         await tx.propertyUserAccess.create({
           data: { propertyId: newProperty.id, userId: newUser.id, role: "owner" }
         });
+
+        if (staffAccounts) {
+          for (const staff of staffAccounts) {
+            const newStaff = await tx.user.create({
+              data: {
+                name: staff.name,
+                email: staff.email.toLowerCase(),
+                role: staff.role,
+                password: staff.passwordHash,
+                status: "ACTIVE"
+              }
+            });
+            await tx.propertyUserAccess.create({
+              data: { propertyId: newProperty.id, userId: newStaff.id, role: staff.role }
+            });
+          }
+        }
 
         for (const legal of legalAcceptances) {
           await tx.legalAcceptanceLog.create({

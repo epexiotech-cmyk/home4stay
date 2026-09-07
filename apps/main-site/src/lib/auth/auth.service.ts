@@ -209,10 +209,23 @@ export class AuthService {
     if (activeTerms) legalAcceptances.push({ documentId: activeTerms.id, ipAddress: ip, userAgent, acceptedVersion: activeTerms.version });
     if (activePrivacy) legalAcceptances.push({ documentId: activePrivacy.id, ipAddress: ip, userAgent, acceptedVersion: activePrivacy.version });
 
+    const generateRandomPassword = () => crypto.randomBytes(12).toString("base64").slice(0, 16) + "1aA!";
+    
+    const managerPassword = generateRandomPassword();
+    const receptionPassword = generateRandomPassword();
+    const housekeepingPassword = generateRandomPassword();
+    
+    const staffAccounts = [
+      { role: "manager", email: `manager_${slug}@home4stay.internal`, passwordHash: await hashPassword(managerPassword), name: "Manager" },
+      { role: "receptionist", email: `reception_${slug}@home4stay.internal`, passwordHash: await hashPassword(receptionPassword), name: "Reception" },
+      { role: "housekeeping", email: `housekeeping_${slug}@home4stay.internal`, passwordHash: await hashPassword(housekeepingPassword), name: "Housekeeping" }
+    ];
+
     const registeredUser = await this.userRepo.createPartner(
-      { name: data.name, email, password: data.passwordHash, phone: data.phone, role: "owner" },
+      { name: data.name, email, password: data.passwordHash, phone: data.phone, role: "owner", status: "ACTIVE" },
       { title: data.propertyName, slug },
-      legalAcceptances
+      legalAcceptances,
+      staffAccounts
     );
 
     return registeredUser;

@@ -94,47 +94,11 @@ export class PropertyRepository {
       where: { id },
     });
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async updateCmsData(propertyId: string, data: any) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return await (prisma.property as any).update({
-      where: { id: propertyId },
-      data: {
-        pageContent: data.sections ? { sections: data.sections } : undefined,
-        amenities: data.amenities,
-        faqs: data.faqs,
-        policies: data.policies,
-        seo: data.seo,
-        contact: data.contact,
-        branding: data.branding
-      }
-    });
-  }
-
-  async getCmsData(propertyId: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return await (prisma.property as any).findUnique({
-      where: { id: propertyId },
-      select: {
-        id: true,
-        name: true,
-        pageContent: true,
-        amenities: true,
-        faqs: true,
-        policies: true,
-        seo: true,
-        contact: true,
-        branding: true
-      }
-    });
-  }
-
   // --- MEDIA ASSET METHODS ---
   async findMediaByPropertyId(propertyId: string) {
     return await prisma.mediaAsset.findMany({
       where: { propertyId },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     });
   }
 

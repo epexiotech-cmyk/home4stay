@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { BedDouble, Plus, X, Loader2 } from "lucide-react";
 import RoomForm from "@/components/RoomForm";
 import { RoomGroup, Room } from "@/components/calendar/types";
@@ -11,10 +12,14 @@ export default function PartnerRoomsPage() {
   const [roomGroups, setRoomGroups] = useState<RoomGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const { user } = useAuth();
+  
   useEffect(() => {
+    if (!user?.propertyId) return;
+    
     const fetchRooms = async () => {
       try {
-        const res = await fetch('/api/partner/rooms');
+        const res = await fetch(`/api/partner/rooms?propertyId=${user.propertyId}`);
         if (res.ok) {
           const data = await res.json();
           setPropertySlug(data.propertySlug || "");

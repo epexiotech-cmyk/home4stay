@@ -6,6 +6,7 @@ import { prisma } from "@/lib/database/prisma";
 import { AgreementActions } from "../AgreementActions";
 import RenewalControl from "../components/RenewalControl";
 import BackButton from "../components/BackButton";
+import PropertyAccounts from "../components/PropertyAccounts";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,9 @@ export default async function PropertyDetailsPage({
       subscriptions: {
         orderBy: { createdAt: "desc" },
         take: 1
+      },
+      userAccesses: {
+        include: { user: true }
       }
     }
   });
@@ -172,6 +176,16 @@ export default async function PropertyDetailsPage({
 
         </div>
       </div>
+
+      {/* Property Staff Accounts */}
+      <PropertyAccounts propertyId={property.id} accounts={property.userAccesses.map(ua => ({
+        id: ua.user.id,
+        name: ua.user.name,
+        email: ua.user.email,
+        role: ua.role,
+        status: (ua.user as any).status || "ACTIVE"
+      }))} />
+      
     </div>
   );
 }
