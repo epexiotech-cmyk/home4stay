@@ -38,15 +38,20 @@ export default function PartnerCmsPage() {
   const [cmsData, setCmsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const propertyId = user?.propertyId || "shivay";
+  const propertyId = user?.propertyId;
 
   useEffect(() => {
     async function fetchCmsData() {
+      if (!propertyId) return;
       try {
         const res = await fetch(`/api/property/cms?propertyId=${propertyId}`);
         if (res.ok) {
-          const data = await res.json();
-          setCmsData(data);
+          const payload = await res.json();
+          if (payload.success) {
+            setCmsData(payload.data);
+          } else {
+            console.error("Failed to fetch CMS data:", payload.message);
+          }
         }
         const vRes = await fetch(`/api/property/${propertyId}/cms/publish`);
         if (vRes.ok) {
@@ -147,6 +152,16 @@ export default function PartnerCmsPage() {
       setIsSaving(false);
     }
   };
+
+  if (!propertyId) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <AlertCircle className="text-red-500" size={48} />
+        <h2 className="text-xl font-bold">Property Not Found</h2>
+        <p className="text-sm text-gray-500">No active property is linked to this account.</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

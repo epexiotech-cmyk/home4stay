@@ -90,8 +90,9 @@ export default function PartnerReferralPage() {
       setLoading(true);
       const res = await fetch("/api/partner/referrals");
       if (!res.ok) throw new Error("Failed to fetch referral metrics");
-      const data = await res.json();
-      if (data.success) {
+      const json = await res.json();
+      const data = json.success && json.data ? json.data : json;
+      if (json.success) {
         setProfile(data.profile);
         setEvents(data.events || []);
         setLedger(data.ledger || []);
@@ -111,8 +112,9 @@ export default function PartnerReferralPage() {
       try {
         const res = await fetch("/api/partner/referrals");
         if (!res.ok) throw new Error("Failed to fetch referral metrics");
-        const data = await res.json();
-        if (data.success && isMounted) {
+        const json = await res.json();
+        const data = json.success && json.data ? json.data : json;
+        if (json.success && isMounted) {
           setProfile(data.profile);
           setEvents(data.events || []);
           setLedger(data.ledger || []);

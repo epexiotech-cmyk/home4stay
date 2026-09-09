@@ -1,3 +1,4 @@
+import { PartnerRepository } from '../repositories/partnerRepository';
 import { propertyRepository } from '../repositories/propertyRepository';
 import { propertyCmsRepository } from '../repositories/propertyCmsRepository';
 import { prisma } from "@/lib/database/prisma";
@@ -7,6 +8,16 @@ export class PropertyCmsService {
   async getCmsData(propertyId: string) {
     const property = await propertyRepository.findById(propertyId);
     if (!property) return null;
+    
+    // Fetch onboarding drafts as fallback
+    const session = await PartnerRepository.getOnboardingSessionByPropertyId(propertyId);
+    const drafts: Record<string, any> = {};
+    if (session && session.drafts) {
+      session.drafts.forEach((d: any) => {
+        drafts[d.stepId] = d.data;
+      });
+    }
+
     
     const pageContent = await propertyCmsRepository.getPageContentWithSections(propertyId);
     const sections = pageContent?.pageContent?.sections || [];
@@ -34,32 +45,56 @@ export class PropertyCmsService {
     });
     const formattedImages = dbMediaAssets.map(a => ({ id: a.id, url: a.url, type: a.assetType || 'IMAGE' }));
     
+    // Process fallbacks
+    const fallbackIdentity = drafts.property || {};
+    const fallbackTheme = drafts.theme || {};
+    const fallbackAmenities = drafts.amenities || [];
+    const fallbackPolicy = drafts.policies || {};
+
+    const finalAmenities = formattedAmenities.length > 0 
+      ? formattedAmenities 
+      : fallbackAmenities.map((a: string) => ({ icon: "Sparkles", label: a, detail: "" }));
+
+    const finalTheme = pageContent?.pageContent?.themeVariant || fallbackTheme.themeId || "Mountain Luxury";
+    const finalHeroTitle = (heroSection?.data as any)?.title || fallbackIdentity.title || "";
+    const finalHeroTagline = (heroSection?.data as any)?.subtitle || fallbackIdentity.tagline || "";
+    const finalNarrativeLabel = (narrativeSection?.data as any)?.smallLabel || fallbackIdentity.location || "";
+    const finalNarrativeHeading = (narrativeSection?.data as any)?.mainHeading || fallbackIdentity.title || "";
+    const finalNarrativeHighlight = (narrativeSection?.data as any)?.highlightText || fallbackIdentity.description || "";
+
+    const finalPolicies = dbPolicy ? {
+       checkIn: dbPolicy.checkInTime,
+       checkOut: dbPolicy.checkOutTime,
+       cancellation: dbPolicy.cancellationPolicy,
+       petPolicy: dbPolicy.houseRules || (dbPolicy.petsAllowed ? "Pets Allowed" : "Pets Not Allowed")
+    } : {
+       checkIn: fallbackPolicy.checkIn || "",
+       checkOut: fallbackPolicy.checkOut || "",
+       cancellation: fallbackPolicy.cancellation || "",
+       petPolicy: fallbackPolicy.petPolicy || ""
+    };
+
     return {
       propertyId,
-      name: (property as any).name || property.title,
+      name: (property as any).name || property.title || fallbackIdentity.title || "",
       branding: {
         theme: {
-          primary: pageContent?.pageContent?.themeVariant || "#0E5A75"
+          primary: finalTheme
         },
-        heroTitle: (heroSection?.data as any)?.title || "",
-        heroTagline: (heroSection?.data as any)?.subtitle || "",
-        narrativeLabel: (narrativeSection?.data as any)?.smallLabel || "",
-        narrativeHeading: (narrativeSection?.data as any)?.mainHeading || "",
-        narrativeHighlight: (narrativeSection?.data as any)?.highlightText || "",
+        heroTitle: finalHeroTitle,
+        heroTagline: finalHeroTagline,
+        narrativeLabel: finalNarrativeLabel,
+        narrativeHeading: finalNarrativeHeading,
+        narrativeHighlight: finalNarrativeHighlight,
       },
-      amenities: formattedAmenities,
+      amenities: finalAmenities,
       images: formattedImages,
       seo: {
          title: (seoSection?.data as any)?.title || "",
          description: (seoSection?.data as any)?.description || "",
          keywords: (seoSection?.data as any)?.keywords || [],
       },
-      policies: dbPolicy ? {
-         checkIn: dbPolicy.checkInTime,
-         checkOut: dbPolicy.checkOutTime,
-         cancellation: dbPolicy.cancellationPolicy,
-         petPolicy: dbPolicy.houseRules || (dbPolicy.petsAllowed ? "Pets Allowed" : "Pets Not Allowed")
-      } : null,
+      policies: finalPolicies,
       faqs: (faqSection?.data as { faqs?: { question: string; answer: string }[] })?.faqs || []
     };
   }

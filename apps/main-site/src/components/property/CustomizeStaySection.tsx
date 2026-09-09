@@ -39,9 +39,10 @@ export default function CustomizeStaySection({ propertyId }: { propertyId?: stri
         return;
       }
       try {
-        const res = await fetch(`/api/property/experiences?propertyId=${propertyId}`);
+        const res = await fetch(`/api/properties/public/${propertyId}/experiences`);
         if (res.ok) {
-          const data = await res.json();
+          const json = await res.json();
+          const data = json.success ? json.data : json;
           if (Array.isArray(data)) {
             const activeOnly = data.filter((e: Experience) => e.isActive);
             if (activeOnly.length > 0) {
@@ -191,3 +192,5 @@ export default function CustomizeStaySection({ propertyId }: { propertyId?: stri
     </section>
   );
 }
+
+

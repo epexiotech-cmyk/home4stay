@@ -1,3 +1,4 @@
+"use client";
 import { useState, useMemo } from "react";
 import { addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, isBefore, isAfter, startOfDay, endOfDay } from "date-fns";
 import { CalendarView, Reservation } from "./types";

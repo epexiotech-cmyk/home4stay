@@ -104,11 +104,17 @@ export async function resolvePropertyContext(identifier: string, draftToken?: st
       merged.experiences = [];
     }
 
-    // The public site expects 'rooms' array? We'll leave persistentDbRecord.rooms intact.
+    // The public site expects 'rooms' array? We'll leave persistentDbRecord.rooms intact, but ONLY include active rooms.
     if (persistentDbRecord.rooms && Array.isArray(persistentDbRecord.rooms)) {
-      merged.rooms = persistentDbRecord.rooms;
+      merged.rooms = persistentDbRecord.rooms.filter((r: any) => r.isActive !== false);
     } else {
       merged.rooms = [];
+    }
+
+    if (persistentDbRecord.mealPlans && Array.isArray(persistentDbRecord.mealPlans)) {
+      merged.mealPlans = persistentDbRecord.mealPlans.filter((m: any) => m.isActive !== false);
+    } else {
+      merged.mealPlans = [];
     }
 
 

@@ -99,7 +99,8 @@ export default function FinancialsPage() {
       try {
         const res = await fetch('/api/partner/financials');
         if (res.ok) {
-          const data = await res.json();
+          const json = await res.json();
+          const data = json.success && json.data ? json.data : json;
           setTransactions(data.transactions || []);
           setInvoices(data.invoices || []);
           setStats(data.stats || null);

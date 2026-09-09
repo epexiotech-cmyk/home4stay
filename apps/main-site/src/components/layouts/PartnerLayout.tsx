@@ -69,12 +69,10 @@ const sidebarSections: NavSection[] = [
   {
     label: "Property Management",
     items: [
-      { title: "Properties", href: "/partner/properties", icon: Home },
+      { title: "My Property", href: "/partner/properties", icon: Home },
       { title: "Rooms", href: "/partner/rooms", icon: Bed },
       { title: "Meal Plans", href: "/partner/meal-plans", icon: Utensils },
       { title: "Hospitality Experiences", href: "/partner/experiences", icon: Sparkles },
-      { title: "Pricing", href: "/partner/pricing", icon: Tag },
-      { title: "Availability", href: "/partner/availability", icon: Clock },
     ]
   },
   {

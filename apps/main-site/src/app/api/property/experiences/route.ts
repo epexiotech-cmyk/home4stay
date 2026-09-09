@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { requireRole, requirePropertyAccess } from "@/lib/auth/rbac";
 import { propertyExperienceService } from "@/lib/services/propertyExperienceService";
@@ -12,8 +13,14 @@ const getExperiencesQuerySchema = z.object({
 });
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager", "partner"]);
+  if (!auth.authorized) return auth.response!;
+
   const { searchParams } = new URL(request.url);
   const { propertyId } = getExperiencesQuerySchema.parse({ propertyId: searchParams.get("propertyId") });
+
+  const access = await requirePropertyAccess(request, propertyId);
+  if (!access.authorized) return access.response!;
 
   const experiences = await propertyExperienceService.getExperiences(propertyId);
   return successResponse(experiences);
@@ -22,7 +29,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
-  const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager"]);
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager", "partner"]);
   if (!auth.authorized) return auth.response!;
 
   const body = await request.json();
@@ -30,6 +37,11 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const access = await requirePropertyAccess(request, data.propertyId);
   if (!access.authorized) return access.response!;
+
+  const existing = await propertyExperienceService.getExperiences(data.propertyId);
+  if (existing.some(e => e.slug === data.slug)) {
+    throw new AppError("Experience already exists for this property", 409, "CONFLICT");
+  }
 
   const experience = await propertyExperienceService.createExperience(data);
   try { revalidatePath("/property/[slug]", "page"); } catch (e) {}
@@ -39,7 +51,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
 
 export const PATCH = withErrorHandler(async (request: NextRequest) => {
-  const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager"]);
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager", "partner"]);
   if (!auth.authorized) return auth.response!;
 
   const body = await request.json();
@@ -61,7 +73,7 @@ const deleteExperienceSchema = z.object({
 });
 
 export const DELETE = withErrorHandler(async (request: NextRequest) => {
-  const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager"]);
+  const auth = await requireRole(request, ["admin", "super_admin", "owner", "manager", "partner"]);
   if (!auth.authorized) return auth.response!;
 
   const { searchParams } = new URL(request.url);
@@ -77,3 +89,5 @@ export const DELETE = withErrorHandler(async (request: NextRequest) => {
   try { revalidatePath("/property/[slug]", "page"); } catch (e) {}
   return successResponse({ success: true, deleted: id });
 });
+
+

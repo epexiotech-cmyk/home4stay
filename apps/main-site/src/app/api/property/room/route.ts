@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { propertyRoomService } from "@/lib/services/propertyRoomService";
 import { requireRole, requirePropertyAccess } from "@/lib/auth/rbac";
-import { withErrorHandler } from "@/lib/errors/handler";
+import { withErrorHandler, AppError } from "@/lib/errors/handler";
 import { successResponse } from "@/lib/utils/apiResponse";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
@@ -43,10 +43,9 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   if (!auth.authorized) return auth.response!;
 
   const body = await request.json();
-  const data = createRoomSchema.parse(body);
+  const parsed = createRoomSchema.omit({ propertyId: true }).parse(body);
+  const data = { ...parsed, propertyId: auth.propertyId! };
 
-  const access = await requirePropertyAccess(request, data.propertyId);
-  if (!access.authorized) return access.response!;
 
   const room = await propertyRoomService.createRoom(data as any);
   try { revalidatePath("/property/[slug]", "page"); } catch (e) {}
@@ -60,6 +59,11 @@ export const PATCH = withErrorHandler(async (request: NextRequest) => {
   const body = await request.json();
   const { id, ...updateData } = updateRoomSchema.parse(body);
 
+  const existingRoom = await propertyRoomService.getRoomById(id);
+  if (existingRoom.propertyId !== auth.propertyId) {
+    throw new AppError("Forbidden: Unauthorized room modification", 403, "FORBIDDEN");
+  }
+
   const updatedRoom = await propertyRoomService.updateRoom(id, updateData as any);
   try { revalidatePath("/property/[slug]", "page"); } catch (e) {}
   return successResponse(updatedRoom);
@@ -71,6 +75,11 @@ export const DELETE = withErrorHandler(async (request: NextRequest) => {
 
   const { searchParams } = new URL(request.url);
   const { id } = deleteRoomQuerySchema.parse({ id: searchParams.get("id") });
+
+  const existingRoom = await propertyRoomService.getRoomById(id);
+  if (existingRoom.propertyId !== auth.propertyId) {
+    throw new AppError("Forbidden: Unauthorized room modification", 403, "FORBIDDEN");
+  }
 
   await propertyRoomService.deleteRoom(id);
   try { revalidatePath("/property/[slug]", "page"); } catch (e) {}

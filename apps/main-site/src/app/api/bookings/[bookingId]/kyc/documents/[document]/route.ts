@@ -72,7 +72,7 @@ export const GET = withErrorHandler(async (
 
   const { buffer, mimeType } = await KycStorageService.getDocument(storageKey);
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {
       "Content-Type": mimeType,

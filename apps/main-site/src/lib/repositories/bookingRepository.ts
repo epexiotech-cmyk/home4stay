@@ -33,9 +33,9 @@ export class BookingRepository {
     const data = await prisma.booking.findMany({
       where: whereClause,
       include: {
-        property: { select: { name: true } },
+        property: { select: { title: true } },
         room: { select: { name: true } },
-        guests: {  include: { guest: { select: { firstName: true, lastName: true } } } }
+        guests: {  include: { guest: { select: { fullName: true } } } }
       },
       take: options.limit || 50,
       skip: options.offset || 0,

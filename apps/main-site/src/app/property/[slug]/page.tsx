@@ -1,5 +1,7 @@
 import crypto from "crypto";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { getPropertyUrl, getSubdomain } from "@/lib/utils/domains";
 import Gallery from "@/components/property/Gallery";
 import BrandedHero from "@/components/property/BrandedHero";
 import ContactSection from "@/components/property/ContactSection";
@@ -26,6 +28,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   if (!property) {
     return { title: "Property Not Found" };
+  }
+
+
+  // Redirect direct accesses of the generic route to the canonical subdomain
+  const headersList = await headers();
+  const host = headersList.get("host");
+  
+  // If no subdomain is present in the host, it's a direct generic access
+  if (host && !getSubdomain(host)) {
+    redirect(getPropertyUrl(property.slug || slug));
   }
 
   const branding = getPropertyBranding(property);

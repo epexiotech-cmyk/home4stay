@@ -1,48 +1,82 @@
 const fs = require('fs');
+const file = 'apps/main-site/src/app/(portal)/partner/rooms/page.tsx';
+let content = fs.readFileSync(file, 'utf8');
 
-// Patch DatabaseExplorerPage
-const dbPath = '\\\\wsl.localhost\\Ubuntu\\home\\apurv_patel\\home4stay\\apps\\main-site\\src\\app\\(portal)\\admin\\database\\page.tsx';
-let dbPage = fs.readFileSync(dbPath, 'utf8');
+content = content.replace('isActive: boolean;', 'isActive: boolean;\n  images: string[];');
+content = content.replace('isActive: typeof r.isActive === \'boolean\' ? r.isActive : true', 'isActive: typeof r.isActive === \'boolean\' ? r.isActive : true,\n          images: Array.isArray(r.images) ? (r.images as string[]) : []');
 
-if (!dbPage.includes('useAuth')) {
-    dbPage = dbPage.replace(
-        'import { useRouter } from \"next/navigation\";',
-        'import { useRouter } from \"next/navigation\";\nimport { useAuth } from \"@/context/AuthContext\";'
-    );
-    dbPage = dbPage.replace(
-        'const router = useRouter();',
-        'const router = useRouter();\n  const { user, loading } = useAuth();'
-    );
-    dbPage = dbPage.replace(
-        'useEffect(() => {\n    // eslint-disable-next-line react-hooks/set-state-in-effect\n    fetchModels();\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, []);',
-        'useEffect(() => {\n    if (loading) return;\n    if (!user || user.role !== \"super_admin\") {\n      router.push(\"/login\");\n      return;\n    }\n    // eslint-disable-next-line react-hooks/set-state-in-effect\n    fetchModels();\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [loading, user, router]);'
-    );
-    fs.writeFileSync(dbPath, dbPage);
-    console.log('Patched page.tsx');
-}
+content = content.replace('const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);', \const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [managingPhotosFor, setManagingPhotosFor] = useState<string | null>(null);
 
-// Patch AdminLayout
-const adminPath = '\\\\wsl.localhost\\Ubuntu\\home\\apurv_patel\\home4stay\\apps\\main-site\\src\\components\\layouts\\AdminLayout.tsx';
-let adminLayout = fs.readFileSync(adminPath, 'utf8');
-
-if (!adminLayout.includes('useAuth')) {
-    adminLayout = adminLayout.replace(
-        'import Logo from \"../ui/Logo\";',
-        'import Logo from \"../ui/Logo\";\nimport { useAuth } from \"@/context/AuthContext\";'
-    );
-    adminLayout = adminLayout.replace(
-        '}) {\n  return (',
-        '}) {\n  const { user, loading } = useAuth();\n  const isSuperAdmin = user?.role === \"super_admin\";\n\n  return ('
-    );
+  const handleDeleteImage = async (roomId: string, imageUrl: string) => {
+    if (!confirm("Are you sure you want to delete this photo?")) return;
     
-    const origLink = '<Link href=\"/admin/database\" className=\"block px-4 py-2.5 rounded-xl hover:bg-background text-secondary transition-all flex items-center gap-2\">\n              <span className=\"text-lg\">???</span> Database\n            </Link>';
-    const newLink = '{isSuperAdmin && (\n            <Link href=\"/admin/database\" className=\"block px-4 py-2.5 rounded-xl hover:bg-background text-secondary transition-all flex items-center gap-2\">\n              <span className=\"text-lg\">???</span> Database\n            </Link>\n          )}';
-    adminLayout = adminLayout.replace(origLink, newLink);
+    setActionLoadingId(\\\delete-image-\\\\);
+    try {
+      const getRes = await fetch(\\\/api/property/room/\/images\\\);
+      if (!getRes.ok) throw new Error("Failed to fetch image details");
+      const { data: assets } = await getRes.json();
+      
+      const asset = assets?.find((a: any) => a.url === imageUrl);
+      if (!asset) throw new Error("Image not found in database");
+      
+      const res = await fetch(\\\/api/property/room/\/images/\\\\, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete image");
+      
+      await fetchRooms();
+    } catch (err: any) {
+      alert(err.message || "Failed to delete image");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };\);
 
-    const origProfile = '<div className=\"text-sm font-bold\">Admin User</div>\n              <div className=\"text-[10px] text-secondary font-bold uppercase\">Super Admin</div>';
-    const newProfile = '<div className=\"text-sm font-bold\">{loading ? \"Loading...\" : user?.name || \"Admin User\"}</div>\n              <div className=\"text-[10px] text-secondary font-bold uppercase\">{loading ? \"...\" : (user?.role?.replace(\"_\", \" \") || \"Admin\")}</div>';
-    adminLayout = adminLayout.replace(origProfile, newProfile);
-    
-    fs.writeFileSync(adminPath, adminLayout);
-    console.log('Patched AdminLayout.tsx');
-}
+const imageUI = \
+                  {managingPhotosFor === room.id && (
+                    <div className="mb-6 p-4 rounded-2xl bg-white/5 border border-white/10 animate-in fade-in">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60 dark:text-white/60 mb-3 flex items-center gap-1.5"><ImageIcon size={12}/> MANAGE PHOTOS</h4>
+                      {room.images.length === 0 ? (
+                        <div className="text-center p-4 bg-black/5 dark:bg-white/5 rounded-xl text-[10px] text-[#0E5A75]/60 dark:text-white/60">
+                          No photos
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-3">
+                          {room.images.map((img, idx) => (
+                            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden group border border-white/10">
+                              <img src={img} alt="Room" className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <button
+                                  onClick={() => handleDeleteImage(room.id, img)}
+                                  disabled={actionLoadingId === \\\delete-image-\\\\}
+                                  className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                >
+                                  {actionLoadingId === \\\delete-image-\\\\ ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2 pt-4 border-t border-black/5 dark:border-white/5">\;
+
+content = content.replace('<div className="flex items-center gap-2 pt-4 border-t border-black/5 dark:border-white/5">', imageUI);
+
+const manageBtn = \
+                    <button 
+                      onClick={() => setManagingPhotosFor(managingPhotosFor === room.id ? null : room.id)}
+                      className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all bg-[#0983B0]/10 text-[#0983B0] hover:bg-[#0983B0] hover:text-white"
+                    >
+                      <ImageIcon size={12} /> {managingPhotosFor === room.id ? 'Hide Photos' : 'Manage Photos'}
+                    </button>\;
+
+content = content.replace('</button>\\n                  </div>', '</button>\\n' + manageBtn + '\\n                  </div>');
+
+content = content.replace('Edit3 } from "lucide-react";', 'Edit3, Image as ImageIcon } from "lucide-react";');
+
+fs.writeFileSync(file, content);
+console.log('Patched');

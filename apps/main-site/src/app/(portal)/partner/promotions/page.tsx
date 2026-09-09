@@ -97,7 +97,8 @@ export default function PartnerPromotionsPage() {
     try {
       const res = await fetch(`/api/property/promotions?propertyId=${propertyId}`);
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.success && json.data ? json.data : json;
         setOffers(data);
       }
     } catch (err) {
@@ -165,9 +166,18 @@ export default function PartnerPromotionsPage() {
       </div>
 
       {/* Analytics Summary */}
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <MetricCard label="Total Revenue via Offers" value="₹1.2L" icon={TrendingUp} color="#159665" />
-        <MetricCard label="Average Discount" value="12%" icon={Percent} color="#0983B0" />
+        <MetricCard label="Total Revenue via Offers" value="N/A" icon={TrendingUp} color="#159665" />
+        <MetricCard 
+          label="Average Discount" 
+          value={
+            offers.length > 0 
+              ? `${Math.round(offers.filter(o => o.discountType.toLowerCase() === 'percentage').reduce((sum, o) => sum + o.discountValue, 0) / (offers.filter(o => o.discountType.toLowerCase() === 'percentage').length || 1))}%`
+              : "0%"
+          } 
+          icon={Percent} color="#0983B0" 
+        />
         <MetricCard label="Active Coupons" value={offers.filter(o => o.isActive).length} icon={Ticket} color="#FCBC43" />
       </div>
 
@@ -349,12 +359,14 @@ function OfferCard({ offer, onDelete, onToggle }: { offer: PromotionOffer; onDel
   );
 }
 
-function Input({ label, type = "text", placeholder }: { label: string; type?: string; placeholder?: string }) {
+function Input({ label, type = "text", placeholder, value, onChange }: { label: string; type?: string; placeholder?: string; value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
   return (
     <div className="space-y-3">
       <label className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60 ml-4">{label}</label>
       <input 
         type={type}
+        value={value}
+        onChange={onChange}
         placeholder={placeholder}
         className="w-full px-8 py-4 rounded-2xl bg-[#0E5A75]/5 border border-black/5 text-sm font-bold text-[#053344] focus:outline-none focus:ring-2 focus:ring-[#0E5A75]/20 placeholder:text-[#0E5A75]/30"
       />

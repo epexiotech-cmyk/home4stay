@@ -59,7 +59,8 @@ export default function PartnerReviewsPage() {
     try {
       const res = await fetch(`/api/property/reviews?propertyId=${propertyId}`);
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.success && json.data ? json.data : json;
         setReviews(data.reviews);
         setStats(data.stats);
       }

@@ -1,4 +1,5 @@
 "use client";
+import { useAuth } from "@/context/AuthContext";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { 
@@ -53,6 +54,7 @@ const Badge = ({ children, variant = "default", className }: { children: React.R
 // --- Main Page ---
 
 export default function CalendarPage() {
+  const { user } = useAuth();
   const [selectedBooking, setSelectedBooking] = useState<Reservation | null>(null);
   const [isQuickBookingOpen, setIsQuickBookingOpen] = useState(false);
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -119,11 +121,14 @@ export default function CalendarPage() {
   }, []);
 
   useEffect(() => {
+    const propertyId = user?.propertyId;
     const fetchCalendar = async () => {
+      if (!propertyId) return;
       try {
-        const res = await fetch('/api/partner/calendar');
+        const res = await fetch(`/api/partner/calendar?propertyId=${propertyId}`);
         if (res.ok) {
-          const data = await res.json();
+          const json = await res.json();
+          const data = json.success && json.data ? json.data : json;
           setRoomGroups(data.roomGroups || []);
           setReservations(
             (data.reservations || []).map((r: Omit<Reservation, "startDate" | "endDate"> & { startDate: string | Date; endDate: string | Date }) => ({
@@ -217,7 +222,7 @@ export default function CalendarPage() {
     isSameDay(r.endDate, now)
   ).length;
 
-  const maintenanceCount = 2;
+  const maintenanceCount = 0;
   const availableRoomsCount = Math.max(0, totalRoomsCount - occupiedCount - maintenanceCount);
 
   const renderView = () => {
@@ -462,7 +467,7 @@ export default function CalendarPage() {
                 Discard
               </button>
               <button 
-                onClick={handleConfirmBooking}
+                onClick={(e) => { e.preventDefault(); alert('Direct Booking API is disabled to enforce canonical availability consistency.'); }}
                 disabled={!guestName || !checkIn || !checkOut || !isKYCVerified || !address.line1}
                 className={cn(
                   "flex-1 py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl",
@@ -471,7 +476,7 @@ export default function CalendarPage() {
                     : "bg-[#159665] text-white shadow-[#159665]/20 hover:bg-[#159665]/90"
                 )}
               >
-                {isKYCVerified ? "Confirm Booking" : "KYC Required"}
+                "Booking Disabled"
               </button>
             </div>
           </aside>

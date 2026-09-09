@@ -15,8 +15,8 @@ export function getSubdomain(): string | null {
        // shivay.localhost -> shivay
        return parts[0];
     }
-    // Default fallback for simple localhost:3000
-    return "shivay"; 
+    // Return null if no subdomain is present in localhost
+    return null; 
   }
 
   // Handle production: [subdomain].[domain].[tld]

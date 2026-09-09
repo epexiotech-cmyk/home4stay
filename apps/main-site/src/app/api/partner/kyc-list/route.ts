@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/rbac";
 import { withErrorHandler, AppError } from "@/lib/errors/handler";
 import { successResponse } from "@/lib/utils/apiResponse";
-import { prisma } from "database";
+import { prisma } from "@/lib/database/prisma";
 import { bookingRepository } from "@/lib/repositories/bookingRepository";
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
@@ -18,7 +18,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   if (["admin", "super_admin"].includes(role)) {
     // Admins see all. For performance, we might want to paginate, but we'll fetch all here for simplicity.
     const allProps = await prisma.property.findMany({ select: { id: true } });
-    allowedPropertyIds = allProps.map(p => p.id);
+    allowedPropertyIds = allProps.map((p: { id: string }) => p.id);
   } else {
     allowedPropertyIds = await bookingRepository.findAllowedPropertyIds(userId);
   }
@@ -56,8 +56,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   // Map to a clean response shape
   const guestList = bookings
-    .filter(b => b.guests.length > 0)
-    .map(b => {
+    .filter((b: typeof bookings[0]) => b.guests.length > 0)
+    .map((b: typeof bookings[0]) => {
       const primaryGuest = b.guests[0].guest;
       const kyc = primaryGuest.kycData;
       
@@ -79,7 +79,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     });
 
   // Sort by UNDER_REVIEW first, then by date
-  guestList.sort((a, b) => {
+  guestList.sort((a: typeof guestList[0], b: typeof guestList[0]) => {
     if (a.kycStatus === "UNDER_REVIEW" && b.kycStatus !== "UNDER_REVIEW") return -1;
     if (a.kycStatus !== "UNDER_REVIEW" && b.kycStatus === "UNDER_REVIEW") return 1;
     return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();

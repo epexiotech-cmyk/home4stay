@@ -264,4 +264,164 @@ export class PartnerMediaService {
 
     return { success: true, message: "Asset removed successfully from Cloudinary and database" };
   }
+
+  static async getRoomImages(propertyId: string, roomId: string) {
+    if (!propertyId || !roomId) throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
+
+    return prisma.mediaAsset.findMany({
+      where: { 
+        propertyId,
+        tags: { contains: `room_id:${roomId}` }
+      },
+      orderBy: { sortOrder: "asc" }
+    });
+  }
+
+  static async uploadRoomImage(payload: {
+    propertyId: string;
+    propertySlug?: string;
+    roomId: string;
+    userId: string;
+    file: File | null;
+  }) {
+    const { propertyId, propertySlug, roomId, userId, file } = payload;
+
+    if (!file) throw new AppError("Missing file payload", 400, "BAD_REQUEST");
+    if (file.size > MAX_FILE_SIZE) throw new AppError(`File size exceeds 5MB limit`, 400, "BAD_REQUEST");
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) throw new AppError(`Unsupported image format`, 400, "BAD_REQUEST");
+
+    // Verify room ownership
+    const room = await prisma.room.findFirst({ where: { id: roomId, propertyId } });
+    if (!room) throw new AppError("Room not found or unauthorized", 404, "NOT_FOUND");
+
+    // Check limit
+    const existingImages = Array.isArray(room.images) ? room.images : [];
+    if (existingImages.length >= 12) {
+      throw new AppError("Maximum of 12 images per room allowed", 400, "BAD_REQUEST");
+    }
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    let finalBuffer: Buffer | null = null;
+    const finalMimeType = "image/webp";
+
+    try {
+      let targetWidth = 1080;
+      let targetHeight = 720;
+      const TARGET_SIZE_BYTES = 50 * 1024; // 50 KB
+      const qualitySteps = [75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20];
+      
+      let achieved = false;
+      
+      // Try 1080p, 800p, 600p
+      const dimensions = [
+        { w: 1080, h: 720 },
+        { w: 800, h: 533 },
+        { w: 600, h: 400 }
+      ];
+
+      for (const dim of dimensions) {
+        const sharpInstance = sharp(fileBuffer).resize(dim.w, dim.h, {
+          fit: "inside",
+          withoutEnlargement: true
+        });
+
+        for (const quality of qualitySteps) {
+          const testBuffer = await sharpInstance.clone().webp({ quality, effort: 4 }).toBuffer();
+          finalBuffer = testBuffer;
+          if (testBuffer.length <= TARGET_SIZE_BYTES) {
+            achieved = true;
+            break;
+          }
+        }
+        if (achieved) break;
+      }
+
+      if (!finalBuffer || finalBuffer.length > TARGET_SIZE_BYTES) {
+        throw new AppError("The image could not be optimized to 50 KB even after scaling down.", 400, "BAD_REQUEST");
+      }
+    } catch (err) {
+      if (err instanceof AppError) throw err;
+      throw new AppError("Failed to process image.", 400, "BAD_REQUEST");
+    }
+
+    const resolvedSlug = propertySlug || propertyId;
+    const folderPath = `home4stay/properties/${resolvedSlug}/rooms/${roomId}`;
+
+    const result = await new Promise<any>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: folderPath, resource_type: "image", overwrite: true, invalidate: true },
+        (error, result) => { if (error) reject(error); else resolve(result); }
+      );
+      uploadStream.end(finalBuffer);
+    });
+
+    if (!result || !result.secure_url) throw new AppError("Cloudinary upload failed", 500, "INTERNAL_SERVER_ERROR");
+
+    try {
+      const asset = await MediaRepository.createMediaAsset({
+        propertyId,
+        url: result.secure_url,
+        type: "image",
+        assetType: "ROOM_IMAGE",
+        fileName: file.name,
+        mimeType: finalMimeType,
+        fileSize: finalBuffer.length,
+        storageKey: result.public_id,
+        tags: `Partner Upload, ROOM_IMAGE, room_id:${roomId}`,
+        uploadedBy: userId,
+        width: result.width,
+        height: result.height,
+        sortOrder: existingImages.length,
+        blurData: "LEHV6nWB2yk8pyo0adR*.7kCMdnj"
+      });
+
+      await prisma.room.update({
+        where: { id: roomId },
+        data: {
+          images: [...existingImages, result.secure_url]
+        }
+      });
+
+      return asset;
+    } catch (dbErr) {
+      // Cleanup Cloudinary on DB fail
+      try {
+        await cloudinary.uploader.destroy(result.public_id, { invalidate: true });
+      } catch (e) {
+        console.error("[PARTNER_MEDIA_SERVICE] Failed to cleanup Cloudinary asset after DB error", e);
+      }
+      throw new AppError("Failed to save image metadata to database", 500, "INTERNAL_SERVER_ERROR");
+    }
+  }
+
+  static async deleteRoomImage(payload: { propertyId: string; roomId: string; mediaId: string; }) {
+    const { propertyId, roomId, mediaId } = payload;
+    
+    const asset = await prisma.mediaAsset.findFirst({
+      where: { id: mediaId, propertyId, tags: { contains: `room_id:${roomId}` } }
+    });
+    if (!asset) throw new AppError("Forbidden: Media asset not found", 404, "NOT_FOUND");
+
+    const room = await prisma.room.findFirst({ where: { id: roomId, propertyId } });
+    if (!room) throw new AppError("Forbidden: Room not found", 404, "NOT_FOUND");
+
+    if (asset.storageKey) {
+      try {
+        await cloudinary.uploader.destroy(asset.storageKey, { invalidate: true });
+      } catch (e) {
+        console.error(`[PARTNER_MEDIA_DELETE] Failed to delete room image from Cloudinary`, e);
+      }
+    }
+
+    await prisma.mediaAsset.delete({ where: { id: mediaId } });
+
+    const existingImages = Array.isArray(room.images) ? (room.images as string[]) : [];
+    const updatedImages = existingImages.filter(url => url !== asset.url);
+    await prisma.room.update({
+      where: { id: roomId },
+      data: { images: updatedImages }
+    });
+
+    return { success: true, message: "Room image removed successfully" };
+  }
 }

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
-import { requireRole } from "@/lib/auth/rbac";
+import { requireRole, requirePropertyAccess } from "@/lib/auth/rbac";
 import { propertyCmsService } from "@/lib/services/propertyCmsService";
 import { propertyCmsUpdateSchema } from "@/lib/validators/property.validators";
 import { withErrorHandler, AppError } from "@/lib/errors/handler";
@@ -49,6 +49,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   if (!propertyId) {
     throw new AppError("Missing propertyId", 400, "BAD_REQUEST");
+  }
+
+  // Tenant Isolation Security Fix: Validate active session owns this property
+  const auth = await requirePropertyAccess(request, propertyId);
+  if (!auth.authorized) {
+    return auth.response!;
   }
 
   const property = await propertyCmsService.getCmsData(propertyId);

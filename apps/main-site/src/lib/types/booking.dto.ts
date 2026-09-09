@@ -21,6 +21,7 @@ export interface CreateBookingDto {
   guestData: GuestDto;
   conciergeServices?: ConciergeServiceDto[];
   paymentMode?: 'SMART_UPI' | 'CREDIT_CARD' | 'CASH' | 'BANK_TRANSFER' | null;
+  couponCode?: string;
 }
 
 export interface UpdateBookingDto {

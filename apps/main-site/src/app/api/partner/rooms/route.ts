@@ -17,5 +17,5 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
 
   const result = await PartnerService.getRooms(propertyId);
-  return successResponse({ roomGroups: result.roomGroups, propertySlug: auth.propertySlug });
+  return successResponse({ rooms: result, propertySlug: auth.propertySlug });
 });

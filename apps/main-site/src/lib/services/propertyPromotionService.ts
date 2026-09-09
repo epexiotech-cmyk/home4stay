@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { propertyOfferRepository } from '../repositories/propertyOfferRepository';
 
 export class PropertyPromotionService {
@@ -34,13 +35,11 @@ export class PropertyPromotionService {
     };
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async createOffer(data: any) {
+  async createOffer(data: Prisma.PropertyOfferUncheckedCreateInput) {
     return await propertyOfferRepository.create(data);
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async updateOffer(id: string, data: any) {
+  async updateOffer(id: string, data: Prisma.PropertyOfferUncheckedUpdateInput) {
     return await propertyOfferRepository.update(id, data);
   }
   

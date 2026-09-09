@@ -33,6 +33,7 @@ type PaymentStatus = "paid" | "partial" | "pending" | "refunded" | "under_owner_
 type BookingSource = "Home4Stay" | "Direct" | "Walk-in" | "WhatsApp" | "Phone";
 
 interface Booking {
+  guestPhone?: string;
   id: string; // display ID
   rawId: string; // actual database uuid
   guestName: string;
@@ -64,12 +65,12 @@ const parsePrismaBooking = (b: Record<string, unknown>) => {
     rawId: String(b.id || ''),
     guestName,
     source: (b.source || 'Direct') as BookingSource,
-    propertyName: b.property?.name || 'Unknown Property',
-    roomName: b.room?.name || 'Unknown Room',
+    propertyName: (b.property as {title?: string})?.title || 'Unknown Property',
+    roomName: (b.room as {title?: string})?.title || 'Unknown Room',
     roomFeatures: [],
     mealPlan: (b.mealPlan || b.meal_plan) as "EP" | "CP" | "MAP" | "AP",
-    checkIn: new Date(b.startDate || b.start_date || new Date()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-    checkOut: new Date(b.endDate || b.end_date || new Date()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+    checkIn: new Date(b.startDate as string || b.start_date as string || new Date()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+    checkOut: new Date(b.endDate as string || b.end_date as string || new Date()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
     guests: {
       adults: guestsArray.filter((g: Record<string, unknown>) => g.occupancyRole === 'Adult' || g.occupancy_role === 'Adult').length || 0,
       children: guestsArray.filter((g: Record<string, unknown>) => g.occupancyRole === 'Child' || g.occupancy_role === 'Child').length || 0
@@ -77,7 +78,7 @@ const parsePrismaBooking = (b: Record<string, unknown>) => {
     amount: b.amount || 0,
     paymentStatus: String(b.paymentStatus || b.payment_status || 'pending').toLowerCase() as PaymentStatus,
     status: (b.status || 'PENDING') as BookingStatus,
-    createdAt: new Date(b.createdAt || b.created_at || new Date()).toLocaleDateString(),
+    createdAt: new Date(b.createdAt as string || b.created_at as string || new Date()).toLocaleDateString(),
     paymentMode: b.paymentMode || b.payment_mode,
     paymentReference: b.paymentReference || b.payment_reference,
     utrNumber: b.utrNumber || b.utr_number,
@@ -182,7 +183,8 @@ export default function BookingsPage() {
     try {
       const response = await fetch('/api/bookings');
       if (response.ok) {
-        const data = await response.json();
+        const json = await response.json();
+        const data = json.success && json.data ? json.data : json;
         // Map DB schema to UI interface
         const actualData = data.data?.data || data.data || data || [];
         const mapped = actualData.map((b: Record<string, unknown>) => parsePrismaBooking(b));
@@ -785,9 +787,9 @@ function BookingCard({ booking, onReload }: { booking: Booking, onReload: () => 
   );
 }
 
-function ActionButtonIcon({ icon: Icon, label, color }: { icon: LucideIcon, label: string, color: string }) {
+function ActionButtonIcon({ icon: Icon, label, color, onClick }: { icon: LucideIcon, label: string, color: string, onClick?: () => void }) {
   return (
-    <button className={cn("flex items-center gap-2 px-3 py-2 rounded-xl text-[#0E5A75]/60 transition-all text-xs font-bold", color)}>
+    <button onClick={onClick} className={cn("flex items-center gap-2 px-3 py-2 rounded-xl text-[#0E5A75]/60 transition-all text-xs font-bold", color)}>
       <Icon size={16} />
       <span className="hidden sm:inline">{label}</span>
     </button>

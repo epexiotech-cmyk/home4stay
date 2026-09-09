@@ -1,3 +1,4 @@
+import { propertyCmsRepository } from '../repositories/propertyCmsRepository';
 import { PartnerRepository } from "@/lib/repositories/partnerRepository";
 import { AppError } from "@/lib/errors/handler";
 import { LaunchReadinessService } from "@/lib/onboarding/readiness";
@@ -29,6 +30,45 @@ export class PartnerService {
     session.drafts.forEach((draft: any) => {
       draftsMap[draft.stepId] = draft.data;
     });
+
+    // --- INTEGRATE CANONICAL DB RECORDS AS SOURCE OF TRUTH OVER DRAFTS ---
+    const canonicalProperty = await prisma.property.findUnique({ where: { id: propertyId } });
+    const canonicalPolicy = await prisma.propertyPolicy.findUnique({ where: { id: propertyId } });
+    const canonicalAmenities = await prisma.propertyAmenity.findMany({ where: { propertyId } });
+    const pageContent = await propertyCmsRepository.getPageContentWithSections(propertyId);
+    
+    // 1. Identity & Narrative
+    if (canonicalProperty && canonicalProperty.title) {
+       const existingIdentity = (draftsMap["property"] as any) || {};
+       draftsMap["property"] = {
+         ...existingIdentity,
+         title: canonicalProperty.title
+       };
+    }
+    
+    // 2. Theme
+    if (pageContent?.pageContent?.themeVariant) {
+       draftsMap["theme"] = { themeId: pageContent.pageContent.themeVariant };
+    }
+    
+    // 3. Amenities
+    if (canonicalAmenities && canonicalAmenities.length > 0) {
+       draftsMap["amenities"] = canonicalAmenities.map(a => a.name);
+    }
+    
+    // 4. Policies
+    if (canonicalPolicy) {
+       const existingPolicy = (draftsMap["policies"] as any) || {};
+       draftsMap["policies"] = {
+         ...existingPolicy,
+         checkIn: canonicalPolicy.checkInTime || existingPolicy.checkIn,
+         checkOut: canonicalPolicy.checkOutTime || existingPolicy.checkOut,
+         cancellation: canonicalPolicy.cancellationPolicy || existingPolicy.cancellation,
+         petPolicy: canonicalPolicy.houseRules || (canonicalPolicy.petsAllowed ? "Pets Allowed" : "Pets Not Allowed")
+       };
+    }
+    // -----------------------------------------------------------------
+
 
     return {
       id: session.id,
@@ -145,13 +185,19 @@ export class PartnerService {
 
     const roomGroups = dbRooms.map((r: any, index: number) => ({
       name: r.name,
-      rooms: [
-        { id: r.id, name: `${r.name} Room ${101 + index}`, type: r.view, status: "clean" }
-      ]
+      rooms: Array.from({ length: r.roomCount || 1 }).map((_, i) => ({
+        id: `${r.id}-unit-${i + 1}`,
+        name: `${r.name} Unit ${i + 1}`,
+        type: r.view,
+        status: "clean"
+      }))
     }));
 
     const dbBookings = await prisma.booking.findMany({
-      where: { propertyId },
+      where: { 
+        propertyId,
+        status: { notIn: ['CANCELLED', 'REJECTED', 'EXPIRED'] }
+      },
       include: {
         guests: {
           where: { isPrimaryGuest: true },
@@ -160,16 +206,33 @@ export class PartnerService {
       }
     });
 
-    const { getTenantData } = await import("@/lib/mock/tenantData");
-    const tenantData = getTenantData(propertyId);
-    const mockReservations = tenantData.reservations || [];
-
+    const unitAssignments: Record<string, any[]> = {};
     const dbReservations = dbBookings.map((b: any) => {
       const primaryGuestNode = b.guests[0]?.guest;
+      
+      if (!unitAssignments[b.roomId]) unitAssignments[b.roomId] = [];
+      const room = dbRooms.find((r: any) => r.id === b.roomId);
+      const roomCount = room?.roomCount || 1;
+      
+      let assignedUnitId = `${b.roomId}-unit-1`;
+      for (let i = 1; i <= roomCount; i++) {
+        const candidateUnitId = `${b.roomId}-unit-${i}`;
+        const overlapping = unitAssignments[b.roomId].some(res => {
+          if (res.unitId !== candidateUnitId) return false;
+          return (b.startDate < res.endDate && b.endDate > res.startDate);
+        });
+        if (!overlapping) {
+          assignedUnitId = candidateUnitId;
+          break;
+        }
+      }
+      unitAssignments[b.roomId].push({ unitId: assignedUnitId, startDate: b.startDate, endDate: b.endDate });
+
       return {
         id: b.id,
         guestName: primaryGuestNode?.fullName || "Database Guest",
-        roomId: b.roomId,
+        roomId: assignedUnitId,
+        originalRoomId: b.roomId,
         startDate: b.startDate,
         endDate: b.endDate,
         status: b.status.toLowerCase(),
@@ -198,8 +261,7 @@ export class PartnerService {
       };
     });
 
-    const reservations = [...dbReservations, ...mockReservations];
-    return { roomGroups, reservations };
+    return { roomGroups, reservations: dbReservations };
   }
 
   static async getRooms(propertyId: string) {
@@ -210,14 +272,7 @@ export class PartnerService {
       orderBy: { createdAt: "asc" }
     });
 
-    const roomGroups = dbRooms.map((r: any, index: number) => ({
-      name: r.name,
-      rooms: [
-        { id: r.id, name: `${r.name} Room ${101 + index}`, type: r.view, status: "clean" }
-      ]
-    }));
-
-    return { roomGroups };
+    return dbRooms;
   }
 
   static async getReferrals(userId: string) {

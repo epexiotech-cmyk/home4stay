@@ -328,7 +328,7 @@ export default function CheckoutPage() {
           'idempotency-key': `book_${Date.now()}_${guestPhone}`
         },
         body: JSON.stringify({
-          propertyId: bookingState.propertyId || "shivay-resort-id",
+          propertyId: bookingState.propertyId,
           roomId: bookingState.selectedRoomId,
           startDate: bookingState.dates.from,
           endDate: bookingState.dates.to,

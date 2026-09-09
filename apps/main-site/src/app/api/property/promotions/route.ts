@@ -46,6 +46,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const createData = {
     ...data,
+    description: data.description || "",
     slug: data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.floor(Math.random() * 1000),
     offerType: 'discount',
   };
