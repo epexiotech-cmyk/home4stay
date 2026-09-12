@@ -2,10 +2,12 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useOnboarding } from "@/context/OnboardingContext";
 import { Sparkles, Star, ArrowRight, Zap, Shield, Globe } from "lucide-react";
 
 export default function WelcomeStepPage() {
   const router = useRouter();
+  const { completeStep } = useOnboarding();
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
@@ -64,7 +66,7 @@ export default function WelcomeStepPage() {
       {/* Initialize / Navigation trigger */}
       <div className="pt-8 flex flex-col sm:flex-row gap-4 items-center">
         <button
-          onClick={() => router.push("/partner/onboarding/property")}
+          onClick={() => completeStep("welcome")}
           className="btn btn-primary px-10 py-4.5 rounded-2xl text-xs font-black uppercase tracking-[0.25em] shadow-lg shadow-primary/20 hover:bg-primary-hover flex items-center gap-2 group w-full sm:w-auto text-center justify-center"
         >
           <span>Begin Architecture Setup</span>

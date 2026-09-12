@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/rbac";
 import { validatePropertyAccess } from "@/lib/tenant/tenantUtils";
 import { propertyCmsService } from "@/lib/services/propertyCmsService";
@@ -20,7 +21,7 @@ export const POST = withErrorHandler(async (request: NextRequest, { params }: Co
   const resolvedParams = await params;
   const { propertyId } = resolvedParams;
 
-  const auth = await requireRole(request, ["owner", "manager", "admin", "super_admin"]);
+  const auth = await requireRole(request, ["owner", "partner", "manager", "admin", "super_admin"]);
   if (!auth.authorized) return auth.response!;
 
   const activeUserId = auth.userId;
@@ -51,7 +52,7 @@ export const GET = withErrorHandler(async (request: NextRequest, { params }: Con
   const resolvedParams = await params;
   const { propertyId } = resolvedParams;
 
-  const auth = await requireRole(request, ["owner", "manager", "admin", "super_admin"]);
+  const auth = await requireRole(request, ["owner", "partner", "manager", "admin", "super_admin"]);
   if (!auth.authorized) return auth.response!;
 
   const hasAccess = await validatePropertyAccess(auth.userId!, auth.role || "", propertyId);

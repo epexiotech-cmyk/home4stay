@@ -39,7 +39,7 @@ export default function Gallery({ images, gallery, name }: GalleryProps) {
     return () => clearInterval(interval);
   }, [carouselImages.length]);
 
-  const categories = ["All", ...Array.from(new Set(processedGallery.map(img => img.category)))];
+  const categories = ["All", ...Array.from(new Set(processedGallery.map(img => img.category?.split(",")[0] || "Image")))];
 
   const filteredGallery = activeTab === "All" 
     ? processedGallery 
@@ -100,10 +100,10 @@ export default function Gallery({ images, gallery, name }: GalleryProps) {
             {/* Overlay Gradient & Text */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover/main:opacity-80 transition-opacity duration-500" />
             <div className="absolute bottom-8 left-8 text-white z-10 translate-y-4 group-hover/main:translate-y-0 transition-transform duration-500">
-               <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-3 inline-block border border-white/30">
+               <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-widest mb-3 inline-block border border-white/30">
                  {processedGallery[0].category}
                </span>
-               <h3 className="text-3xl md:text-4xl font-black text-theme-primary tracking-tight">{name}</h3>
+               <h3 className="text-3xl md:text-5xl font-serif text-[var(--text)] tracking-tight drop-shadow-md">{name}</h3>
             </div>
          </div>
 
@@ -178,8 +178,8 @@ export default function Gallery({ images, gallery, name }: GalleryProps) {
                        <Grid size={24} />
                     </div>
                     <div>
-                       <p className="text-white font-black text-xl md:text-2xl leading-none mb-3 drop-shadow-md">Explore<br/>Gallery</p>
-                       <p className="text-white/80 text-xs md:text-sm font-bold flex items-center gap-1 uppercase tracking-widest drop-shadow-md">
+                       <p className="text-white font-serif text-3xl md:text-4xl leading-none mb-3 drop-shadow-md">Explore<br/>Gallery</p>
+                       <p className="text-white/80 text-[11px] font-medium flex items-center gap-1 uppercase tracking-widest drop-shadow-md">
                           {processedGallery.length} Photos 
                           <ChevronRight size={16} className="group-hover/cta:translate-x-2 transition-transform" />
                        </p>
@@ -235,8 +235,8 @@ export default function Gallery({ images, gallery, name }: GalleryProps) {
                 {/* Featured Photos Section */}
                 {activeTab === "All" && (
                    <section className="mb-24">
-                      <h2 className="text-3xl font-black text-theme-primary mb-2 tracking-tight">Featured Photos</h2>
-                      <p className="text-[var(--text-muted)] font-medium mb-10">Handpicked highlights of {name}</p>
+                      <h2 className="text-3xl md:text-4xl font-serif text-[var(--text)] mb-3 tracking-tight">Featured Photos</h2>
+                      <p className="text-[var(--text-muted)] font-light text-lg mb-10">Handpicked highlights of {name}</p>
                       <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 md:gap-6 h-auto md:h-[600px]">
                          <div className="md:col-span-2 md:row-span-2 relative rounded-3xl overflow-hidden cursor-zoom-in group/feat shadow-lg min-h-[300px]" onClick={() => openFullscreen(0)}>
                             <OptimizedImage src={featuredPhotos[0].url} alt="Featured" fill className="object-cover group-hover/feat:scale-105 transition-transform duration-1000" sizes="(max-width: 768px) 100vw, 50vw" />
@@ -265,8 +265,8 @@ export default function Gallery({ images, gallery, name }: GalleryProps) {
                         return (
                           <div key={cat} className="mb-24">
                             <div className="flex items-baseline gap-4 mb-10 border-b border-[var(--border)] pb-6">
-                              <h2 className="text-3xl font-black text-[var(--text)] tracking-tight">{cat}</h2>
-                              <span className="text-[var(--text-muted)] font-bold">{categoryImages.length} photos</span>
+                              <h2 className="text-3xl md:text-4xl font-serif text-[var(--text)] tracking-tight">{cat}</h2>
+                              <span className="text-[var(--text-muted)] font-medium tracking-widest uppercase text-[10px]">{categoryImages.length} photos</span>
                             </div>
                             <EditorialGrid images={categoryImages} name={name} openFullscreen={(idx) => {
                                const originalIdx = processedGallery.findIndex(g => g.url === categoryImages[idx].url);
@@ -279,8 +279,8 @@ export default function Gallery({ images, gallery, name }: GalleryProps) {
                       // When viewing a single category
                       <div className="mb-24">
                         <div className="flex items-baseline gap-4 mb-10 border-b border-[var(--border)] pb-6">
-                          <h2 className="text-3xl font-black text-[var(--text)] tracking-tight">{activeTab}</h2>
-                          <span className="text-[var(--text-muted)] font-bold">{filteredGallery.length} photos</span>
+                          <h2 className="text-3xl md:text-4xl font-serif text-[var(--text)] tracking-tight">{activeTab}</h2>
+                          <span className="text-[var(--text-muted)] font-medium tracking-widest uppercase text-[10px]">{filteredGallery.length} photos</span>
                         </div>
                         <EditorialGrid images={filteredGallery} name={name} openFullscreen={(idx) => {
                            const originalIdx = processedGallery.findIndex(g => g.url === filteredGallery[idx].url);
@@ -384,9 +384,9 @@ function EditorialGrid({ images, name, openFullscreen }: { images: GalleryImage[
              {/* Dynamic Overlay Label */}
              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/edit:opacity-100 transition-opacity duration-500" />
              
-             <div className="absolute bottom-6 left-6 right-6 p-5 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 text-white opacity-0 group-hover/edit:opacity-100 translate-y-4 group-hover/edit:translate-y-0 transition-all duration-700">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 mb-1">{img.category}</p>
-                <p className="font-bold text-sm tracking-tight line-clamp-1">{img.description}</p>
+             <div className="absolute bottom-6 left-6 right-6 p-5 bg-[var(--card)]/90 backdrop-blur-xl rounded-2xl border border-[var(--border)] text-[var(--text)] opacity-0 group-hover/edit:opacity-100 translate-y-4 group-hover/edit:translate-y-0 transition-all duration-700 shadow-xl">
+                <p className="text-[9px] font-medium uppercase tracking-widest text-[var(--text-subtle)] mb-1.5">{img.category}</p>
+                <p className="font-medium text-[13px] tracking-tight line-clamp-1">{img.description}</p>
              </div>
 
              <div className="absolute top-6 right-6 p-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full text-white opacity-0 group-hover/edit:opacity-100 transition-opacity duration-500">

@@ -40,7 +40,7 @@ export class PropertyCmsService {
       detail: ""
     }));
     const dbMediaAssets = await prisma.mediaAsset.findMany({
-      where: { propertyId },
+      where: { propertyId, NOT: { tags: { contains: "room_id:" } } },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }]
     });
     const formattedImages = dbMediaAssets.map(a => ({ id: a.id, url: a.url, type: a.assetType || 'IMAGE' }));
@@ -50,6 +50,7 @@ export class PropertyCmsService {
     const fallbackTheme = drafts.theme || {};
     const fallbackAmenities = drafts.amenities || [];
     const fallbackPolicy = drafts.policies || {};
+    const fallbackGallery = drafts.gallery || [];
 
     const finalAmenities = formattedAmenities.length > 0 
       ? formattedAmenities 
@@ -88,7 +89,7 @@ export class PropertyCmsService {
         narrativeHighlight: finalNarrativeHighlight,
       },
       amenities: finalAmenities,
-      images: formattedImages,
+      images: formattedImages.length > 0 ? formattedImages : fallbackGallery,
       seo: {
          title: (seoSection?.data as any)?.title || "",
          description: (seoSection?.data as any)?.description || "",

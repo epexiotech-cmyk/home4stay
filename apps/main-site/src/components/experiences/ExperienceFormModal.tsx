@@ -1,24 +1,39 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 
+export interface ExperienceFormInitialData {
+  id?: string;
+  title?: string;
+  category?: string;
+  description?: string;
+  price?: number;
+  isComplimentary?: boolean;
+  duration?: string;
+  maxGuests?: number;
+  requiresScheduling?: boolean;
+  isActive?: boolean;
+  coverImage?: string;
+}
+
 interface ExperienceFormModalProps {
+  initialData?: ExperienceFormInitialData | null;
   onSave: (data: Record<string, unknown>) => Promise<void>;
   onClose: () => void;
   isLoading: boolean;
 }
 
-export function ExperienceFormModal({ onSave, onClose, isLoading }: ExperienceFormModalProps) {
+export function ExperienceFormModal({ initialData, onSave, onClose, isLoading }: ExperienceFormModalProps) {
   const [formData, setFormData] = useState({
-    title: "",
-    category: "Dining",
-    description: "",
-    price: 0,
-    isComplimentary: false,
-    duration: "",
-    maxGuests: "",
-    requiresScheduling: false,
-    isActive: true,
-    coverImage: "",
+    title: initialData?.title || "",
+    category: initialData?.category || "Dining",
+    description: initialData?.description || "",
+    price: initialData?.price !== undefined ? initialData.price : 0,
+    isComplimentary: initialData?.isComplimentary || false,
+    duration: initialData?.duration || "",
+    maxGuests: initialData?.maxGuests != null ? String(initialData.maxGuests) : "",
+    requiresScheduling: initialData?.requiresScheduling || false,
+    isActive: initialData?.isActive !== undefined ? initialData.isActive : true,
+    coverImage: initialData?.coverImage || "",
   });
 
   const [error, setError] = useState<string>("");
@@ -59,10 +74,10 @@ export function ExperienceFormModal({ onSave, onClose, isLoading }: ExperienceFo
       price: formData.isComplimentary ? 0 : formData.price,
       isComplimentary: formData.isComplimentary,
       duration: formData.duration || undefined,
-      maxGuests: formData.maxGuests ? parseInt(formData.maxGuests) : undefined,
+      maxGuests: formData.maxGuests && formData.maxGuests.trim() !== "" ? parseInt(formData.maxGuests) : undefined,
       requiresScheduling: formData.requiresScheduling,
       isActive: formData.isActive,
-      coverImage: formData.coverImage || "https://images.unsplash.com/photo-1542314831-c6a4d14d8373?q=80&w=800",
+      coverImage: formData.coverImage || undefined,
     };
 
     try {
@@ -75,11 +90,15 @@ export function ExperienceFormModal({ onSave, onClose, isLoading }: ExperienceFo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full max-w-2xl bg-[#FDF6F1] dark:bg-[#0A0F1D] rounded-[48px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="p-8 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-white dark:bg-[#0E5A75]/10">
+      <div className="relative w-full max-w-2xl bg-[#FDF6F1] dark:bg-[#053344] rounded-[48px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="p-8 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-white dark:bg-[#053344]">
           <div>
-            <h2 className="text-2xl font-black text-[#053344] dark:text-white tracking-tight">Create Custom Experience</h2>
-            <p className="text-xs font-medium text-[#0E5A75]/60 dark:text-white/60">Design a unique offering for your property.</p>
+            <h2 className="text-2xl font-black text-[#053344] dark:text-white tracking-tight">
+              {initialData ? "Edit Experience" : "Create Custom Experience"}
+            </h2>
+            <p className="text-xs font-medium text-[#0E5A75]/60 dark:text-white/60">
+              {initialData ? "Update your property's experience details." : "Design a unique offering for your property."}
+            </p>
           </div>
           <button onClick={onClose} className="p-3 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-all text-[#053344] dark:text-white">
             <X size={20} />
@@ -102,7 +121,7 @@ export function ExperienceFormModal({ onSave, onClose, isLoading }: ExperienceFo
                   name="title"
                   value={formData.title} 
                   onChange={handleChange}
-                  className="w-full bg-white dark:bg-[#0E5A75]/20 border border-black/10 dark:border-white/10 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#0E5A75]/20 transition-all"
+                  className="w-full bg-white dark:bg-[#053344]/40 border border-[#D4AF37]/20 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#D4AF37]/40 transition-all"
                   placeholder="e.g. Secret Garden Dinner"
                   required
                 />
@@ -114,7 +133,7 @@ export function ExperienceFormModal({ onSave, onClose, isLoading }: ExperienceFo
                   name="category"
                   value={formData.category} 
                   onChange={handleChange}
-                  className="w-full bg-white dark:bg-[#0E5A75]/20 border border-black/10 dark:border-white/10 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#0E5A75]/20 transition-all"
+                  className="w-full bg-white dark:bg-[#053344]/40 border border-[#D4AF37]/20 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#D4AF37]/40 transition-all"
                 >
                   <option>Dining</option>
                   <option>Adventure</option>
@@ -133,7 +152,7 @@ export function ExperienceFormModal({ onSave, onClose, isLoading }: ExperienceFo
                 value={formData.description} 
                 onChange={handleChange}
                 rows={3}
-                className="w-full bg-white dark:bg-[#0E5A75]/20 border border-black/10 dark:border-white/10 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#0E5A75]/20 transition-all resize-none"
+                className="w-full bg-white dark:bg-[#053344]/40 border border-[#D4AF37]/20 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#D4AF37]/40 transition-all resize-none"
                 placeholder="Describe the experience..."
                 required
               />
@@ -149,7 +168,7 @@ export function ExperienceFormModal({ onSave, onClose, isLoading }: ExperienceFo
                   onChange={handleChange}
                   disabled={formData.isComplimentary}
                   min="0"
-                  className="w-full bg-white dark:bg-[#0E5A75]/20 border border-black/10 dark:border-white/10 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#0E5A75]/20 transition-all disabled:opacity-50 disabled:bg-gray-100"
+                  className="w-full bg-white dark:bg-[#053344]/40 border border-[#D4AF37]/20 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#D4AF37]/40 transition-all disabled:opacity-50 disabled:bg-black/5 dark:disabled:bg-white/5"
                 />
               </div>
 
@@ -160,7 +179,7 @@ export function ExperienceFormModal({ onSave, onClose, isLoading }: ExperienceFo
                   name="duration"
                   value={formData.duration} 
                   onChange={handleChange}
-                  className="w-full bg-white dark:bg-[#0E5A75]/20 border border-black/10 dark:border-white/10 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#0E5A75]/20 transition-all"
+                  className="w-full bg-white dark:bg-[#053344]/40 border border-[#D4AF37]/20 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#D4AF37]/40 transition-all"
                   placeholder="e.g. 2 Hours"
                 />
               </div>
@@ -175,7 +194,7 @@ export function ExperienceFormModal({ onSave, onClose, isLoading }: ExperienceFo
                   value={formData.maxGuests} 
                   onChange={handleChange}
                   min="1"
-                  className="w-full bg-white dark:bg-[#0E5A75]/20 border border-black/10 dark:border-white/10 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#0E5A75]/20 transition-all"
+                  className="w-full bg-white dark:bg-[#053344]/40 border border-[#D4AF37]/20 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#D4AF37]/40 transition-all"
                   placeholder="Leave empty if no limit"
                 />
               </div>
@@ -187,7 +206,7 @@ export function ExperienceFormModal({ onSave, onClose, isLoading }: ExperienceFo
                   name="coverImage"
                   value={formData.coverImage} 
                   onChange={handleChange}
-                  className="w-full bg-white dark:bg-[#0E5A75]/20 border border-black/10 dark:border-white/10 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#0E5A75]/20 transition-all"
+                  className="w-full bg-white dark:bg-[#053344]/40 border border-[#D4AF37]/20 rounded-2xl px-4 py-3 text-sm font-bold text-[#053344] dark:text-white outline-none focus:ring-2 ring-[#D4AF37]/40 transition-all"
                   placeholder="https://..."
                 />
               </div>
@@ -195,24 +214,24 @@ export function ExperienceFormModal({ onSave, onClose, isLoading }: ExperienceFo
 
             <div className="pt-4 border-t border-black/5 dark:border-white/5 space-y-4">
               <label className="flex items-center gap-3 cursor-pointer group">
-                <input type="checkbox" name="isComplimentary" checked={formData.isComplimentary} onChange={handleChange} className="w-5 h-5 rounded border-black/20 text-[#0E5A75] focus:ring-[#0E5A75]" />
-                <span className="text-sm font-bold text-[#053344] dark:text-white group-hover:text-[#0E5A75] transition-colors">Is Complimentary (Free)</span>
+                <input type="checkbox" name="isComplimentary" checked={formData.isComplimentary} onChange={handleChange} className="w-5 h-5 rounded border-black/20 text-[#D4AF37] focus:ring-[#D4AF37]" />
+                <span className="text-sm font-bold text-[#053344] dark:text-white group-hover:text-[#D4AF37] transition-colors">Is Complimentary (Free)</span>
               </label>
 
               <label className="flex items-center gap-3 cursor-pointer group">
-                <input type="checkbox" name="requiresScheduling" checked={formData.requiresScheduling} onChange={handleChange} className="w-5 h-5 rounded border-black/20 text-[#0E5A75] focus:ring-[#0E5A75]" />
-                <span className="text-sm font-bold text-[#053344] dark:text-white group-hover:text-[#0E5A75] transition-colors">Requires Scheduling / Advance Notice</span>
+                <input type="checkbox" name="requiresScheduling" checked={formData.requiresScheduling} onChange={handleChange} className="w-5 h-5 rounded border-black/20 text-[#D4AF37] focus:ring-[#D4AF37]" />
+                <span className="text-sm font-bold text-[#053344] dark:text-white group-hover:text-[#D4AF37] transition-colors">Requires Scheduling / Advance Notice</span>
               </label>
               
               <label className="flex items-center gap-3 cursor-pointer group">
-                <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} className="w-5 h-5 rounded border-black/20 text-[#0E5A75] focus:ring-[#0E5A75]" />
-                <span className="text-sm font-bold text-[#053344] dark:text-white group-hover:text-[#0E5A75] transition-colors">Active (Visible to public)</span>
+                <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} className="w-5 h-5 rounded border-black/20 text-[#D4AF37] focus:ring-[#D4AF37]" />
+                <span className="text-sm font-bold text-[#053344] dark:text-white group-hover:text-[#D4AF37] transition-colors">Active (Visible to public)</span>
               </label>
             </div>
           </form>
         </div>
 
-        <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white dark:bg-[#0E5A75]/10 flex justify-end gap-4">
+        <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white dark:bg-[#053344] flex justify-end gap-4">
           <button onClick={onClose} className="px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest text-[#053344] dark:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all">
             Cancel
           </button>
@@ -220,9 +239,9 @@ export function ExperienceFormModal({ onSave, onClose, isLoading }: ExperienceFo
             type="submit" 
             form="custom-exp-form"
             disabled={isLoading}
-            className="px-8 py-3 rounded-full bg-[#0E5A75] dark:bg-[#FCBC43] text-white dark:text-[#053344] text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-50"
+            className="px-8 py-3 rounded-full bg-[#D4AF37] text-white text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-50"
           >
-            {isLoading ? "Saving..." : "Create Experience"}
+            {isLoading ? "Saving..." : (initialData ? "Save Changes" : "Create Experience")}
           </button>
         </div>
       </div>

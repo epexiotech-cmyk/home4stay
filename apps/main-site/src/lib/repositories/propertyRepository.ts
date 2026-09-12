@@ -58,7 +58,7 @@ export class PropertyRepository {
         pricing: true,
         rooms: true,
         experiences: true,
-        mediaAssets: true,
+        mediaAssets: { where: { NOT: { tags: { contains: "room_id:" } } } },
       },
     });
   }
@@ -97,7 +97,7 @@ export class PropertyRepository {
   // --- MEDIA ASSET METHODS ---
   async findMediaByPropertyId(propertyId: string) {
     return await prisma.mediaAsset.findMany({
-      where: { propertyId },
+      where: { propertyId, NOT: { tags: { contains: "room_id:" } } },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     });
   }

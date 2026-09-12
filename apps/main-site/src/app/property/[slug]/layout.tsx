@@ -64,9 +64,9 @@ export default async function PropertyLayout({
             {children}
           </main>
 
-        <footer className="mx-auto mb-10 w-[95vw] z-10 mt-20">
-          <div className="mx-auto px-8 md:px-12 py-12 md:py-16 rounded-[3rem] border border-[var(--border)] bg-[var(--card)] backdrop-blur-xl shadow-[0_20px_50px_var(--shadow)]">
-            <div className="max-w-[1280px] mx-auto">
+        <footer className="w-full z-10 mt-0">
+          <div className="w-full px-6 md:px-10 lg:px-20 py-16 md:py-24 border-t border-[var(--border)] bg-[var(--theme-bg)]">
+            <div className="max-w-[1440px] mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
                 <div className="col-span-1">
                   <h3 className="font-black text-xl text-[var(--text)] mb-4">{property.name}</h3>
@@ -126,8 +126,8 @@ export default async function PropertyLayout({
                 </Link>
               </div>
 
-              <div className="mt-12 pt-8 border-t border-[var(--border)] flex flex-col md:flex-row justify-between items-center gap-6">
-                <div className="flex flex-wrap items-center gap-4 text-[11px] font-bold text-[var(--text-subtle)]">
+              <div className="mt-16 pt-8 border-t border-[var(--border)] flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="flex flex-wrap items-center gap-4 text-[11px] font-medium tracking-wide text-[var(--text-subtle)]">
                   <p>© 2026 {property.name}, Inc.</p>
                   <span className="hidden md:inline opacity-20">·</span>
                   <Link href="#" className="hover:underline hover:text-[var(--text)] transition-colors">Privacy</Link>

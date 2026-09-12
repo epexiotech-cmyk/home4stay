@@ -45,6 +45,15 @@ export default function GalleryStepPage() {
   const { saveStepDraft, completeStep, stepErrors } = useOnboarding();
   const [luxuryAssets, setLuxuryAssets] = useState<MediaAsset[]>([]);
   const [galleryAssets, setGalleryAssets] = useState<MediaAsset[]>([]);
+
+  const needsSyncRef = useRef(false);
+
+  useEffect(() => {
+    if (needsSyncRef.current) {
+      syncWithOnboardingContext(luxuryAssets, galleryAssets, true);
+      needsSyncRef.current = false;
+    }
+  }, [luxuryAssets, galleryAssets]);
   const [uploadQueue, setUploadQueue] = useState<UploadTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragActiveLuxury, setDragActiveLuxury] = useState(false);
@@ -62,6 +71,10 @@ export default function GalleryStepPage() {
     async function fetchMedia() {
       try {
         const res = await fetch("/api/partner/media");
+        if (res.status === 401) {
+          window.location.href = "/login?intent=host";
+          return;
+        }
         const json = await res.json();
         if (json.success) {
           const sorted = (json.data?.media || []).sort((a: MediaAsset, b: MediaAsset) => a.sortOrder - b.sortOrder);
@@ -173,17 +186,11 @@ export default function GalleryStepPage() {
             
             // Append newly uploaded asset to gallery list
             if (task.assetType === "LUXURY") {
-              setLuxuryAssets(prev => {
-                const updated = [...prev, uploadedAsset];
-                syncWithOnboardingContext(updated, galleryAssets);
-                return updated;
-              });
+              needsSyncRef.current = true;
+              setLuxuryAssets(prev => [...prev, uploadedAsset]);
             } else {
-              setGalleryAssets(prev => {
-                const updated = [...prev, uploadedAsset];
-                syncWithOnboardingContext(luxuryAssets, updated);
-                return updated;
-              });
+              needsSyncRef.current = true;
+              setGalleryAssets(prev => [...prev, uploadedAsset]);
             }
 
             // Automatically clear successful items from upload queue after 2 seconds
@@ -200,6 +207,10 @@ export default function GalleryStepPage() {
           );
         }
       } else {
+        if (xhr.status === 401) {
+          window.location.href = "/login?intent=host";
+          return;
+        }
         let errMsg = "Server connection lost";
         try {
           const res = JSON.parse(xhr.responseText);
@@ -244,20 +255,18 @@ export default function GalleryStepPage() {
       const res = await fetch(`/api/partner/media?id=${assetId}`, {
         method: "DELETE", credentials: "include"
       });
+      if (res.status === 401) {
+        window.location.href = "/login?intent=host";
+        return;
+      }
       const json = await res.json();
       if (json.success) {
         if (assetType === "LUXURY") {
-          setLuxuryAssets(prev => {
-            const updated = prev.filter(a => a.id !== assetId);
-            syncWithOnboardingContext(updated, galleryAssets);
-            return updated;
-          });
+          needsSyncRef.current = true;
+          setLuxuryAssets(prev => prev.filter(a => a.id !== assetId));
         } else {
-          setGalleryAssets(prev => {
-            const updated = prev.filter(a => a.id !== assetId);
-            syncWithOnboardingContext(luxuryAssets, updated);
-            return updated;
-          });
+          needsSyncRef.current = true;
+          setGalleryAssets(prev => prev.filter(a => a.id !== assetId));
         }
       } else {
         setApiError(json.error?.message || json.error || "Failed to delete media asset");
@@ -288,11 +297,15 @@ export default function GalleryStepPage() {
     // Save ordering to database
     try {
       const ids = reordered.map(a => a.id);
-      await fetch("/api/partner/media", {
+      const res = await fetch("/api/partner/media", {
         method: "PUT", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids })
       });
+      if (res.status === 401) {
+        window.location.href = "/login?intent=host";
+        return;
+      }
     } catch (err) {
       console.error("Failed to persist cover order:", err);
     }
@@ -331,11 +344,15 @@ export default function GalleryStepPage() {
     // Persist new layout list to database
     try {
       const ids = shuffled.map(a => a.id);
-      await fetch("/api/partner/media", {
+      const res = await fetch("/api/partner/media", {
         method: "PUT", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids })
       });
+      if (res.status === 401) {
+        window.location.href = "/login?intent=host";
+        return;
+      }
     } catch (err) {
       console.error("Failed to save reorder state:", err);
     }

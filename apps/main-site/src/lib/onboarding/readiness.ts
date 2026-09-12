@@ -30,7 +30,7 @@ export class LaunchReadinessService {
       include: {
         owner: true,
         rooms: true,
-        mediaAssets: true,
+        mediaAssets: { where: { NOT: { tags: { contains: "room_id:" } } } },
         experiences: true,
         onboardingSession: {
           include: {
@@ -53,6 +53,8 @@ export class LaunchReadinessService {
     const policiesDraft = drafts.find(d => d.stepId === "policies")?.data as any || {};
     const pricingDraft = drafts.find(d => d.stepId === "pricing")?.data as any || {};
     const launchDraft = drafts.find(d => d.stepId === "launch")?.data as any || {};
+    const roomsDraftRaw = drafts.find(d => d.stepId === "rooms")?.data;
+    const roomsDraft = (roomsDraftRaw && typeof roomsDraftRaw === "object") ? roomsDraftRaw as { roomName?: string, price?: string | number } : {};
 
     // 2. Validate individual criteria
     const propertyIdentity = !!(propertyDraft.title?.trim() && propertyDraft.description?.trim());
@@ -62,7 +64,10 @@ export class LaunchReadinessService {
     const heroUploaded = property.mediaAssets.some(m => m.assetType === "HERO" || m.tags?.toLowerCase().includes("hero")) || property.mediaAssets.length > 0;
     
     // Rooms check: at least 1 active room in the DB or in drafts
-    const roomsConfigured = property.rooms.length > 0;
+    const hasValidRoomDraft = 
+      typeof roomsDraft.roomName === "string" && roomsDraft.roomName.trim() !== "" &&
+      !isNaN(Number(roomsDraft.price)) && Number(roomsDraft.price) > 0;
+    const roomsConfigured = property.rooms.length > 0 || hasValidRoomDraft;
     
     // Pricing check: pricing plan or active rules configured
     const pricingConfigured = !!(pricingDraft.plan || pricingDraft.price || property.rooms.some(r => r.price > 0));

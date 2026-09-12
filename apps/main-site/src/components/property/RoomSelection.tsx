@@ -7,6 +7,7 @@ import { Users, Maximize2, Waves, CheckCircle2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBooking } from "@/context/BookingContext";
 import { Room } from "@/properties-data/types";
+import { useParams, useRouter } from "next/navigation";
 
 interface RoomType {
   id: string;
@@ -32,6 +33,8 @@ const ROOM_IMAGES = [
 export default function RoomSelection({ rooms }: { rooms?: Room[] }) {
   const { state, setRoom } = useBooking();
   const selectedRoomId = state.selectedRoomId;
+  const router = useRouter();
+  const params = useParams();
 
   const sourceRooms = rooms || [];
   
@@ -50,19 +53,19 @@ export default function RoomSelection({ rooms }: { rooms?: Room[] }) {
   }));
 
   return (
-    <section className="py-32" id="rooms">
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-16">
+    <section className="py-20 md:py-32 border-b border-[var(--border)]" id="rooms">
+      <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-px bg-[#0E5A75]" />
-            <span className="text-[10px] font-black text-[#0E5A75] uppercase tracking-[0.3em]">Signature Inventory</span>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-px bg-[var(--text-subtle)]" />
+            <span className="text-[11px] font-medium text-[var(--text-subtle)] uppercase tracking-[0.2em]">Accommodations</span>
           </div>
-          <h2 className="text-5xl font-black text-[#053344] dark:text-white tracking-tighter leading-none">Choose your Stay</h2>
+          <h2 className="text-4xl md:text-5xl font-serif text-[var(--text)] tracking-tight">Select your <span className="italic text-[var(--text-muted)]">Sanctuary.</span></h2>
         </div>
         <div className="flex gap-4">
-          <div className="glass-premium px-6 py-3 rounded-full border border-white/40 dark:border-white/5 flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-[#159665]" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#053344] dark:text-white">Live Availability</span>
+          <div className="px-5 py-2.5 rounded-full border border-[var(--border)] bg-[var(--bg)] flex items-center gap-2 shadow-sm">
+            <div className="w-2 h-2 rounded-full bg-[#159665] animate-pulse" />
+            <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--text)]">Live Availability</span>
           </div>
         </div>
       </div>
@@ -72,84 +75,88 @@ export default function RoomSelection({ rooms }: { rooms?: Room[] }) {
           <div 
             key={room.id}
             className={cn(
-              "group relative flex flex-col lg:flex-row gap-8 p-6 rounded-[48px] glass-premium transition-all duration-700 overflow-hidden cursor-pointer",
+              "group relative flex flex-col lg:flex-row gap-8 p-4 rounded-3xl bg-[var(--card)] border transition-all duration-500 overflow-hidden cursor-pointer",
               selectedRoomId === room.id 
-                ? "ring-4 ring-[#0E5A75]/10 border-[#0E5A75] bg-white/80 dark:bg-white/10 shadow-luxury" 
-                : "border-white/40 dark:border-white/5 hover:border-[#0E5A75]/40 hover:shadow-2xl"
+                ? "border-theme-primary ring-1 ring-theme-primary shadow-md" 
+                : "border-[var(--border)] hover:border-theme-primary/50 hover:shadow-lg"
             )}
-            onClick={() => setRoom(room.id, room.name, room.price)}
+            onClick={() => { setRoom(room.id, room.name, room.price); router.push(`/property/${params.slug}/rooms/${room.id}`); }}
           >
             {/* Room Media */}
-            <div className="relative w-full lg:w-[45%] h-[400px] lg:h-auto min-h-[400px] rounded-[36px] overflow-hidden">
+            <div className="relative w-full lg:w-[40%] h-[300px] lg:h-auto min-h-[300px] rounded-2xl overflow-hidden">
               <Image 
                 src={getValidImageUrl(room.image) || DEFAULT_FALLBACK_IMAGE} 
                 alt={room.name} 
                 fill 
-                className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                className="object-cover transition-transform duration-[10s] ease-out group-hover:scale-110"
               />
-              <div className="absolute top-6 left-6 flex flex-wrap gap-2">
+              <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                 {room.tags.map((tag: string) => (
-                  <span key={tag} className="px-4 py-2 rounded-full glass-premium border-white/40 text-[9px] font-black uppercase tracking-widest text-white shadow-lg">
+                  <span key={tag} className="px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-[10px] font-medium uppercase tracking-widest text-white shadow-sm">
                     {tag}
                   </span>
                 ))}
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
             </div>
 
             {/* Room Details */}
-            <div className="flex-1 flex flex-col justify-between py-6 px-4">
+            <div className="flex-1 flex flex-col justify-between py-4 pr-4">
               <div>
-                <div className="flex justify-between items-start mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start mb-4 gap-4">
                   <div>
-                    <h3 className="text-3xl font-black text-[#053344] dark:text-white tracking-tight mb-2 group-hover:text-[#0E5A75] transition-colors">{room.name}</h3>
-                    <div className="flex items-center gap-6 text-[#0E5A75]/60">
+                    <h3 className="text-2xl md:text-3xl font-serif text-[var(--text)] tracking-tight mb-2 group-hover:text-theme-primary transition-colors">{room.name}</h3>
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[var(--text-subtle)]">
+                      {room.size && (
+                        <div className="flex items-center gap-1.5">
+                          <Maximize2 size={14} strokeWidth={1.5} />
+                          <span className="text-[11px] font-medium uppercase tracking-widest">{room.size}</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-1.5">
-                        <Maximize2 size={16} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{room.size}</span>
+                        <Users size={14} strokeWidth={1.5} />
+                        <span className="text-[11px] font-medium uppercase tracking-widest">{room.occupancy}</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <Users size={16} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{room.occupancy}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Waves size={16} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{room.view}</span>
-                      </div>
+                      {room.view && (
+                        <div className="flex items-center gap-1.5">
+                          <Waves size={14} strokeWidth={1.5} />
+                          <span className="text-[11px] font-medium uppercase tracking-widest">{room.view}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-black text-[#0E5A75]/40 uppercase tracking-widest mb-1">Starting from</p>
-                    <p className="text-3xl font-black text-[#159665]">₹{room.price.toLocaleString()}</p>
-                    <p className="text-[10px] font-black text-[#0E5A75]/40 uppercase tracking-widest mt-1">per night + Taxes</p>
+                  <div className="text-left md:text-right">
+                    <p className="text-[10px] font-medium text-[var(--text-subtle)] uppercase tracking-widest mb-1">Starting from</p>
+                    <p className="text-2xl font-semibold text-[var(--text)]">₹{room.price.toLocaleString()}</p>
+                    <p className="text-[10px] font-medium text-[var(--text-subtle)] uppercase tracking-widest mt-1">/ night + Taxes</p>
                   </div>
                 </div>
 
-                <p className="text-lg font-medium text-[#0E5A75]/60 mb-8 leading-relaxed italic">
-                  &quot;{room.description}&quot;
+                <p className="text-[15px] font-light text-[var(--text-muted)] mb-6 leading-relaxed">
+                  {room.description}
                 </p>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
                   {room.amenities.map((amenity: string) => (
-                    <div key={amenity} className="flex items-center gap-2 text-[#0E5A75]">
-                      <CheckCircle2 size={14} className="text-[#159665]" />
-                      <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">{amenity}</span>
+                    <div key={amenity} className="flex items-center gap-2 text-[var(--text-muted)]">
+                      <div className="w-1 h-1 rounded-full bg-theme-primary/60 shrink-0" />
+                      <span className="text-[11px] font-medium tracking-wide whitespace-nowrap overflow-hidden text-ellipsis">{amenity}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <button className={cn(
-                  "flex-1 py-5 rounded-[24px] text-sm font-black uppercase tracking-[0.2em] transition-all duration-500 shadow-xl",
+                  "flex-1 py-3.5 rounded-lg text-xs font-medium uppercase tracking-[0.15em] transition-all duration-300",
                   selectedRoomId === room.id 
-                    ? "bg-[#159665] text-white shadow-[#159665]/20" 
-                    : "bg-[#0E5A75] text-white shadow-[#0E5A75]/20 hover:bg-[#0A4459]"
+                    ? "bg-theme-primary text-white" 
+                    : "bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] hover:border-theme-primary/50"
                 )}>
-                  {selectedRoomId === room.id ? "Room Selected" : "Select this Room"}
+                  {selectedRoomId === room.id ? "Selected" : "Select"}
                 </button>
-                <button className="p-5 rounded-[24px] glass-premium border-white/40 dark:border-white/5 text-[#0E5A75] dark:text-[#FCBC43] hover:bg-[#0E5A75]/5 transition-all">
-                  <Info size={20} />
+                <button className="p-3.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
+                  <Info size={16} strokeWidth={1.5} />
                 </button>
               </div>
             </div>

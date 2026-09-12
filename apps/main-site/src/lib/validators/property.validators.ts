@@ -142,3 +142,23 @@ export const propertyCmsUpdateSchema = z.object({
   contact: z.any().optional(),
   branding: z.any().optional(),
 });
+
+
+export const propertyNearbyPlaceSchema = z.object({
+  propertyId: z.string().min(1, "Property ID is required"),
+  name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
+  category: z.string().max(50, "Category is too long").optional().nullable(),
+  distance: z.string().max(50, "Distance is too long").optional().nullable(),
+  description: z.string().max(1000, "Description is too long").optional().nullable(),
+  imageUrl: z.string().url("Must be a valid URL").optional().nullable(),
+  isActive: z.boolean().default(true),
+  sortOrder: z.number().int().default(0),
+});
+
+export const updatePropertyNearbyPlaceSchema = propertyNearbyPlaceSchema
+  .omit({ propertyId: true })
+  .partial()
+  .extend({
+    isActive: z.boolean().optional(),
+    sortOrder: z.number().int().optional(),
+  });

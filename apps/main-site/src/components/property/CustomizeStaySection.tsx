@@ -63,20 +63,22 @@ export default function CustomizeStaySection({ propertyId }: { propertyId?: stri
   if (!isLoading && experiences.length === 0) return null;
 
   return (
-    <section className="py-32 border-b border-black/5 dark:border-white/5 relative overflow-hidden" id="customize">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 relative z-10">
+    <section className="py-20 md:py-32 border-b border-[var(--border)] relative overflow-hidden" id="customize">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 relative z-10">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
         >
-          <HeritageDivider />
-          <span className="text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.4em]">Curated Indian Experiences</span>
-          <h2 className="text-5xl font-black text-[#053344] dark:text-white tracking-tighter leading-none mt-4 font-serif">
-            Craft Your <span className="italic text-[#D4AF37]">Mehmaan</span> Experience
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-px bg-[var(--text-subtle)]" />
+            <span className="text-[11px] font-medium text-[var(--text-subtle)] uppercase tracking-[0.2em]">Curated Experiences</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-serif text-[var(--text)] tracking-tight mt-4">
+            Craft Your <span className="italic text-[var(--text-muted)]">Journey.</span>
           </h2>
-          <p className="text-lg text-[#0E5A75]/60 font-medium mt-6 italic max-w-2xl leading-relaxed">
-            &quot;Thoughtfully curated experiences inspired by Indian hospitality, wellness, celebration, and local culture.&quot;
+          <p className="text-base text-[var(--text-muted)] font-light mt-6 max-w-2xl leading-relaxed">
+            Thoughtfully curated enhancements inspired by wellness, celebration, and local culture.
           </p>
         </motion.div>
       </div>
@@ -102,10 +104,10 @@ export default function CustomizeStaySection({ propertyId }: { propertyId?: stri
                 whileTap={{ scale: 0.98 }}
                 onClick={() => toggleExperience({ id: exp.id, title: exp.title, price: exp.price })}
                 className={cn(
-                  "group relative p-10 rounded-[56px] glass-premium transition-all duration-700 cursor-pointer overflow-hidden border",
+                  "group relative p-8 rounded-3xl transition-all duration-500 cursor-pointer overflow-hidden border bg-[var(--card)]",
                   isSelected 
-                    ? "bg-white/90 dark:bg-[#053344]/60 border-[#D4AF37] shadow-[0_20px_60px_-15px_rgba(212,175,55,0.2)]" 
-                    : "border-white/40 dark:border-white/5 hover:border-[#D4AF37]/40 bg-[#FDF6F1]/30 dark:bg-transparent"
+                    ? "border-theme-primary shadow-lg ring-1 ring-theme-primary" 
+                    : "border-[var(--border)] hover:border-theme-primary/50 hover:shadow-md"
                 )}
               >
                 <IndianPattern />
@@ -137,7 +139,7 @@ export default function CustomizeStaySection({ propertyId }: { propertyId?: stri
                   <div>
                     <div className="flex items-center flex-wrap gap-3 mb-3">
                       <h4 className={cn(
-                        "text-xl font-black tracking-tight font-serif transition-colors duration-500", 
+                        "text-2xl font-serif tracking-tight transition-colors duration-500", 
                         isSelected ? "text-[#053344] dark:text-white" : "text-[#053344] dark:text-white"
                       )}>
                         {exp.title}
@@ -161,7 +163,7 @@ export default function CustomizeStaySection({ propertyId }: { propertyId?: stri
 
                   <div className="mt-auto flex items-center justify-between pt-6 border-t border-[#D4AF37]/10">
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-black text-[#D4AF37]/40 uppercase tracking-widest mb-0.5">Premium Experience</span>
+                      <span className="text-[10px] font-medium text-[var(--text-subtle)] uppercase tracking-widest mb-1">Premium Experience</span>
                       <span className={cn(
                         "text-base font-black transition-colors duration-500", 
                         isSelected ? "text-[#159665]" : "text-[#0E5A75] dark:text-white"

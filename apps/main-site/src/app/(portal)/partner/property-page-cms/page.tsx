@@ -327,12 +327,24 @@ function IdentitySection({ data, setData }: { data: any; setData: (data: any) =>
           value={data?.name} 
           onChange={(v) => setData({...data, name: v})} 
         />
-        <CmsInput 
-          label="Primary Theme Color" 
-          type="color"
-          value={data?.branding?.theme?.primary || "#0E5A75"} 
-          onChange={(v) => setData({...data, branding: {...data.branding, theme: {...data.branding.theme, primary: v}}})} 
-        />
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0E5A75]/60 ml-4">Property Theme Variant</label>
+          <div className="relative">
+            <select 
+              className="w-full px-8 py-4.5 rounded-[32px] bg-[#0E5A75]/5 border border-black/5 text-sm font-black text-[#053344] focus:outline-none focus:ring-2 focus:ring-[#0E5A75]/20 appearance-none"
+              value={data?.branding?.theme?.primary || "coastal"} 
+              onChange={(e) => setData({...data, branding: {...data.branding, theme: {...data.branding.theme, primary: e.target.value}}})} 
+            >
+              <option value="coastal">Coastal Sands</option>
+              <option value="heritage">Heritage Luxury</option>
+              <option value="alpine">Alpine Snow</option>
+              <option value="jungle">Jungle Escape</option>
+            </select>
+            <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-[#0E5A75]/40">
+              <ChevronRight size={16} className="rotate-90" />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-4">

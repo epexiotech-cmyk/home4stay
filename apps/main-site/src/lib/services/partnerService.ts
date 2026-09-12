@@ -38,11 +38,11 @@ export class PartnerService {
     const pageContent = await propertyCmsRepository.getPageContentWithSections(propertyId);
     
     // 1. Identity & Narrative
-    if (canonicalProperty && canonicalProperty.title) {
+    if (canonicalProperty) {
        const existingIdentity = (draftsMap["property"] as any) || {};
        draftsMap["property"] = {
-         ...existingIdentity,
-         title: canonicalProperty.title
+         ...existingIdentity
+         // title override removed to prevent registration name from polluting onboarding Step 2
        };
     }
     

@@ -93,7 +93,7 @@ export default function RoomForm({ slug, initialData, onSuccess, onCancel }: Roo
       // 1. Create or Update Room
       const url = "/api/property/room";
       const method = isEditing ? "PATCH" : "POST";
-      const payload: Record<string, unknown> = { slug, name: formData.name, price: Number(formData.price), roomCount: Number(formData.roomCount), capacity: formData.capacity, view: formData.view };
+      const payload: Record<string, unknown> = { name: formData.name, price: Number(formData.price), roomCount: Number(formData.roomCount), capacity: formData.capacity, view: formData.view };
       if (isEditing) payload.id = effectiveRoomId;
 
       const res = await fetch(url, {

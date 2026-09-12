@@ -50,17 +50,17 @@ export default function FloatingBookingBar() {
               exit={{ y: 100, opacity: 0 }}
               className="w-full max-w-5xl pointer-events-auto"
             >
-              <div className="glass-premium rounded-[40px] p-4 md:p-6 shadow-luxury border border-white/50 dark:border-white/10 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="bg-[var(--card)]/95 backdrop-blur-2xl rounded-3xl p-3 md:p-4 shadow-2xl border border-[var(--border)] relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-4">
                 
                 {/* Background Accent */}
-                <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-[#0E5A75]/5 dark:from-[#FCBC43]/5 to-transparent pointer-events-none" />
+                <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-theme-primary/5 to-transparent pointer-events-none" />
 
                 {/* Selection Summary (Desktop) */}
                 <div className="flex-1 flex items-center gap-8 px-4">
                   <div className="flex items-center gap-8 animate-in fade-in slide-in-from-left-4 duration-500">
                     <div className="hidden md:block">
-                      <p className="text-[10px] font-black text-[#0E5A75] dark:text-[#FCBC43] uppercase tracking-[0.2em] mb-1">Your Selection</p>
-                      <h4 className="text-sm font-black text-[#053344] dark:text-white truncate max-w-[200px]">
+                      <p className="text-[10px] font-medium text-[var(--text-subtle)] uppercase tracking-widest mb-1">Your Selection</p>
+                      <h4 className="text-[15px] font-medium text-[var(--text)] truncate max-w-[200px]">
                         {selectedRoomName || "Selected Room"}
                       </h4>
                     </div>
@@ -69,19 +69,19 @@ export default function FloatingBookingBar() {
 
                     <div className="flex items-center gap-6">
                       <div className="flex flex-col items-center md:items-start">
-                        <div className="flex items-center gap-1.5 text-[#053344] dark:text-white/60 mb-1">
+                        <div className="flex items-center gap-1.5 text-[var(--text-muted)] mb-1">
                           <Users size={12} />
-                          <span className="text-[10px] font-black uppercase tracking-widest">{guestCount.adults + guestCount.children} Guests</span>
+                          <span className="text-[11px] font-medium uppercase tracking-widest">{guestCount.adults + guestCount.children} Guests</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[#053344] dark:text-white/60">
                           <Sparkles size={12} className="text-[#159665]" />
-                          <span className="text-[10px] font-black uppercase tracking-widest">{experienceCount} Experiences</span>
+                          <span className="text-[11px] font-medium uppercase tracking-widest">{experienceCount} Experiences</span>
                         </div>
                       </div>
                       
                       <div className="flex flex-col items-end">
-                        <p className="text-[10px] font-black text-[#053344]/40 dark:text-white/40 uppercase tracking-widest mb-0.5 italic">Total Estimated</p>
-                        <p className="text-xl font-black text-[#159665]">₹{pricing.total.toLocaleString()}</p>
+                        <p className="text-[10px] font-medium text-[var(--text-subtle)] uppercase tracking-widest mb-0.5">Total Estimated</p>
+                        <p className="text-xl font-semibold text-theme-primary">₹{pricing.total.toLocaleString()}</p>
                       </div>
                     </div>
                   </div>
@@ -90,17 +90,17 @@ export default function FloatingBookingBar() {
                 {/* Action Buttons */}
                 <div className="flex items-center gap-4 w-full md:w-auto">
                   <div className="hidden sm:flex items-center gap-2 mr-4">
-                    <button className="p-4 rounded-2xl glass-premium border-white/40 dark:border-white/5 text-[#0E5A75] dark:text-white hover:bg-white/40 transition-all shadow-sm">
-                      <Share2 size={18} />
+                    <button className="p-3.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] hover:bg-[var(--text)]/5 transition-all">
+                      <Share2 size={16} strokeWidth={1.5} />
                     </button>
-                    <button className="p-4 rounded-2xl glass-premium border-white/40 dark:border-white/5 text-[#0E5A75] dark:text-white hover:bg-white/40 transition-all shadow-sm">
-                      <MessageCircle size={18} />
+                    <button className="p-3.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] hover:bg-[var(--text)]/5 transition-all">
+                      <MessageCircle size={16} strokeWidth={1.5} />
                     </button>
                   </div>
 
                   <button 
                     onClick={handleReserve}
-                    className="flex-1 md:flex-none px-10 py-5 rounded-[28px] text-xs font-black uppercase tracking-[0.3em] transition-all duration-500 shadow-xl flex items-center justify-center gap-3 relative overflow-hidden group bg-[#0E5A75] dark:bg-[#0983B0] text-white shadow-[#0E5A75]/30 hover:scale-[1.02]"
+                    className="flex-1 md:flex-none px-8 py-4 rounded-xl text-xs font-medium uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden group bg-theme-primary text-white shadow-md hover:bg-theme-primary/90 hover:scale-[1.02]"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
                     <span>Reserve Your Escape</span>
@@ -111,7 +111,7 @@ export default function FloatingBookingBar() {
                 {/* Trust Badges (Desktop Only) */}
                 <div className="hidden lg:flex absolute top-[-1px] left-1/2 -translate-x-1/2 px-6 py-1 rounded-b-xl bg-[#159665]/10 border-x border-b border-[#159665]/20 items-center gap-2">
                    <ShieldCheck size={10} className="text-[#159665]" />
-                   <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[#159665]">Verified Luxury Property • Instant Confirmation</span>
+                   <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-[#159665]">Verified Property • Instant Confirmation</span>
                 </div>
               </div>
             </motion.div>

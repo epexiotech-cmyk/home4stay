@@ -60,16 +60,16 @@ export default function ReviewsSection({ propertyId }: ReviewsSectionProps) {
 
   return (
     <div className="space-y-16">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-[#FCBC43]">
-             <Star size={28} fill="currentColor" />
-             <span className="text-3xl font-black text-[#053344] dark:text-white tracking-tighter">{stats?.averageRating || "0.0"}</span>
+      <div className="flex items-center justify-between pb-4 border-b border-[var(--border)]">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 text-[#FCBC43]">
+             <Star size={24} fill="currentColor" strokeWidth={1} />
+             <span className="text-3xl font-serif text-[var(--text)] tracking-tight mt-1">{stats?.averageRating || "0.0"}</span>
           </div>
-          <div className="w-1 h-1 rounded-full bg-black/10" />
-          <span className="text-xl font-black text-[#053344] dark:text-white uppercase tracking-tight">{stats?.totalReviews || 0} Guest Reviews</span>
+          <div className="w-px h-8 bg-[var(--border)] hidden sm:block" />
+          <span className="text-sm font-medium text-[var(--text-muted)] tracking-widest uppercase mt-1">{stats?.totalReviews || 0} Reviews</span>
         </div>
-        <button className="text-xs font-black uppercase tracking-widest text-[#0E5A75] underline decoration-[#0E5A75]/20 hover:decoration-[#0E5A75] transition-all">
+        <button className="text-[11px] font-medium uppercase tracking-widest text-theme-primary hover:text-theme-primary/80 transition-all">
           Write a Review
         </button>
       </div>
@@ -78,18 +78,18 @@ export default function ReviewsSection({ propertyId }: ReviewsSectionProps) {
         {reviews.length > 0 ? reviews.map((review) => (
           <div key={review.id} className="space-y-6 group">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-[#0E5A75]/5 flex items-center justify-center text-[#0E5A75] shadow-inner relative">
+              <div className="w-12 h-12 rounded-full bg-[var(--bg-secondary)] border border-[var(--border)] flex items-center justify-center text-[var(--text-subtle)] relative shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {getValidImageUrl(review.guestAvatar) ? <img src={getValidImageUrl(review.guestAvatar) || DEFAULT_FALLBACK_IMAGE} alt={`${review.guestName} Avatar`} className="w-full h-full object-cover rounded-2xl" /> : <User size={24} />}
+                {getValidImageUrl(review.guestAvatar) ? <img src={getValidImageUrl(review.guestAvatar) || DEFAULT_FALLBACK_IMAGE} alt={`${review.guestName} Avatar`} className="w-full h-full object-cover rounded-full" /> : <User size={20} strokeWidth={1.5} />}
                 {review.isVerified && (
-                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#159665] flex items-center justify-center text-white border-2 border-white dark:border-[#0b1220]">
-                    <ShieldCheck size={10} />
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-theme-primary flex items-center justify-center text-white border-2 border-[var(--bg)]">
+                    <ShieldCheck size={8} strokeWidth={2.5} />
                   </div>
                 )}
               </div>
               <div>
-                <h4 className="text-base font-black text-[#053344] dark:text-white uppercase tracking-tight">{review.guestName}</h4>
-                <p className="text-[10px] font-bold text-[#0E5A75]/40 uppercase tracking-[0.2em]">
+                <h4 className="text-[15px] font-medium text-[var(--text)] tracking-tight">{review.guestName}</h4>
+                <p className="text-[11px] font-light text-[var(--text-subtle)] uppercase tracking-widest mt-0.5">
                   {format(new Date(review.createdAt), "MMMM yyyy")} • {review.stayType} Trip
                 </p>
               </div>
@@ -101,8 +101,8 @@ export default function ReviewsSection({ propertyId }: ReviewsSectionProps) {
                    <Star key={`star-${i}`} size={12} fill={i < review.rating ? "currentColor" : "none"} />
                  ))}
               </div>
-              <h5 className="text-sm font-black text-[#053344] dark:text-white uppercase tracking-tight italic">&quot;{review.title}&quot;</h5>
-              <p className="text-sm font-medium text-[#0E5A75]/60 dark:text-white/60 leading-relaxed italic">
+              <h5 className="text-[15px] font-medium text-[var(--text)]">&quot;{review.title}&quot;</h5>
+              <p className="text-[14px] font-light text-[var(--text-muted)] leading-relaxed">
                 {review.message}
               </p>
             </div>

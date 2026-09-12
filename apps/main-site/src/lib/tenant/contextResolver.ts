@@ -45,6 +45,7 @@ export interface ExtendedProperty extends Partial<BaselineProperty> {
   };
   offers?: Record<string, unknown>[];
   experiences?: any[];
+  nearbyPlaces?: import("@prisma/client").PropertyNearbyPlace[];
 }
 
 /**
@@ -77,8 +78,9 @@ export async function resolvePropertyContext(identifier: string, draftToken?: st
   if (persistentDbRecord) {
     // Phase 2E Override: Ensure gallery and images are strictly DB-driven
     if (persistentDbRecord.mediaAssets && Array.isArray(persistentDbRecord.mediaAssets)) {
-      merged.images = persistentDbRecord.mediaAssets.map((m: any) => m.url);
-      merged.gallery = persistentDbRecord.mediaAssets.map((m: any) => ({
+      const filteredAssets = persistentDbRecord.mediaAssets.filter((m: any) => !m.assetType?.includes("ROOM") && !m.tags?.includes("room_id"));
+      merged.images = filteredAssets.map((m: any) => m.url);
+      merged.gallery = filteredAssets.map((m: any) => ({
         url: m.url,
         category: m.tags || "Exterior",
         description: m.fileName || "Property Image"
@@ -98,6 +100,18 @@ export async function resolvePropertyContext(identifier: string, draftToken?: st
     }
     
 
+    
+    if (persistentDbRecord.id) {
+      const dbNearbyPlaces = await prisma.propertyNearbyPlace.findMany({
+        where: { propertyId: persistentDbRecord.id as string, isActive: true }
+      });
+      merged.nearbyPlaces = dbNearbyPlaces;
+    } else if (persistentDbRecord.nearbyPlaces && Array.isArray(persistentDbRecord.nearbyPlaces)) {
+      merged.nearbyPlaces = persistentDbRecord.nearbyPlaces.filter((n: import("@prisma/client").PropertyNearbyPlace) => n.isActive);
+    } else {
+      merged.nearbyPlaces = [];
+    }
+
     if (persistentDbRecord.experiences && Array.isArray(persistentDbRecord.experiences)) {
       merged.experiences = persistentDbRecord.experiences.filter((e: any) => e.isActive);
     } else {
@@ -106,7 +120,22 @@ export async function resolvePropertyContext(identifier: string, draftToken?: st
 
     // The public site expects 'rooms' array? We'll leave persistentDbRecord.rooms intact, but ONLY include active rooms.
     if (persistentDbRecord.rooms && Array.isArray(persistentDbRecord.rooms)) {
-      merged.rooms = persistentDbRecord.rooms.filter((r: any) => r.isActive !== false);
+      merged.rooms = persistentDbRecord.rooms.filter((r: any) => r.isActive !== false).map((r: any) => {
+        let parsedImages = r.images;
+        if (typeof r.images === 'string') {
+          try {
+            parsedImages = JSON.parse(r.images);
+          } catch (e) {
+            parsedImages = [];
+          }
+        }
+        if (!Array.isArray(parsedImages)) parsedImages = [];
+        return {
+          ...r,
+          images: parsedImages,
+          image: parsedImages.length > 0 ? parsedImages[0] : undefined
+        };
+      });
     } else {
       merged.rooms = [];
     }

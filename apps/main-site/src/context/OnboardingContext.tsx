@@ -206,8 +206,9 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         const res = await fetch("/api/partner/onboarding/session");
         if (res.ok) {
           const payload = await res.json();
-          if (payload.success && payload.session) {
-            const { status, progress, drafts } = payload.session;
+          const sessionData = payload.data?.session || payload.session;
+          if (payload.success && sessionData) {
+            const { status, progress, drafts } = sessionData;
             setOnboardingStatus(status);
             
             const completed: string[] = [];

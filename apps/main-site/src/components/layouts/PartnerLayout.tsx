@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { 
+  MapPin,
   LayoutDashboard, 
   Calendar, 
   ClipboardList, 
@@ -73,6 +74,7 @@ const sidebarSections: NavSection[] = [
       { title: "Rooms", href: "/partner/rooms", icon: Bed },
       { title: "Meal Plans", href: "/partner/meal-plans", icon: Utensils },
       { title: "Hospitality Experiences", href: "/partner/experiences", icon: Sparkles },
+      { title: "Nearby Places", href: "/partner/nearby-places", icon: MapPin },
     ]
   },
   {
@@ -80,8 +82,6 @@ const sidebarSections: NavSection[] = [
     items: [
       { title: "Revenue", href: "/partner/revenue", icon: DollarSign },
       { title: "Invoices", href: "/partner/invoices", icon: FileText },
-      { title: "Reports", href: "/partner/reports", icon: BarChart3 },
-      { title: "Referrals & Rewards", href: "/partner/dashboard/referrals", icon: Gift },
     ]
   },
   {
@@ -89,8 +89,6 @@ const sidebarSections: NavSection[] = [
     items: [
       { title: "Staff Access", href: "/partner/staff", icon: ShieldCheck },
       { title: "Property Page CMS", href: "/partner/property-page-cms", icon: Layers },
-      { title: "Settings", href: "/partner/settings", icon: Settings },
-      { title: "Subscription", href: "/partner/subscription", icon: CreditCard },
     ]
   }
 ];
@@ -104,8 +102,7 @@ export default function PartnerLayout({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isConciergeOpen, setIsConciergeOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -465,124 +462,6 @@ export default function PartnerLayout({
         </div>
       </aside>
 
-      {/* Floating Concierge Action Hub */}
-      {!pathname.startsWith("/partner/onboarding") && (
-        <button 
-          onClick={() => setIsConciergeOpen(true)}
-          className="fixed bottom-8 right-8 md:bottom-12 md:right-12 z-[80] group gpu-accelerated"
-        >
-        <div className="absolute inset-0 bg-gradient-to-tr from-[#0E5A75]/40 to-[#0983B0]/20 blur-2xl rounded-full group-hover:scale-125 transition-transform duration-700 pointer-events-none" />
-        <div className="relative flex items-center gap-3 bg-[#0E5A75] hover:bg-[#0A4459] text-white px-8 py-4.5 rounded-[24px] shadow-luxury transition-all duration-300 hover:scale-[1.02] active:scale-95 border border-white/10">
-          <Plus size={20} className="transition-transform duration-500 group-hover:rotate-90" />
-          <span className="font-black text-xs uppercase tracking-[0.2em]">Concierge Action</span>
-        </div>
-      </button>
-      )}
-
-      {/* Concierge Action Hub Modal */}
-      {isConciergeOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-[#053344]/40 backdrop-blur-md animate-in fade-in duration-500"
-            onClick={() => setIsConciergeOpen(false)}
-          />
-          <div className="relative w-full max-w-2xl bg-white dark:bg-[#0A0F1D] rounded-[48px] shadow-luxury overflow-hidden animate-in zoom-in-95 duration-500 border border-white/10">
-            <div className="p-10 flex flex-col gap-8">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-3xl font-black text-[#053344] dark:text-white leading-none">Concierge Hub</h2>
-                  <p className="text-sm font-bold text-[#0E5A75]/60 mt-2 tracking-wide">Quick hospitality management actions</p>
-                </div>
-                <button 
-                  onClick={() => setIsConciergeOpen(false)}
-                  className="p-4 rounded-2xl hover:bg-[#0E5A75]/5 text-[#0E5A75] transition-all"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <ConciergeTile 
-                  icon={Plus} 
-                  title="New Booking" 
-                  desc="Create a direct reservation" 
-                  color="bg-[#159665]" 
-                  onClick={() => {
-                    setIsConciergeOpen(false);
-                    if (pathname === '/partner/calendar') {
-                      window.dispatchEvent(new CustomEvent("open-quick-booking"));
-                    } else {
-                      router.push('/partner/calendar');
-                      // Delay slightly to allow page load before opening modal
-                      setTimeout(() => {
-                        window.dispatchEvent(new CustomEvent("open-quick-booking"));
-                      }, 500);
-                    }
-                  }}
-                />
-                <ConciergeTile 
-                  icon={ClipboardList} 
-                  title="Check-ins" 
-                  desc="Manage today's arrivals" 
-                  color="bg-[#0983B0]" 
-                  onClick={() => {
-                    setIsConciergeOpen(false);
-                    router.push('/partner/calendar');
-                  }}
-                />
-                <ConciergeTile 
-                  icon={Star} 
-                  title="Reviews" 
-                  desc="Respond to guest feedback" 
-                  color="bg-[#FCBC43]" 
-                  onClick={() => {
-                    setIsConciergeOpen(false);
-                    router.push('/partner/reviews');
-                  }}
-                />
-                <ConciergeTile 
-                  icon={Settings} 
-                  title="Property Settings" 
-                  desc="Update configurations" 
-                  color="bg-[#0E5A75]" 
-                  onClick={() => {
-                    setIsConciergeOpen(false);
-                    router.push('/partner/settings');
-                  }}
-                />
-              </div>
-            </div>
-            <div className="px-10 py-6 bg-black/[0.02] dark:bg-white/[0.02] border-t border-black/5 dark:border-white/5 flex justify-between items-center">
-              <span className="text-[10px] font-bold text-[#0E5A75]/40 uppercase tracking-widest">Master Concierge v1.0</span>
-              <button className="text-[10px] font-black text-[#0E5A75] uppercase tracking-widest hover:underline">Support Center</button>
-            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface ConciergeTileProps {
-  icon: LucideIcon;
-  title: string;
-  desc: string;
-  color: string;
-  onClick: () => void;
-}
-
-function ConciergeTile({ icon: Icon, title, desc, color, onClick }: ConciergeTileProps) {
-  return (
-    <button 
-      onClick={onClick}
-      className="group p-6 rounded-[32px] bg-white dark:bg-white/5 border border-black/5 dark:border-white/5 hover:border-[#0E5A75]/30 shadow-sm hover:shadow-xl transition-all duration-500 text-left relative overflow-hidden"
-    >
-      <div className={cn("absolute -right-4 -bottom-4 w-24 h-24 rounded-full opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-150 transition-all duration-700", color)} />
-      <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg mb-4 group-hover:scale-110 transition-transform duration-500", color)}>
-        <Icon size={24} />
-      </div>
-      <h3 className="text-lg font-black text-[#053344] dark:text-white leading-tight">{title}</h3>
-      <p className="text-xs font-bold text-[#0E5A75]/60 mt-1">{desc}</p>
-    </button>
   );
 }

@@ -48,6 +48,7 @@ export interface DashboardStats {
   occupancy?: number;
   todayOps?: TodayOp[];
   approvals?: number;
+  revenueChart?: number[];
 }
 
 // --- Sections ---
@@ -82,7 +83,7 @@ const HeroRevenue = ({ stats }: { stats: DashboardStats | null }) => (
     </div>
     
     <div className="mt-8 h-24 flex items-end gap-1.5 opacity-40">
-      {[40, 70, 45, 90, 65, 80, 55, 95, 75, 85, 60, 100, 80, 90, 85].map((h, i) => (
+      {(stats?.revenueChart || []).map((h, i) => (
         <div 
           key={i} 
           className="flex-1 bg-gradient-to-t from-[#0E5A75] to-[#0983B0] rounded-full transition-all duration-700 hover:opacity-100" 
@@ -178,20 +179,18 @@ const PendingApprovals = ({ stats }: { stats: DashboardStats | null }) => (
 );
 
 // --- Types ---
-interface Booking {
-  guest_name: string;
-  room_name: string;
-  amount: string | number;
+import { formatDistanceToNow } from "date-fns";
+
+interface ActivityItem {
+  id: string;
+  timestamp: string;
+  title: string;
+  subtitle: string;
+  type: "booking" | "staff" | "system";
 }
 
-const ActivityFeed = ({ bookings, isLoading }: { bookings: Booking[], isLoading: boolean }) => {
-  console.log("bookings =", bookings);
-  console.log("typeof =", typeof bookings);
-  console.log("isArray =", Array.isArray(bookings));
-
-  const bookingList = Array.isArray(bookings)
-      ? bookings
-      : [];
+const ActivityFeed = ({ activities, isLoading }: { activities: ActivityItem[], isLoading: boolean }) => {
+  const activityList = Array.isArray(activities) ? activities : [];
 
   return (
     <GlassCard className="col-span-1 md:col-span-1">
@@ -201,18 +200,20 @@ const ActivityFeed = ({ bookings, isLoading }: { bookings: Booking[], isLoading:
           <div className="flex items-center justify-center h-40">
             <Loader2 className="animate-spin text-[#0E5A75]" />
           </div>
-        ) : bookingList.length === 0 ? (
+        ) : activityList.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-xs font-bold text-[#0E5A75]/40 uppercase tracking-widest">No recent activity</p>
           </div>
         ) : (
-          bookingList.slice(0, 5).map((item, i) => (
+          activityList.slice(0, 5).map((item, i) => (
             <div key={i} className="flex gap-4 relative text-left">
               <div className={cn("w-6 h-6 rounded-full border-4 border-white dark:border-[#0b1220] shadow-sm shrink-0 z-10", "bg-[#0E5A75]")} />
               <div>
-                <p className="text-[13px] font-bold text-[#053344] dark:text-[#FDF6F1] leading-tight">New Booking</p>
-                <p className="text-[11px] text-[#0E5A75] dark:text-[#0983B0] font-medium mb-1">{item.guest_name} - {item.room_name}</p>
-                <span className="text-[10px] font-bold text-[#0E5A75]/60 dark:text-[#0983B0]/60 uppercase tracking-tighter">Just now</span>
+                <p className="text-[13px] font-bold text-[#053344] dark:text-[#FDF6F1] leading-tight">{item.title}</p>
+                <p className="text-[11px] text-[#0E5A75] dark:text-[#0983B0] font-medium mb-1">{item.subtitle}</p>
+                <span className="text-[10px] font-bold text-[#0E5A75]/60 dark:text-[#0983B0]/60 uppercase tracking-tighter">
+                  {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
+                </span>
               </div>
             </div>
           ))
@@ -226,7 +227,16 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function PartnerDashboard() {
   const { user } = useAuth();
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [currentTime, setCurrentTime] = useState<string>("Loading...");
+  
+  useEffect(() => {
+    const updateTime = () => setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    updateTime();
+    const interval = setInterval(updateTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -237,16 +247,60 @@ export default function PartnerDashboard() {
 
     const fetchData = async () => {
       try {
-        const [bookingsRes, statsRes] = await Promise.all([
+        const [bookingsRes, statsRes, staffRes] = await Promise.all([
           fetch(`/api/bookings?propertyId=${user.propertyId}`),
-          fetch(`/api/partner/dashboard?propertyId=${user.propertyId}`)
+          fetch(`/api/partner/dashboard?propertyId=${user.propertyId}`),
+          fetch(`/api/partner/staff/activity?propertyId=${user.propertyId}`)
         ]);
         
+        const newActivities: ActivityItem[] = [];
+
         if (bookingsRes.ok) {
           const response = await bookingsRes.json();
           const bookingData = response?.data?.data;
-          setBookings(Array.isArray(bookingData) ? bookingData : []);
+          if (Array.isArray(bookingData)) {
+            bookingData.forEach((b: any) => {
+              const guestName = b.guests?.[0]?.guest?.fullName || "Guest";
+              const roomName = b.room?.name || "Room";
+              const timestamp = b.updatedAt || b.createdAt;
+              
+              let title = "New Booking";
+              if (b.status === 'CANCELLED') title = "Booking Cancelled";
+              else if (b.status === 'COMPLETED') title = "Stay Completed";
+              else if (b.status === 'CHECKED_IN') title = "Guest Checked In";
+              else if (b.status === 'CONFIRMED') title = "Booking Confirmed";
+              else if (b.paymentStatus === 'PAID') title = "Payment Received";
+
+              newActivities.push({
+                id: `booking-${b.id}`,
+                timestamp: timestamp,
+                title,
+                subtitle: `${guestName} - ${roomName}`,
+                type: "booking"
+              });
+            });
+          }
         }
+
+        if (staffRes.ok) {
+          const response = await staffRes.json();
+          const logs = response?.data?.logs;
+          if (Array.isArray(logs)) {
+            logs.forEach((log: any) => {
+              newActivities.push({
+                id: `staff-${log.id}`,
+                timestamp: log.time,
+                title: log.action,
+                subtitle: `${log.staffName} on ${log.target}`,
+                type: "staff"
+              });
+            });
+          }
+        }
+
+        newActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setActivities(newActivities);
+
         if (statsRes.ok) {
           const statsData = await statsRes.json();
           setStats(statsData.stats);
@@ -276,7 +330,7 @@ export default function PartnerDashboard() {
         <div className="flex items-center gap-3">
           <div className="flex flex-col items-end">
             <span className="text-[10px] font-bold text-[#053344] dark:text-[#0983B0] uppercase tracking-widest leading-none mb-1">Current Time</span>
-            <span className="text-xl font-black text-[#053344] dark:text-[#FDF6F1] leading-none">10:45 AM</span>
+            <span className="text-xl font-black text-[#053344] dark:text-[#FDF6F1] leading-none">{currentTime}</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-white dark:bg-[#0E5A75] shadow-xl flex items-center justify-center border border-[#0E5A75]/10 dark:border-white/10">
             <Clock className="text-[#0E5A75] dark:text-[#0983B0]" size={24} />
@@ -294,7 +348,7 @@ export default function PartnerDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
         <TodayOperations stats={stats} />
         <PendingApprovals stats={stats} />
-        <ActivityFeed bookings={bookings} isLoading={isLoading} />
+        <ActivityFeed activities={activities} isLoading={isLoading} />
       </div>
     </div>
   );

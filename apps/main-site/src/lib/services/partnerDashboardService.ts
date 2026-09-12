@@ -14,7 +14,8 @@ export class PartnerDashboardService {
       activeBookingsCount,
       approvalsCount,
       todayCheckIns,
-      todayCheckOuts
+      todayCheckOuts,
+      monthBookings
     ] = await Promise.all([
       prisma.booking.aggregate({
         _sum: { amount: true },
@@ -49,6 +50,14 @@ export class PartnerDashboardService {
       prisma.booking.findMany({
         where: { propertyId, endDate: { gte: todayStart, lte: todayEnd } },
         select: { id: true, endDate: true, room: { select: { name: true } } }
+      }),
+      prisma.booking.findMany({
+        where: {
+          propertyId,
+          status: { in: ["CONFIRMED", "CHECKED_IN"] },
+          createdAt: { gte: monthStart }
+        },
+        select: { amount: true, createdAt: true }
       })
     ]);
 
@@ -69,14 +78,26 @@ export class PartnerDashboardService {
       }))
     ];
 
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const dailyRevenue = new Array(daysInMonth).fill(0);
+    monthBookings.forEach(b => {
+      const day = b.createdAt.getDate() - 1;
+      dailyRevenue[day] += Number(b.amount) || 0;
+    });
+    const maxRevenue = Math.max(...dailyRevenue, 1);
+    const revenueChart = dailyRevenue.map(rev => Math.round((rev / maxRevenue) * 100));
+
+    const elapsedDays = Math.max(1, now.getDate());
+    
     return {
       revenueMtd,
       revenueTrend: 0,
-      avgDaily: activeBookingsCount > 0 ? Math.round(revenueMtd / activeBookingsCount) : 0,
+      avgDaily: revenueMtd > 0 ? Math.round(revenueMtd / elapsedDays) : 0,
       targetPercent: null,
       occupancy,
       todayOps,
-      approvals: approvalsCount
+      approvals: approvalsCount,
+      revenueChart
     };
   }
 

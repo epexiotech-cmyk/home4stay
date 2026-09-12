@@ -32,7 +32,7 @@ export default function StickyHeader({ name }: StickyHeaderProps) {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
@@ -57,31 +57,24 @@ export default function StickyHeader({ name }: StickyHeaderProps) {
 
   return (
     <header 
-      className={`fixed left-1/2 -translate-x-1/2 z-50 w-[95vw] transition-all duration-700 cubic-bezier(0.4, 0, 0.2, 1) ${
-        isScrolled ? "top-4 scale-[0.98]" : "top-6 scale-100"
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
+        isScrolled 
+          ? "bg-[var(--theme-bg)]/90 backdrop-blur-xl border-b border-[var(--border)] shadow-sm py-3" 
+          : "bg-transparent py-5"
       }`}
     >
-      <div className={`relative px-6 md:px-10 py-4 rounded-[2.5rem] border transition-all duration-500 ${
-        isScrolled 
-          ? "bg-[var(--card)] backdrop-blur-xl border-[var(--border)] shadow-[0_20px_50px_var(--shadow)]" 
-          : "bg-white/10 backdrop-blur-md border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)]"
-      }`}>
+      <div className="max-w-[1440px] mx-auto px-6 md:px-10 lg:px-20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xl shadow-lg transition-all duration-500 ${
-              isScrolled ? "bg-theme-primary text-white scale-90" : "bg-white text-gray-900"
-            }`}>
-              {name[0]}
-            </div>
-            <Link href="/" className={`text-2xl font-black tracking-tighter hidden sm:block transition-colors duration-500 ${
-              isScrolled ? "text-theme-primary" : "text-white"
+            <Link href="/" className={`text-2xl font-semibold tracking-tight transition-colors duration-500 ${
+              isScrolled ? "text-[var(--text)]" : "text-white"
             }`}>
               {name}
             </Link>
           </div>
 
           {/* Branded Navigation */}
-          <nav className="hidden lg:flex items-center gap-10">
+          <nav className="hidden lg:flex items-center gap-8">
             {[
               { label: "Home", href: "/" },
               { label: "Rooms", href: "#rooms" },
@@ -92,35 +85,35 @@ export default function StickyHeader({ name }: StickyHeaderProps) {
               <Link 
                 key={idx} 
                 href={link.href} 
-                className={`text-sm font-bold transition-all duration-500 hover:text-theme-primary ${
-                  isScrolled ? "text-[var(--text-muted)]" : "text-white/80"
-                } ${link.label === "Home" && isScrolled ? "text-theme-primary" : ""}`}
+                className={`text-[13px] font-medium tracking-wide uppercase transition-all duration-300 hover:opacity-100 ${
+                  isScrolled ? "text-[var(--text)] opacity-70 hover:text-theme-primary" : "text-white opacity-80"
+                }`}
               >
                 {link.label}
               </Link>
             ))}
           </nav>
 
-          <div className="flex items-center gap-4">
-            <button className={`p-2 rounded-full transition-colors duration-500 hidden sm:block ${
-              isScrolled ? "hover:bg-theme-primary/5 text-theme-primary" : "hover:bg-white/10 text-white"
+          <div className="flex items-center gap-6">
+            <button className={`transition-colors duration-500 hidden sm:block hover:opacity-100 ${
+              isScrolled ? "text-[var(--text)] opacity-70" : "text-white opacity-80"
             }`}>
-              <Globe size={18} />
+              <Globe size={18} strokeWidth={1.5} />
             </button>
             
             <div className="relative">
               <button
                 ref={profileButtonRef}
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className={`flex items-center gap-2 p-1.5 pl-3 border rounded-full transition-all duration-500 cursor-pointer ${
+                className={`flex items-center gap-2 p-1.5 pl-3 border rounded-full transition-all duration-300 cursor-pointer ${
                   isScrolled 
-                    ? "border-[var(--border)] bg-[var(--bg)] hover:shadow-md" 
-                    : "border-white/20 bg-white/10 text-white hover:bg-white/20"
+                    ? "border-[var(--border)] bg-[var(--card)] hover:shadow-md" 
+                    : "border-white/20 bg-white/10 hover:bg-white/20"
                 }`}
               >
-                <Menu size={18} className={isScrolled ? "text-theme-primary" : "text-white"} />
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center overflow-hidden border transition-all duration-500 ${
-                  isScrolled ? "bg-[var(--text-subtle)]/20 border-[var(--border)]" : "bg-white/20 border-white/30"
+                <Menu size={16} strokeWidth={1.5} className={isScrolled ? "text-[var(--text)]" : "text-white"} />
+                <div className={`h-7 w-7 rounded-full flex items-center justify-center overflow-hidden transition-all duration-300 ${
+                  isScrolled ? "bg-[var(--bg-secondary)]" : "bg-white/20"
                 }`}>
                   {loading ? (
                     <div className="w-full h-full animate-pulse bg-gray-300" />
@@ -129,19 +122,19 @@ export default function StickyHeader({ name }: StickyHeaderProps) {
                       <OptimizedImage
                         src={getValidImageUrl(user.image_url) || DEFAULT_FALLBACK_IMAGE}
                         alt={user.name}
-                        width={32}
-                        height={32}
+                        width={28}
+                        height={28}
                         className="w-full h-full object-cover"
                         onError={() => setImageError(true)}
-                        sizes="32px"
+                        sizes="28px"
                       />
                     ) : (
-                      <span className={`text-[10px] font-bold ${isScrolled ? "text-[var(--text)]" : "text-white"}`}>
+                      <span className={`text-[9px] font-bold ${isScrolled ? "text-[var(--text)]" : "text-white"}`}>
                         {getInitials(user.name)}
                       </span>
                     )
                   ) : (
-                    <UserCircle size={24} className={isScrolled ? "text-[var(--text-subtle)]" : "text-white/50"} />
+                    <UserCircle size={20} strokeWidth={1.5} className={isScrolled ? "text-[var(--text-subtle)]" : "text-white/50"} />
                   )}
                 </div>
               </button>
@@ -149,7 +142,7 @@ export default function StickyHeader({ name }: StickyHeaderProps) {
               {/* Profile Dropdown */}
               <div
                 ref={dropdownRef}
-                className={`absolute right-0 mt-3 w-64 origin-top-right rounded-2xl border border-[var(--border)] bg-[var(--bg)] backdrop-blur-xl shadow-2xl transition-all duration-300 py-2 z-[60] overflow-hidden ${
+                className={`absolute right-0 mt-3 w-64 origin-top-right rounded-2xl border border-[var(--border)] bg-[var(--bg)] backdrop-blur-xl shadow-xl transition-all duration-300 py-2 z-[60] overflow-hidden ${
                   isProfileOpen
                     ? "opacity-100 translate-y-0 scale-100"
                     : "opacity-0 -translate-y-4 scale-95 pointer-events-none"
@@ -158,28 +151,28 @@ export default function StickyHeader({ name }: StickyHeaderProps) {
                 {user ? (
                   <>
                     <div className="px-4 py-3">
-                      <p className="text-sm font-bold text-[var(--text)]">{user.name}</p>
+                      <p className="text-sm font-semibold text-[var(--text)]">{user.name}</p>
                       <p className="text-xs text-[var(--text-subtle)] truncate">{user.email}</p>
                     </div>
                     <hr className="border-[var(--border)]" />
                     <ThemeSwitcher />
                     <hr className="border-[var(--border)]" />
                     <div className="py-1">
-                      <Link href="/profile" className="block px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:bg-[var(--text)]/5">Profile</Link>
-                      <Link href="/profile/edit" className="block px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:bg-[var(--text)]/5">Settings</Link>
+                      <Link href="/profile" className="block px-4 py-2.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--bg-secondary)] transition-colors">Profile</Link>
+                      <Link href="/profile/edit" className="block px-4 py-2.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--bg-secondary)] transition-colors">Settings</Link>
                     </div>
                     <hr className="border-[var(--border)]" />
                     <button
                       onClick={() => { logout(); setIsProfileOpen(false); }}
-                      className="w-full text-left px-4 py-2.5 text-sm font-bold text-red-500 hover:bg-red-500/10 transition-colors"
+                      className="w-full text-left px-4 py-2.5 text-[13px] font-medium text-red-500 hover:bg-red-500/10 transition-colors"
                     >
                       Logout
                     </button>
                   </>
                 ) : (
                   <div className="py-2">
-                    <a href={getMainDomainUrl("/login")} className="block px-4 py-2.5 text-sm font-bold text-[var(--text)] hover:bg-[var(--text)]/5">Login</a>
-                    <a href={getMainDomainUrl("/register?intent=customer")} className="block px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:bg-[var(--text)]/5">Sign Up</a>
+                    <a href={getMainDomainUrl("/login")} className="block px-4 py-2.5 text-[13px] font-semibold text-[var(--text)] hover:bg-[var(--bg-secondary)] transition-colors">Login</a>
+                    <a href={getMainDomainUrl("/register?intent=customer")} className="block px-4 py-2.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--bg-secondary)] transition-colors">Sign Up</a>
                     <hr className="border-[var(--border)] my-2" />
                     <ThemeSwitcher />
                   </div>

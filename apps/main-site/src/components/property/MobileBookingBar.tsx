@@ -10,7 +10,7 @@ interface MobileBookingBarProps {
 
 export default function MobileBookingBar({ price, rating }: MobileBookingBarProps) {
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 border-t border-white/60 px-6 py-5 flex items-center justify-between z-[100] shadow-[0_-20px_40px_rgba(0,0,0,0.05)] backdrop-blur-xl">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#FAF7F2] dark:bg-[#121212] border-t border-[var(--border)]/50 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex items-center justify-between z-[100] shadow-sm">
       <div className="flex flex-col">
         <div className="flex items-baseline gap-1">
           <span className="text-xl font-black text-[#1a2b4b] tracking-tighter">₹{price.toLocaleString("en-IN")}</span>

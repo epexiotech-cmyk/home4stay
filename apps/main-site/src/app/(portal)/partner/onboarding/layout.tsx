@@ -389,16 +389,7 @@ function OnboardingInnerLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="flex items-center gap-4 shrink-0">
-          <button
-            type="button"
-            className="hidden md:flex items-center gap-2.5 px-6 py-3.5 rounded-xl border border-primary text-primary bg-white text-xs font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-sm hover:bg-primary/5 shrink-0"
-          >
-            <div className="w-[22px] h-[22px] rounded-full bg-primary/10 text-primary flex items-center justify-center font-medium text-[11px] shrink-0">
-              1
-            </div>
-            <span className="whitespace-nowrap">Concierge Action</span>
-            <Bell size={14} className="shrink-0" />
-          </button>
+          
 
           <button
             onClick={handleNext}

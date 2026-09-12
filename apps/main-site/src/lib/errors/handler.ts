@@ -1,6 +1,7 @@
 import fs from "fs";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "../observability/logger";
+import { z } from "zod";
 
 export class AppError extends Error {
   constructor(
@@ -84,6 +85,9 @@ export const withErrorHandler = <TContext = any>(
 
     return response;
   } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ success: false, error: { code: "VALIDATION_ERROR", message: error.issues.map(e => `${e.path.join(".")}: ${e.message}`).join(", "), details: error.issues } }, { status: 400 });
+    }
     const durationMs = Date.now() - start;
     const statusCode = error instanceof AppError ? error.statusCode : 500;
     const isOperational = error instanceof AppError;

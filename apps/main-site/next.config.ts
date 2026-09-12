@@ -6,10 +6,14 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@home4stay/data"],
   turbopack: {
     // Set root to the monorepo root to allow resolving hoisted dependencies
-    root: path.resolve(process.cwd(), "../../")
+    root: path.resolve(process.cwd(), "../..")
   },
   images: {
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
       {
         protocol: 'https',
         hostname: '**',

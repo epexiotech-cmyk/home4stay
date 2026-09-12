@@ -1,8 +1,8 @@
-- [x] Update `schema.prisma` with new `PropertyMealPlan` fields.
-- [x] Run `npx prisma generate` and `npx prisma db push`.
-- [x] Create `propertyMealPlanService.ts`.
-- [x] Create `api/property/meal-plans/route.ts`.
-- [x] Create `api/property/meal-plans/[id]/route.ts`.
-- [x] Implement `apps/main-site/src/app/(portal)/partner/meal-plans/page.tsx`.
-- [x] Update `contextResolver.ts` to filter active meal plans.
-- [x] Verify functionality (tsc, build, manual check).
+- [ ] Update `schema.prisma` with new `PropertyMealPlan` fields.
+- [ ] Run `npx prisma generate` and `npx prisma db push`.
+- [ ] Create `propertyMealPlanService.ts`.
+- [ ] Create `api/property/meal-plans/route.ts`.
+- [ ] Create `api/property/meal-plans/[id]/route.ts`.
+- [ ] Implement `apps/main-site/src/app/(portal)/partner/meal-plans/page.tsx`.
+- [ ] Update `contextResolver.ts` to filter active meal plans.
+- [ ] Verify functionality (tsc, build, manual check).

@@ -130,6 +130,10 @@ export async function requirePropertyAccess(request: NextRequest, targetProperty
   const access = await userRepository.checkPropertyAccess(auth.userId!, targetPropertyId);
 
   if (!access) {
+    const property = await propertyRepository.findById(targetPropertyId);
+    if (property && property.ownerId === auth.userId) {
+      return auth;
+    }
     console.warn(`[SECURITY ALERT] Tenant isolation violation: User ${auth.userId} (${auth.role}) attempted unauthorized access to property ${targetPropertyId}`);
     return {
       authorized: false,

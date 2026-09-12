@@ -39,7 +39,7 @@ export default function NarrativeCardStack({ images }: NarrativeCardStackProps) 
   return (
     <div className="relative aspect-[4/5] w-full max-w-[538px] mx-auto select-none group">
       {/* Absolute Decorative Glow Layer */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-[#0983B0]/20 to-[#159665]/10 blur-3xl rounded-[64px] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-tr from-[#0983B0]/20 to-[#159665]/10 blur-3xl rounded-[2.5rem] pointer-events-none" />
 
       {displayImages.map((src, idx) => {
         // Calculate dynamic relative index in the shuffling sequence
@@ -59,7 +59,7 @@ export default function NarrativeCardStack({ images }: NarrativeCardStackProps) 
             key={idx}
             onClick={handleNext}
             className={cn(
-              "absolute inset-0 rounded-[48px] md:rounded-[64px] overflow-hidden shadow-2xl cursor-pointer transition-all duration-500 ease-out border border-white/10 dark:border-white/5",
+              "absolute inset-0 rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl cursor-pointer transition-all duration-500 ease-out border border-white/10 dark:border-white/5",
               // Layout kinetics mimicking stacked poker cards
               isTop && "z-30 scale-100 translate-y-0 rotate-0 opacity-100",
               isSecond && "z-20 scale-[0.95] translate-y-[-20px] translate-x-[32px] rotate-[4deg] opacity-90",
@@ -81,17 +81,17 @@ export default function NarrativeCardStack({ images }: NarrativeCardStackProps) 
             <div className="absolute inset-0 bg-gradient-to-t from-[#053344]/80 via-transparent to-transparent" />
 
             {/* Absolute Narrative Story Hint Badge */}
-            <div className="absolute bottom-8 left-8 p-5 glass-premium rounded-3xl border-white/40 dark:border-white/5 text-[#053344] dark:text-white max-w-[240px]">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Sparkles size={12} className="text-[#FCBC43]" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#FCBC43]">{hint.title}</p>
+            <div className="absolute bottom-8 left-8 p-5 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white max-w-[240px]">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Sparkles size={12} className="text-white/80" />
+                <p className="text-[9px] font-medium uppercase tracking-widest text-white/80">{hint.title}</p>
               </div>
-              <p className="text-xs font-bold leading-relaxed dark:opacity-90">{hint.desc}</p>
+              <p className="text-[13px] font-light leading-relaxed">{hint.desc}</p>
             </div>
 
             {/* Shuffling CTA Helper Badge (Only visible on Top Card) */}
             {isTop && (
-              <div className="absolute top-6 right-6 px-4 py-2 rounded-full glass-premium border-white/40 dark:border-white/5 text-[#053344]/80 dark:text-white/80 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="absolute top-6 right-6 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white flex items-center gap-2 text-[9px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <span>Click to Shuffle</span>
                 <RefreshCw size={12} className="animate-spin-slow" />
               </div>
@@ -101,9 +101,9 @@ export default function NarrativeCardStack({ images }: NarrativeCardStackProps) 
       })}
 
       {/* Interactive Stack Helper Footnote */}
-      <div className="absolute -bottom-12 left-0 right-0 flex items-center justify-center gap-2 text-xs font-bold text-[#0E5A75]/50 dark:text-white/40 pointer-events-none">
+      <div className="absolute -bottom-10 left-0 right-0 flex items-center justify-center gap-2 text-[11px] font-medium tracking-wide text-[var(--text-subtle)] pointer-events-none">
         <Layers size={14} />
-        <span>Interactive Carousel Deck • Click stack to deal next visual</span>
+        <span>Interactive Deck • Click to reveal</span>
       </div>
     </div>
   );

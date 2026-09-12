@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Sparkles, Mountain, Utensils, Music, Coffee, Compass, Heart, CheckCircle2 } from "lucide-react";
 
-
 export const EXPERIENCE_ICONS = {
   sparkles: Sparkles,
   utensils: Utensils,
@@ -107,27 +106,55 @@ export const PREDEFINED_TEMPLATES = [
   }
 ];
 
+export type PredefinedTemplate = typeof PREDEFINED_TEMPLATES[0];
+
 interface ExperienceLibraryProps {
   existingSlugs?: string[];
-  onAddMultiple: (templates: typeof PREDEFINED_TEMPLATES) => void;
+  onAddMultiple: (templates: Array<PredefinedTemplate & { customPrice?: number }>) => void;
   onClose: () => void;
 }
 
 export function ExperienceLibrary({ existingSlugs = [], onAddMultiple, onClose }: ExperienceLibraryProps) {
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [customPrices, setCustomPrices] = useState<Record<number, number>>({});
 
-  const toggleSelection = (idx: number) => {
+  const toggleSelection = (idx: number, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
     const next = new Set(selectedIndices);
     if (next.has(idx)) {
       next.delete(idx);
+      // Clean up custom price if unselected
+      const newPrices = { ...customPrices };
+      delete newPrices[idx];
+      setCustomPrices(newPrices);
     } else {
       next.add(idx);
+      // Set default template price when selected
+      if (PREDEFINED_TEMPLATES[idx].price > 0) {
+        setCustomPrices(prev => ({ ...prev, [idx]: PREDEFINED_TEMPLATES[idx].price }));
+      }
     }
     setSelectedIndices(next);
   };
 
+  const handlePriceChange = (idx: number, value: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const num = parseInt(value, 10);
+    setCustomPrices(prev => ({ ...prev, [idx]: isNaN(num) ? 0 : num }));
+  };
+
   const handleAddSelected = () => {
-    const selectedTemplates = PREDEFINED_TEMPLATES.filter((_, idx) => selectedIndices.has(idx));
+    const selectedTemplates = PREDEFINED_TEMPLATES.map((template, idx) => {
+      if (selectedIndices.has(idx)) {
+        return {
+          ...template,
+          customPrice: customPrices[idx] !== undefined ? customPrices[idx] : template.price
+        };
+      }
+      return null;
+    }).filter(Boolean) as Array<PredefinedTemplate & { customPrice?: number }>;
+
     if (selectedTemplates.length > 0) {
       onAddMultiple(selectedTemplates);
     }
@@ -136,7 +163,7 @@ export function ExperienceLibrary({ existingSlugs = [], onAddMultiple, onClose }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full max-w-5xl bg-[#FDF6F1] dark:bg-[#0A0F1D] rounded-[48px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-5xl bg-[#FDF6F1] dark:bg-[#053344] rounded-[48px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         <div className="p-10 border-b border-black/5 dark:border-white/5 flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-black text-[#053344] dark:text-white tracking-tight">Experience Library</h2>
@@ -154,8 +181,8 @@ export function ExperienceLibrary({ existingSlugs = [], onAddMultiple, onClose }
             const containerClasses = [
               "group relative bg-white dark:bg-[#0E5A75]/20 rounded-3xl overflow-hidden border transition-all duration-500 flex flex-col",
               isAlreadyAdded ? "opacity-50 grayscale border-black/5 dark:border-white/5 pointer-events-none" : "",
-              isSelected && !isAlreadyAdded ? "border-[#159665] shadow-xl ring-2 ring-[#159665]" : "",
-              !isSelected && !isAlreadyAdded ? "border-black/5 dark:border-white/5 hover:border-[#0E5A75]/20 dark:hover:border-[#FCBC43]/20 shadow-sm hover:shadow-xl cursor-pointer" : ""
+              isSelected && !isAlreadyAdded ? "border-[#D4AF37] shadow-[0_20px_50px_-12px_rgba(212,175,55,0.2)] ring-1 ring-[#D4AF37]/20" : "",
+              !isSelected && !isAlreadyAdded ? "border-black/5 dark:border-white/5 hover:border-[#D4AF37]/30 shadow-sm hover:shadow-xl cursor-pointer" : ""
             ].filter(Boolean).join(" ");
 
             return (
@@ -163,11 +190,11 @@ export function ExperienceLibrary({ existingSlugs = [], onAddMultiple, onClose }
               key={idx} 
               className={containerClasses}
               onClick={() => {
-                if (!isAlreadyAdded) toggleSelection(idx);
+                if (!isAlreadyAdded && !isSelected) toggleSelection(idx);
               }}
             >
               {isSelected && (
-                <div className="absolute top-4 left-4 z-10 w-8 h-8 bg-[#159665] rounded-full flex items-center justify-center text-white shadow-lg animate-in zoom-in">
+                <div className="absolute top-4 left-4 z-10 w-8 h-8 bg-[#D4AF37] rounded-full flex items-center justify-center text-white shadow-lg animate-in zoom-in">
                   <CheckCircle2 size={18} />
                 </div>
               )}
@@ -180,7 +207,7 @@ export function ExperienceLibrary({ existingSlugs = [], onAddMultiple, onClose }
               </div>
               <div className="p-6 flex-1 flex flex-col">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-[#0E5A75]/5 dark:bg-[#FCBC43]/10 flex items-center justify-center text-[#0E5A75] dark:text-[#FCBC43]">
+                  <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center text-[#D4AF37]">
                     {(() => {
                       const Icon = EXPERIENCE_ICONS[template.icon as ExperienceIcon] || Sparkles;
                       return <Icon size={20} />;
@@ -193,27 +220,51 @@ export function ExperienceLibrary({ existingSlugs = [], onAddMultiple, onClose }
                 </div>
                 <h3 className="text-lg font-black text-[#053344] dark:text-white mb-2">{template.title}</h3>
                 <p className="text-xs font-medium text-[#0E5A75]/60 dark:text-white/60 leading-relaxed mb-6 flex-1 line-clamp-2">{template.description}</p>
-                <div className="flex items-center justify-between mt-auto pt-4 border-t border-black/5 dark:border-white/5">
-                  <span className="text-sm font-black text-[#159665]">
-                    {template.price === 0 ? "Complimentary" : "Rs." + template.price}
-                  </span>
-                  <div className="px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest">
-                    {isAlreadyAdded ? (
-                      <span className="text-[#0E5A75]/40 dark:text-white/40">Already Added</span>
-                    ) : isSelected ? (
-                      <span className="text-[#159665]">Selected</span>
-                    ) : (
-                      <span className="text-[#0E5A75] dark:text-[#FCBC43]">Select Template</span>
-                    )}
+                
+                {isSelected ? (
+                  <div className="mt-auto pt-4 border-t border-[#D4AF37]/20 flex flex-col gap-3" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-end">
+                      <div className="w-full">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-[#0E5A75]/60 dark:text-white/60 mb-1 block">Property Price (INR)</label>
+                        {template.price === 0 ? (
+                          <div className="px-4 py-2 bg-black/5 dark:bg-white/5 rounded-xl text-sm font-black text-[#159665]">Complimentary</div>
+                        ) : (
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-black text-[#053344]/40 dark:text-white/40">₹</span>
+                            <input 
+                              type="number" 
+                              min="0"
+                              value={customPrices[idx] !== undefined ? customPrices[idx] : template.price}
+                              onChange={(e) => handlePriceChange(idx, e.target.value, e)}
+                              className="w-full pl-8 pr-4 py-2 bg-white dark:bg-[#053344] border border-[#D4AF37]/40 rounded-xl text-sm font-black text-[#053344] dark:text-white focus:ring-2 ring-[#D4AF37]/40 outline-none"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button onClick={(e) => toggleSelection(idx, e)} className="text-[10px] font-black uppercase text-red-500 hover:text-red-600 text-center py-1">Remove</button>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-black/5 dark:border-white/5">
+                    <span className="text-sm font-black text-[#159665]">
+                      {template.price === 0 ? "Complimentary" : "₹" + template.price}
+                    </span>
+                    <div className="px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest">
+                      {isAlreadyAdded ? (
+                        <span className="text-[#0E5A75]/40 dark:text-white/40">Already Added</span>
+                      ) : (
+                        <span className="text-[#0E5A75] dark:text-[#FCBC43]">Select Template</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )})}
         </div>
 
         {/* Sticky Footer */}
-        <div className="p-6 border-t border-black/5 dark:border-white/5 bg-[#FDF6F1] dark:bg-[#0A0F1D] flex justify-between items-center">
+        <div className="p-6 border-t border-black/5 dark:border-white/5 bg-[#FDF6F1] dark:bg-[#053344] flex justify-between items-center">
           <span className="text-sm font-bold text-[#053344] dark:text-white">
             {selectedIndices.size} selected
           </span>
@@ -222,7 +273,7 @@ export function ExperienceLibrary({ existingSlugs = [], onAddMultiple, onClose }
             disabled={selectedIndices.size === 0}
             className={`px-8 py-4 rounded-full text-xs font-black uppercase tracking-widest shadow-xl transition-all ${
               selectedIndices.size > 0 
-                ? "bg-[#0E5A75] text-white hover:bg-[#0983B0] hover:scale-105" 
+                ? "bg-[#D4AF37] text-white hover:bg-[#c29e30] hover:scale-105" 
                 : "bg-black/10 text-black/40 cursor-not-allowed"
             }`}
           >

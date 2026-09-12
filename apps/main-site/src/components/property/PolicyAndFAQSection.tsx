@@ -20,18 +20,18 @@ export default function PolicyAndFAQSection({ faqs = [], policies }: PolicyAndFA
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <section className="py-32 border-b border-black/5 dark:border-white/5 relative overflow-hidden">
+    <section className="py-20 md:py-32 border-b border-[var(--border)] relative overflow-hidden">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
         
         {/* Policies Column */}
         <div className="space-y-12">
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-px bg-[#0E5A75]" />
-              <span className="text-[10px] font-black text-[#0E5A75] uppercase tracking-[0.3em]">Stay Rules</span>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-px bg-[var(--text-subtle)]" />
+              <span className="text-[11px] font-medium text-[var(--text-subtle)] uppercase tracking-[0.2em]">Guidelines</span>
             </div>
-            <h2 className="text-4xl font-black text-[#053344] dark:text-white tracking-tighter mb-4 italic">Property Policies</h2>
-            <p className="text-sm text-[#0E5A75]/60 font-medium italic">Our standard guidelines to ensure a comfortable stay for everyone.</p>
+            <h2 className="text-4xl md:text-5xl font-serif text-[var(--text)] tracking-tight mb-4">Property <span className="italic text-[var(--text-muted)]">Policies.</span></h2>
+            <p className="text-base text-[var(--text-muted)] font-light leading-relaxed">Essential information to ensure a seamless experience for all guests.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -69,30 +69,30 @@ export default function PolicyAndFAQSection({ faqs = [], policies }: PolicyAndFA
         {/* FAQ Column */}
         <div className="space-y-12">
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-px bg-[#0983B0]" />
-              <span className="text-[10px] font-black text-[#0983B0] uppercase tracking-[0.3em]">Common Queries</span>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-px bg-[var(--text-subtle)]" />
+              <span className="text-[11px] font-medium text-[var(--text-subtle)] uppercase tracking-[0.2em]">Common Queries</span>
             </div>
-            <h2 className="text-4xl font-black text-[#053344] dark:text-white tracking-tighter mb-4 italic">Frequently Asked</h2>
-            <p className="text-sm text-[#0E5A75]/60 font-medium italic">Everything you need to know about your upcoming luxury escape.</p>
+            <h2 className="text-4xl md:text-5xl font-serif text-[var(--text)] tracking-tight mb-4">Frequently <span className="italic text-[var(--text-muted)]">Asked.</span></h2>
+            <p className="text-base text-[var(--text-muted)] font-light leading-relaxed">Answers to common questions regarding your upcoming stay.</p>
           </div>
 
           <div className="space-y-4">
             {faqs.length > 0 ? faqs.map((faq, idx) => (
               <div 
                 key={`faq-${idx}`}
-                className="bg-white dark:bg-[#0E5A75]/10 rounded-[32px] border border-black/5 dark:border-white/5 overflow-hidden transition-all duration-500"
+                className="bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden transition-all duration-300"
               >
                 <button 
                   onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                  className="w-full px-8 py-6 flex items-center justify-between text-left"
+                  className="w-full px-6 py-5 flex items-center justify-between text-left group"
                 >
-                  <span className="text-sm font-black text-[#053344] dark:text-white uppercase tracking-tight">{faq.question}</span>
+                  <span className="text-[14px] font-medium text-[var(--text)]">{faq.question}</span>
                   <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500",
-                    openFaq === idx ? "bg-[#0E5A75] text-white rotate-180" : "bg-black/5 dark:bg-white/5 text-[#0E5A75]"
+                    "w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300",
+                    openFaq === idx ? "bg-theme-primary border-theme-primary text-white rotate-180" : "border-[var(--border)] text-[var(--text-subtle)] group-hover:border-theme-primary/50"
                   )}>
-                    {openFaq === idx ? <Minus size={16} /> : <Plus size={16} />}
+                    {openFaq === idx ? <Minus size={14} strokeWidth={1.5} /> : <Plus size={14} strokeWidth={1.5} />}
                   </div>
                 </button>
                 <AnimatePresence>
@@ -101,9 +101,9 @@ export default function PolicyAndFAQSection({ faqs = [], policies }: PolicyAndFA
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
                     >
-                      <div className="px-8 pb-8 text-sm font-medium text-[#0E5A75]/60 dark:text-white/60 italic leading-relaxed">
+                      <div className="px-6 pb-6 pt-2 text-[14px] font-light text-[var(--text-muted)] leading-relaxed">
                         {faq.answer}
                       </div>
                     </motion.div>
@@ -123,12 +123,12 @@ export default function PolicyAndFAQSection({ faqs = [], policies }: PolicyAndFA
 
 function PolicyCard({ icon: Icon, title, content }: { icon: React.ElementType, title: string, content: string }) {
   return (
-    <div className="p-8 rounded-[40px] bg-white dark:bg-[#0E5A75]/10 border border-black/5 dark:border-white/5 group hover:border-[#0E5A75]/20 transition-all duration-500">
-      <div className="w-12 h-12 rounded-2xl bg-[#0E5A75]/5 dark:bg-[#FCBC43]/10 flex items-center justify-center text-[#0E5A75] dark:text-[#FCBC43] mb-6 group-hover:scale-110 transition-transform duration-500">
-        <Icon size={20} />
+    <div className="p-6 md:p-8 rounded-3xl bg-[var(--card)] border border-[var(--border)] group hover:border-theme-primary/30 transition-all duration-300">
+      <div className="w-10 h-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] flex items-center justify-center text-[var(--text)] mb-6 group-hover:scale-110 group-hover:bg-theme-primary group-hover:text-white group-hover:border-theme-primary transition-all duration-500">
+        <Icon size={18} strokeWidth={1.5} />
       </div>
-      <h3 className="text-lg font-black text-[#053344] dark:text-white mb-3 tracking-tight">{title}</h3>
-      <p className="text-xs font-medium text-[#0E5A75]/60 dark:text-white/60 leading-relaxed italic whitespace-pre-line">{content}</p>
+      <h3 className="text-lg font-medium text-[var(--text)] mb-2 tracking-tight">{title}</h3>
+      <p className="text-[13px] font-light text-[var(--text-muted)] leading-relaxed whitespace-pre-line">{content}</p>
     </div>
   );
 }
